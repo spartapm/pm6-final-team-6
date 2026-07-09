@@ -12,7 +12,7 @@ export default function AppShell({
   showNav?: boolean;
 }) {
   return (
-    <div className="app-frame">
+    <div className={`app-frame ${showNav ? "app-frame--nav" : ""}`}>
       <main className={showNav ? "app-main" : "app-main--flush"}>{children}</main>
       {showNav && <BottomNav />}
       <Toast />

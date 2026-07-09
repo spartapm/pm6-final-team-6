@@ -99,7 +99,7 @@ export default function BottomNav() {
   const { state } = useAppDerivations();
 
   return (
-    <nav className="bottom-nav fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-phone items-start justify-around border-t border-line/40 bg-surface-white pt-2 shadow-nav">
+    <nav className="bottom-nav z-40 flex w-full shrink-0 items-start justify-around border-t border-line/40 bg-surface-white pt-2 shadow-nav">
       {tabs.map((tab) => {
         const active = isActive(pathname, tab.key);
         return (

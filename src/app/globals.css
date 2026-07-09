@@ -15,7 +15,7 @@
   --color-page: #f4e8ea;
   --color-line: #ff8da1;
   --page-padding: 16px;
-  --nav-height: 72px;
+  --nav-height: 64px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --phone-width: 360px;
 }
@@ -25,6 +25,7 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100%;
+  height: 100%;
 }
 
 html {
@@ -82,22 +83,34 @@ button:disabled {
   width: 100%;
   max-width: var(--phone-width);
   min-height: 100svh;
+  height: 100svh;
   margin: 0 auto;
   background: var(--color-page);
   position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   box-shadow: 0 0 0 1px rgba(255, 141, 161, 0.18), 0 24px 60px rgba(34, 10, 14, 0.08);
 }
 
 .app-main {
-  min-height: 100svh;
-  padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + 20px);
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 20px;
 }
 
 .app-main--flush {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   padding-bottom: calc(var(--safe-bottom) + 24px);
 }
 
 .bottom-nav {
+  flex-shrink: 0;
   height: calc(var(--nav-height) + var(--safe-bottom));
   padding-bottom: var(--safe-bottom);
 }
@@ -112,9 +125,9 @@ button:disabled {
 }
 
 @supports (height: 100dvh) {
-  .app-frame,
-  .app-main {
+  .app-frame {
     min-height: 100dvh;
+    height: 100dvh;
   }
 }
 
