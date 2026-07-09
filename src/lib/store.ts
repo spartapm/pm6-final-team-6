@@ -46,6 +46,10 @@ import type {
 
 const KEY = "ana-skin-state-v2";
 
+/** useSyncExternalStore용 캐시 — getSnapshot은 동일 참조를 반환해야 함 */
+let memoryState: AppState | null = null;
+let hydratedFromStorage = false;
+
 const seedNotes: SkinNote[] = [
   {
     id: "note_seed_1",
@@ -184,42 +188,59 @@ function canUseStorage() {
   return typeof window !== "undefined" && Boolean(window.localStorage);
 }
 
+function normalizeState(parsed: Partial<AppState>): AppState {
+  return {
+    ...defaultState,
+    ...parsed,
+    likedCommentIds: parsed.likedCommentIds ?? [],
+    reportedNoteIds: parsed.reportedNoteIds ?? [],
+    selectedRoutineId: parsed.selectedRoutineId ?? null,
+    bannerDismissed: {
+      ...defaultState.bannerDismissed,
+      ...(parsed.bannerDismissed ?? {}),
+    },
+    routines: (parsed.routines ?? []).map((r) => ({
+      ...r,
+      userId:
+        r.userId ||
+        (typeof r.id === "string" && r.id.startsWith("routine_")
+          ? r.id.split("_")[1]
+          : ""),
+    })),
+    toast: parsed.toast ?? null,
+  };
+}
+
 export function loadState(): AppState {
-  if (!canUseStorage()) return defaultState;
-  try {
-    const raw = window.localStorage.getItem(KEY);
-    if (!raw) return defaultState;
-    const parsed = JSON.parse(raw) as Partial<AppState>;
-    return {
-      ...defaultState,
-      ...parsed,
-      likedCommentIds: parsed.likedCommentIds ?? [],
-      reportedNoteIds: parsed.reportedNoteIds ?? [],
-      selectedRoutineId: parsed.selectedRoutineId ?? null,
-      bannerDismissed: {
-        ...defaultState.bannerDismissed,
-        ...(parsed.bannerDismissed ?? {}),
-      },
-      routines: (parsed.routines ?? []).map((r) => ({
-        ...r,
-        userId:
-          r.userId ||
-          (typeof r.id === "string" && r.id.startsWith("routine_")
-            ? r.id.split("_")[1]
-            : ""),
-      })),
-      toast: null,
-    };
-  } catch {
-    return defaultState;
+  if (memoryState) return memoryState;
+  if (!canUseStorage()) {
+    memoryState = { ...defaultState };
+    return memoryState;
   }
+  if (!hydratedFromStorage) {
+    hydratedFromStorage = true;
+    try {
+      const raw = window.localStorage.getItem(KEY);
+      memoryState = raw
+        ? normalizeState(JSON.parse(raw) as Partial<AppState>)
+        : { ...defaultState, toast: null };
+    } catch {
+      memoryState = { ...defaultState, toast: null };
+    }
+  }
+  if (!memoryState) memoryState = { ...defaultState, toast: null };
+  return memoryState;
 }
 
 export function saveState(next: AppState) {
-  if (!canUseStorage()) return;
-  const { toast: _toast, ...persistable } = next;
-  window.localStorage.setItem(KEY, JSON.stringify(persistable));
-  window.dispatchEvent(new CustomEvent("ana-state-change", { detail: next }));
+  memoryState = next;
+  if (canUseStorage()) {
+    const { toast: _toast, ...persistable } = next;
+    window.localStorage.setItem(KEY, JSON.stringify(persistable));
+  }
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("ana-state-change", { detail: next }));
+  }
 }
 
 export function updateState(updater: (state: AppState) => AppState) {
@@ -229,7 +250,7 @@ export function updateState(updater: (state: AppState) => AppState) {
 }
 
 export function showToast(message: string) {
-  updateState((s) => ({ ...s, toast: message }));
+  updateState((s) => (s.toast === message ? s : { ...s, toast: message }));
   window.setTimeout(() => {
     updateState((s) => (s.toast === message ? { ...s, toast: null } : s));
   }, 2200);
@@ -283,63 +304,89 @@ export function getHonorNotes(state: AppState) {
 }
 
 export async function syncAuthState() {
-  const { data } = await supabase.auth.getSession();
-  const session = data.session;
-  if (!session?.user) {
-    const publicNotes = await fetchPublicNotes();
+  try {
+    const { data } = await supabase.auth.getSession();
+    const session = data.session;
+    if (!session?.user) {
+      let publicNotes: SkinNote[] = [];
+      try {
+        publicNotes = await fetchPublicNotes();
+      } catch {
+        publicNotes = [];
+      }
+      return updateState((s) => ({
+        ...s,
+        isLoggedIn: false,
+        currentUserId: null,
+        selectedRoutineId: null,
+        skinNotes: publicNotes.length ? publicNotes : s.skinNotes,
+      }));
+    }
+
+    const userId = session.user.id;
+    let bundle: Awaited<ReturnType<typeof fetchUserBundle>>;
+    try {
+      bundle = await fetchUserBundle(userId);
+    } catch {
+      return updateState((s) => ({
+        ...s,
+        isLoggedIn: true,
+        currentUserId: userId,
+        autoLogin: true,
+      }));
+    }
+
+    const account =
+      bundle.account ??
+      ({
+        id: userId,
+        email: session.user.email ?? "",
+        password: "",
+        nickname:
+          session.user.user_metadata?.nickname ??
+          session.user.email?.split("@")[0] ??
+          "ANA유저",
+        ageGroup:
+          (session.user.user_metadata?.age_group as UserAccount["ageGroup"]) ?? "20대",
+        gender: (session.user.user_metadata?.gender as UserAccount["gender"]) ?? null,
+        createdAt: new Date().toISOString(),
+      } satisfies UserAccount);
+
+    if (!bundle.account) {
+      try {
+        await upsertProfile(account);
+      } catch {
+        // schema may not be applied yet
+      }
+    }
+
     return updateState((s) => ({
       ...s,
-      isLoggedIn: false,
-      currentUserId: null,
-      selectedRoutineId: null,
-      skinNotes: publicNotes.length ? publicNotes : s.skinNotes,
+      isLoggedIn: true,
+      currentUserId: userId,
+      autoLogin: true,
+      accounts: [account, ...s.accounts.filter((a) => a.id !== userId)],
+      profiles: bundle.skinProfile
+        ? { ...s.profiles, [userId]: bundle.skinProfile }
+        : s.profiles,
+      routines: bundle.routines,
+      dailyLogs: bundle.dailyLogs,
+      weeklyChanges: bundle.weeklyChanges,
+      skinNotes: bundle.skinNotes.length ? bundle.skinNotes : s.skinNotes,
+      comments: bundle.comments.length ? bundle.comments : s.comments,
+      savedNoteIds: bundle.savedNoteIds,
+      helpedNoteIds: bundle.helpedNoteIds,
+      likedCommentIds: bundle.likedCommentIds,
+      hiddenNoteIds: bundle.hiddenNoteIds,
+      reportedNoteIds: bundle.reportedNoteIds,
+      selectedRoutineId: bundle.prefs?.selectedRoutineId ?? s.selectedRoutineId,
+      bannerDismissed: bundle.prefs?.bannerDismissed ?? s.bannerDismissed,
+      viewQuota: bundle.prefs?.viewQuota?.date ? bundle.prefs.viewQuota : s.viewQuota,
     }));
+  } catch (error) {
+    console.error("[ANA] syncAuthState failed", error);
+    return loadState();
   }
-
-  const userId = session.user.id;
-  const bundle = await fetchUserBundle(userId);
-  const account =
-    bundle.account ??
-    ({
-      id: userId,
-      email: session.user.email ?? "",
-      password: "",
-      nickname: session.user.user_metadata?.nickname ?? session.user.email?.split("@")[0] ?? "ANA유저",
-      ageGroup: (session.user.user_metadata?.age_group as UserAccount["ageGroup"]) ?? "20대",
-      gender: (session.user.user_metadata?.gender as UserAccount["gender"]) ?? null,
-      createdAt: new Date().toISOString(),
-    } satisfies UserAccount);
-
-  if (!bundle.account) {
-    await upsertProfile(account);
-  }
-
-  return updateState((s) => ({
-    ...s,
-    isLoggedIn: true,
-    currentUserId: userId,
-    autoLogin: true,
-    accounts: [account, ...s.accounts.filter((a) => a.id !== userId)],
-    profiles: bundle.skinProfile
-      ? { ...s.profiles, [userId]: bundle.skinProfile }
-      : s.profiles,
-    routines: bundle.routines,
-    dailyLogs: bundle.dailyLogs,
-    weeklyChanges: bundle.weeklyChanges,
-    skinNotes: bundle.skinNotes.length ? bundle.skinNotes : s.skinNotes,
-    comments: bundle.comments.length ? bundle.comments : s.comments,
-    savedNoteIds: bundle.savedNoteIds,
-    helpedNoteIds: bundle.helpedNoteIds,
-    likedCommentIds: bundle.likedCommentIds,
-    hiddenNoteIds: bundle.hiddenNoteIds,
-    reportedNoteIds: bundle.reportedNoteIds,
-    selectedRoutineId: bundle.prefs?.selectedRoutineId ?? s.selectedRoutineId,
-    bannerDismissed: bundle.prefs?.bannerDismissed ?? s.bannerDismissed,
-    viewQuota:
-      bundle.prefs?.viewQuota?.date
-        ? bundle.prefs.viewQuota
-        : s.viewQuota,
-  }));
 }
 
 export async function signup(input: {

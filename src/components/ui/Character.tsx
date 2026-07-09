@@ -13,7 +13,7 @@ export default function Character({
     empty: { eye: "", blush: false },
     celebrate: { eye: "M9 14c.5 1.4 1.6 2.2 3 2.2s2.5-.8 3-2.2", blush: true },
     wave: { eye: "M9 14c.5 1.2 1.6 2 3 2s2.5-.8 3-2", blush: true },
-  }[mood];
+  }[mood] ?? { eye: "", blush: false };
 
   if (mood === "empty") {
     return (

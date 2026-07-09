@@ -25,11 +25,11 @@ function subscribe(onStoreChange: () => void) {
   };
 }
 
-function getSnapshot() {
+function getSnapshot(): AppState {
   return loadState();
 }
 
-function getServerSnapshot() {
+function getServerSnapshot(): AppState {
   return defaultState;
 }
 
@@ -41,11 +41,18 @@ export function useHydrated() {
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     let mounted = true;
-    void syncAuthState().finally(() => {
-      if (mounted) setHydrated(true);
-    });
-    const { data } = supabase.auth.onAuthStateChange(() => {
-      void syncAuthState();
+    void syncAuthState()
+      .catch((error) => {
+        console.error("[ANA] hydrate failed", error);
+      })
+      .finally(() => {
+        if (mounted) setHydrated(true);
+      });
+    const { data } = supabase.auth.onAuthStateChange((_event) => {
+      // INITIAL_SESSION도 syncAuthState에서 처리 — 중복 호출은 캐시로 안전
+      void syncAuthState().catch((error) => {
+        console.error("[ANA] auth sync failed", error);
+      });
     });
     return () => {
       mounted = false;
