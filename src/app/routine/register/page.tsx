@@ -6,11 +6,13 @@ import AppShell from "@/components/layout/AppShell";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
+import Illustration from "@/components/ui/Illustration";
 import Modal from "@/components/ui/Modal";
 import PageHeader from "@/components/ui/PageHeader";
 import SelectChip from "@/components/ui/SelectChip";
 import { FieldLabel, TextInput } from "@/components/ui/Field";
 import { ROUTINE_CATEGORIES, SAMPLE_PRODUCTS, uid } from "@/lib/constants";
+import { ILLUSTRATIONS } from "@/lib/illustrations";
 import { buildRecommendRoutine, createRoutine } from "@/lib/store";
 import type { Product, RoutineStepCategory } from "@/lib/types";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
@@ -220,6 +222,13 @@ export default function RoutineRegisterPage() {
                 </p>
               ) : recError ? (
                 <div className="space-y-3 py-4 text-center">
+                  <Illustration
+                    src={ILLUSTRATIONS.recommendEmpty}
+                    alt=""
+                    width={120}
+                    height={100}
+                    className="mx-auto"
+                  />
                   <p className="text-sm text-accent">{recError}</p>
                   <Button size="md" onClick={() => loadRecommend(recIndex)}>
                     다시 시도

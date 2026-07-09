@@ -6,9 +6,10 @@ import AppShell from "@/components/layout/AppShell";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
-import Character from "@/components/ui/Character";
+import Illustration from "@/components/ui/Illustration";
 import { SectionHeader } from "@/components/ui/PageHeader";
 import { WEEKDAY_LABELS, getWeekDays, todayKey } from "@/lib/constants";
+import { ILLUSTRATIONS, defaultAvatar, weekDayIllustration } from "@/lib/illustrations";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
 
 export default function HomePage() {
@@ -84,7 +85,14 @@ export default function HomePage() {
               해볼까요?
             </p>
           </div>
-          <Character mood="wave" size={96} className="shrink-0 animate-soft-pop" />
+          <Illustration
+            src={ILLUSTRATIONS.homeHero}
+            alt="ANA 캐릭터"
+            width={120}
+            height={105}
+            className="shrink-0 animate-soft-pop"
+            priority
+          />
         </section>
 
         <Card className="relative overflow-hidden">
@@ -169,8 +177,8 @@ export default function HomePage() {
                     className="pointer-events-none rounded-panel border border-dashed border-line bg-accent-faint/40 p-3 text-center"
                   >
                     <p className="text-[11px] font-bold text-accent">{card.label}</p>
-                    <div className="mx-auto my-3 flex h-14 w-14 items-center justify-center rounded-full border border-dashed border-line">
-                      <Character mood="empty" size={40} />
+                    <div className="mx-auto my-3 flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-dashed border-line bg-accent-faint/40">
+                      <Illustration src={ILLUSTRATIONS.avatar1} alt="" width={44} height={44} />
                     </div>
                     <p className="text-xs font-bold text-accent">{card.emptyTitle}</p>
                     <p className="mt-1 text-[10px] text-accent/80">{card.emptySub}</p>
@@ -187,12 +195,12 @@ export default function HomePage() {
                 >
                   <p className="text-[11px] font-bold text-ink-soft">{card.label}</p>
                   <div className="mx-auto my-2 flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-line bg-accent-faint">
-                    {note.authorAvatar ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={note.authorAvatar} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <Character mood="smile" size={44} />
-                    )}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={note.authorAvatar || defaultAvatar(note.authorId)}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
                   </div>
                   <p className="truncate text-xs font-bold text-ink">{note.authorNickname}</p>
                 </Link>
@@ -212,22 +220,24 @@ export default function HomePage() {
                     (l) => l.date === key && l.routineId === activeRoutine!.id
                   );
                   const isToday = key === today;
+                  const isFuture = day.getTime() > new Date(today).getTime();
+                  const icon = weekDayIllustration({ isToday, logged, isFuture });
                   return (
                     <div key={key} className="flex flex-1 flex-col items-center gap-2">
                       <span className="text-[11px] font-bold text-ink-muted">
                         {WEEKDAY_LABELS[i]}
                       </span>
                       <div
-                        className={`flex h-11 w-11 items-center justify-center rounded-full ${
+                        className={`flex h-11 w-11 items-center justify-center overflow-hidden rounded-full ${
                           isToday
                             ? "border-2 border-accent animate-pulse-ring"
-                            : logged
-                              ? "bg-accent-faint"
+                            : icon
+                              ? "bg-accent-faint/30"
                               : "border border-dashed border-line"
                         }`}
                       >
-                        {logged || isToday ? (
-                          <Character mood={logged ? "smile" : "neutral"} size={34} />
+                        {icon ? (
+                          <Illustration src={icon} alt="" width={40} height={40} />
                         ) : null}
                       </div>
                     </div>
@@ -243,7 +253,12 @@ export default function HomePage() {
                   <p className="text-sm font-extrabold text-ink">아직 루틴을 시작하지 않았어요</p>
                   <p className="mt-1 text-xs text-ink-muted">내일 이야기 해보기</p>
                 </div>
-                <Character mood="neutral" size={64} />
+                <Illustration
+                  src={ILLUSTRATIONS.weekMissedPast}
+                  alt=""
+                  width={64}
+                  height={64}
+                />
               </div>
             </Card>
           )}

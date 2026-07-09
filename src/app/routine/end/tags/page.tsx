@@ -6,11 +6,12 @@ import AppShell from "@/components/layout/AppShell";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
-import Character from "@/components/ui/Character";
+import Illustration from "@/components/ui/Illustration";
 import Modal from "@/components/ui/Modal";
 import PageHeader from "@/components/ui/PageHeader";
 import SelectChip from "@/components/ui/SelectChip";
 import { CHANGE_TAGS } from "@/lib/constants";
+import { ILLUSTRATIONS } from "@/lib/illustrations";
 import { setPendingEnd, showToast } from "@/lib/store";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
 
@@ -64,7 +65,14 @@ export default function ChangeTagsPage() {
       />
 
       <div className="page-pad mt-2 space-y-5 pb-8 animate-fade-up">
-        <Character mood="smile" size={80} className="mx-auto" />
+        <Illustration
+          src={ILLUSTRATIONS.tagsHero1}
+          alt=""
+          width={120}
+          height={100}
+          className="mx-auto"
+          priority
+        />
 
         <div className="flex items-center justify-between">
           <p className="text-sm font-bold text-ink">이번 루틴에서 느낀 변화를 선택해주세요</p>

@@ -6,12 +6,13 @@ import AppShell from "@/components/layout/AppShell";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
-import Character from "@/components/ui/Character";
+import Illustration from "@/components/ui/Illustration";
 import Modal from "@/components/ui/Modal";
 import PageHeader from "@/components/ui/PageHeader";
 import StarRating from "@/components/ui/StarRating";
 import { TextInput } from "@/components/ui/Field";
 import { CHANGE_FEELINGS, relativeTime } from "@/lib/constants";
+import { defaultAvatar } from "@/lib/illustrations";
 import {
   addComment,
   canViewNoteDetail,
@@ -127,12 +128,13 @@ export default function NoteDetailPage() {
         <Card>
           <div className="flex items-start gap-3">
             <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-line bg-accent-faint">
-              {note.authorAvatar ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={note.authorAvatar} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <Character mood="smile" size={40} />
-              )}
+              <Illustration
+                src={note.authorAvatar || defaultAvatar(note.authorId)}
+                alt=""
+                width={48}
+                height={48}
+                className="rounded-full object-cover"
+              />
             </div>
             <div className="min-w-0 flex-1">
               <p className="font-extrabold text-ink">{note.authorNickname}</p>
@@ -273,7 +275,13 @@ export default function NoteDetailPage() {
               return (
                 <Card key={item.id} className="!p-3">
                   <div className="flex items-start gap-2">
-                    <Character mood="smile" size={32} />
+                    <Illustration
+                      src={defaultAvatar(item.authorId || item.authorNickname)}
+                      alt=""
+                      width={32}
+                      height={32}
+                      className="shrink-0 rounded-full"
+                    />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-bold text-ink">{item.authorNickname}</p>

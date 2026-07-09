@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
-import Character from "@/components/ui/Character";
+import Illustration from "@/components/ui/Illustration";
 import PageHeader from "@/components/ui/PageHeader";
 import StarRating from "@/components/ui/StarRating";
 import { BRAND, CHANGE_FEELINGS, daysSince, formatDateDot } from "@/lib/constants";
+import { ILLUSTRATIONS } from "@/lib/illustrations";
 import { finishRoutine, showToast } from "@/lib/store";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
 
@@ -73,7 +74,14 @@ export default function SkinNoteCompletePage() {
 
       <div className="page-pad -mt-2 space-y-4 pb-8 animate-fade-up">
         <div className="text-center">
-          <Character mood="celebrate" size={72} className="mx-auto" />
+          <Illustration
+            src={ILLUSTRATIONS.tagsHero2}
+            alt=""
+            width={120}
+            height={100}
+            className="mx-auto"
+            priority
+          />
           <h1 className="mt-3 text-xl font-extrabold text-ink">스킨노트가 완성되었어요!</h1>
           <p className="mt-1 text-sm text-ink-muted">나의 피부 여정을 기록해 보세요 ✦</p>
         </div>

@@ -6,19 +6,17 @@ import AppShell from "@/components/layout/AppShell";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
-import Character from "@/components/ui/Character";
+import Illustration from "@/components/ui/Illustration";
 import Modal from "@/components/ui/Modal";
 import PageHeader from "@/components/ui/PageHeader";
 import RadioRow from "@/components/ui/RadioRow";
 import SelectChip from "@/components/ui/SelectChip";
 import StarRating from "@/components/ui/StarRating";
 import { CHANGE_TAGS, DIFFICULTIES, END_REASONS } from "@/lib/constants";
+import { ILLUSTRATIONS, difficultyIllustration } from "@/lib/illustrations";
 import { setPendingEnd, showToast } from "@/lib/store";
 import type { Difficulty, EndReason } from "@/lib/types";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
-
-const reasonMood = ["celebrate", "neutral", "empty"] as const;
-const difficultyMood = ["smile", "neutral", "empty"] as const;
 
 export default function RoutineEndPage() {
   const router = useRouter();
@@ -72,7 +70,7 @@ export default function RoutineEndPage() {
 
       <div className="page-pad mt-2 space-y-5 pb-8 animate-fade-up">
         <div className="flex items-center gap-3">
-          <Character mood="celebrate" size={72} />
+          <Illustration src={ILLUSTRATIONS.endHero} alt="" width={88} height={88} priority />
           <h2 className="text-xl font-extrabold leading-snug text-ink">
             이번 루틴,
             <br />
@@ -87,12 +85,11 @@ export default function RoutineEndPage() {
           </div>
           <p className="mb-2 text-xs text-ink-muted">해당하는 이유를 선택해 주세요.</p>
           <div className="space-y-2">
-            {END_REASONS.map((item, index) => (
+            {END_REASONS.map((item) => (
               <RadioRow
                 key={item}
                 selected={reason === item}
                 onClick={() => setReason(item)}
-                left={<Character mood={reasonMood[index]} size={28} />}
               >
                 {item}
               </RadioRow>
@@ -108,7 +105,7 @@ export default function RoutineEndPage() {
             <Badge>필수</Badge>
           </div>
           <div className="grid grid-cols-3 gap-2">
-            {DIFFICULTIES.map((item, index) => (
+            {DIFFICULTIES.map((item) => (
               <button
                 key={item}
                 type="button"
@@ -119,7 +116,13 @@ export default function RoutineEndPage() {
                     : "border-line bg-surface-white"
                 }`}
               >
-                <Character mood={difficultyMood[index]} size={36} className="mx-auto" />
+                <Illustration
+                  src={difficultyIllustration(item)}
+                  alt={item}
+                  width={48}
+                  height={48}
+                  className="mx-auto"
+                />
                 <p className="mt-2 text-xs font-bold text-ink">{item}</p>
               </button>
             ))}

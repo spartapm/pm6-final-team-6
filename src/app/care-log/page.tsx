@@ -6,8 +6,9 @@ import AppShell from "@/components/layout/AppShell";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
-import Character from "@/components/ui/Character";
+import Illustration from "@/components/ui/Illustration";
 import { daysSince, formatDateDot, todayKey, weekKey } from "@/lib/constants";
+import { careIllustration } from "@/lib/illustrations";
 import { getMyActiveRoutines, saveDailyLog, selectRoutine } from "@/lib/store";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
 
@@ -62,7 +63,13 @@ export default function CareLogPage() {
     return (
       <AppShell>
         <div className="page-pad space-y-4 pt-10 text-center animate-fade-up">
-          <Character mood="neutral" size={88} className="mx-auto" />
+          <Illustration
+            src={careIllustration(profile?.skinType, false)}
+            alt=""
+            width={140}
+            height={120}
+            className="mx-auto"
+          />
           <h1 className="text-xl font-extrabold text-ink">진행 중인 루틴이 없어요</h1>
           <p className="text-sm text-ink-muted">루틴을 등록하고 오늘의 케어를 시작해보세요</p>
           <Button
@@ -86,8 +93,14 @@ export default function CareLogPage() {
     <AppShell>
       <div className="page-pad space-y-4 pt-5 pb-6 animate-fade-up">
         <Card className="overflow-hidden text-center">
-          <div className="mx-auto mb-3 flex h-36 w-full items-center justify-center rounded-panel border border-dashed border-line bg-accent-faint/50">
-            <Character mood={allDone ? "celebrate" : "smile"} size={100} />
+          <div className="mx-auto mb-3 flex h-40 w-full items-center justify-center">
+            <Illustration
+              src={careIllustration(profile.skinType, allDone)}
+              alt={`${profile.skinType} 구역 캐릭터`}
+              width={200}
+              height={150}
+              priority
+            />
           </div>
           <Badge tone="outline">
             {profile.skinType} 구역{expanded ? " 1등" : ""}

@@ -5,10 +5,11 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import Button from "@/components/ui/Button";
-import Character from "@/components/ui/Character";
+import Illustration from "@/components/ui/Illustration";
 import PageHeader from "@/components/ui/PageHeader";
 import { TextInput } from "@/components/ui/Field";
 import { BRAND, DEMO_ACCOUNT, isValidEmail } from "@/lib/constants";
+import { ILLUSTRATIONS } from "@/lib/illustrations";
 import { ensureDemoAccount, login } from "@/lib/store";
 
 export default function LoginInner() {
@@ -40,8 +41,8 @@ export default function LoginInner() {
       <PageHeader title="" backHref="/" />
       <div className="page-pad -mt-2 animate-fade-up">
         <div className="mb-8 text-center">
-          <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-full border border-dashed border-line bg-accent-faint/40">
-            <Character mood="wave" size={88} />
+          <div className="mx-auto flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border border-dashed border-line bg-accent-faint/40">
+            <Illustration src={ILLUSTRATIONS.homeHero} alt="ANA" width={100} height={88} priority />
           </div>
           <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-ink-soft">{BRAND}</h1>
           <p className="mt-1 text-sm font-bold text-ink-soft">A Note Archive</p>

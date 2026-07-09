@@ -6,7 +6,7 @@ import AppShell from "@/components/layout/AppShell";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
-import Character from "@/components/ui/Character";
+import Illustration from "@/components/ui/Illustration";
 import RadioRow from "@/components/ui/RadioRow";
 import {
   DRAWER_CONCERN_FILTERS,
@@ -14,6 +14,7 @@ import {
   concernFilterMatch,
   relativeTime,
 } from "@/lib/constants";
+import { ILLUSTRATIONS, defaultAvatar } from "@/lib/illustrations";
 import { dismissBanner } from "@/lib/store";
 import type { SkinNote, SkinType } from "@/lib/types";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
@@ -132,7 +133,13 @@ export default function DrawerPage() {
 
         {notes.length === 0 ? (
           <Card className="py-10 text-center">
-            <Character mood="neutral" size={64} className="mx-auto" />
+            <Illustration
+              src={ILLUSTRATIONS.recommendEmpty}
+              alt=""
+              width={96}
+              height={80}
+              className="mx-auto"
+            />
             <p className="mt-3 text-sm font-bold text-ink-soft">조건에 맞는 스킨노트가 없어요</p>
           </Card>
         ) : (
@@ -152,12 +159,13 @@ export default function DrawerPage() {
               >
                 <div className="flex items-start gap-3">
                   <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-line bg-accent-faint">
-                    {note.authorAvatar ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={note.authorAvatar} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <Character mood="smile" size={36} />
-                    )}
+                    <Illustration
+                      src={note.authorAvatar || defaultAvatar(note.authorId)}
+                      alt=""
+                      width={44}
+                      height={44}
+                      className="rounded-full object-cover"
+                    />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">

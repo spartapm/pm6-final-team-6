@@ -6,9 +6,10 @@ import AppShell from "@/components/layout/AppShell";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
-import Character from "@/components/ui/Character";
+import Illustration from "@/components/ui/Illustration";
 import { SectionHeader } from "@/components/ui/PageHeader";
 import { daysSince } from "@/lib/constants";
+import { defaultAvatar } from "@/lib/illustrations";
 import { logout, showToast, updateAvatar } from "@/lib/store";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
 
@@ -54,12 +55,12 @@ export default function MyPage() {
             className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-panel border border-dashed border-line bg-accent-faint"
             onClick={() => fileRef.current?.click()}
           >
-            {user.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <Character mood="smile" size={56} />
-            )}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={user.avatarUrl || defaultAvatar(user.id)}
+              alt=""
+              className="h-full w-full object-cover"
+            />
           </button>
           <input
             ref={fileRef}
@@ -141,7 +142,13 @@ export default function MyPage() {
           <SectionHeader title="스킨노트 모아보기" />
           {completedNotes.length === 0 ? (
             <Card className="text-center">
-              <Character mood="neutral" size={56} className="mx-auto" />
+              <Illustration
+                src={defaultAvatar(user.id)}
+                alt=""
+                width={64}
+                height={64}
+                className="mx-auto"
+              />
               <p className="mt-2 text-sm font-bold text-ink-soft">아직 완성된 스킨노트가 없어요</p>
             </Card>
           ) : (
@@ -154,7 +161,13 @@ export default function MyPage() {
                   className="w-32 shrink-0 rounded-panel border border-line bg-surface-white p-3 text-center"
                 >
                   <Badge className="mb-2">완료</Badge>
-                  <Character mood="celebrate" size={56} className="mx-auto" />
+                  <Illustration
+                    src={note.authorAvatar || defaultAvatar(note.id)}
+                    alt=""
+                    width={56}
+                    height={56}
+                    className="mx-auto"
+                  />
                   <p className="mt-2 text-xs font-bold text-ink">{note.concerns[0]} 루틴</p>
                   <p className="mt-1 text-[10px] text-ink-muted">{note.durationDays}일</p>
                 </button>

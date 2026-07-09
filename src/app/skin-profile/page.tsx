@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
-import Character from "@/components/ui/Character";
+import Illustration from "@/components/ui/Illustration";
 import Modal from "@/components/ui/Modal";
 import PageHeader from "@/components/ui/PageHeader";
 import SelectChip from "@/components/ui/SelectChip";
 import { FieldLabel } from "@/components/ui/Field";
 import { SENSITIVITIES, SKIN_CONCERNS, SKIN_TYPES } from "@/lib/constants";
+import { defaultAvatar } from "@/lib/illustrations";
 import { saveSkinProfile } from "@/lib/store";
 import type { Sensitivity, SkinConcern, SkinType } from "@/lib/types";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
@@ -66,7 +67,13 @@ export default function SkinProfilePage() {
         <div>
           <FieldLabel>프로필</FieldLabel>
           <Card className="flex items-center gap-3">
-            <Character mood="smile" size={44} />
+            <Illustration
+              src={user.avatarUrl || defaultAvatar(user.id)}
+              alt=""
+              width={44}
+              height={44}
+              className="rounded-full"
+            />
             <span className="font-extrabold text-ink">{user.nickname}</span>
           </Card>
         </div>
