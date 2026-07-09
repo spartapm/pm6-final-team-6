@@ -1,0 +1,128 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-ink: #220a0e;
+  --color-ink-soft: #61212d;
+  --color-ink-muted: #b58a94;
+  --color-accent: #ff617d;
+  --color-accent-soft: #ff8da1;
+  --color-accent-faint: #fbe3ec;
+  --color-accent-disabled: #f7eeef;
+  --color-surface: #fffafb;
+  --color-surface-soft: #fbe3ec;
+  --color-page: #f4e8ea;
+  --color-line: #ff8da1;
+  --page-padding: 16px;
+  --nav-height: 72px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --phone-width: 360px;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: #efe0e4;
+  color: var(--color-ink);
+  font-family: theme("fontFamily.sans");
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.app-frame {
+  width: 100%;
+  max-width: var(--phone-width);
+  min-height: 100svh;
+  margin: 0 auto;
+  background: var(--color-page);
+  position: relative;
+  box-shadow: 0 0 0 1px rgba(255, 141, 161, 0.18), 0 24px 60px rgba(34, 10, 14, 0.08);
+}
+
+.app-main {
+  min-height: 100svh;
+  padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + 20px);
+}
+
+.app-main--flush {
+  padding-bottom: calc(var(--safe-bottom) + 24px);
+}
+
+.bottom-nav {
+  height: calc(var(--nav-height) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+}
+
+.toast-offset {
+  bottom: calc(var(--nav-height) + var(--safe-bottom) + 16px);
+}
+
+.page-pad {
+  padding-left: var(--page-padding);
+  padding-right: var(--page-padding);
+}
+
+@supports (height: 100dvh) {
+  .app-frame,
+  .app-main {
+    min-height: 100dvh;
+  }
+}
+
+@media (min-width: 768px) {
+  body {
+    background:
+      radial-gradient(circle at top left, rgba(255, 97, 125, 0.12), transparent 40%),
+      radial-gradient(circle at bottom right, rgba(251, 227, 236, 0.9), transparent 45%),
+      #efe0e4;
+  }
+}

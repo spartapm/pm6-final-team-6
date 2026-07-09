@@ -1,0 +1,424 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import AppShell from "@/components/layout/AppShell";
+import Badge from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import Modal from "@/components/ui/Modal";
+import PageHeader from "@/components/ui/PageHeader";
+import SelectChip from "@/components/ui/SelectChip";
+import { FieldLabel, TextInput } from "@/components/ui/Field";
+import { ROUTINE_CATEGORIES, SAMPLE_PRODUCTS, uid } from "@/lib/constants";
+import { buildRecommendRoutine, createRoutine } from "@/lib/store";
+import type { Product, RoutineStepCategory } from "@/lib/types";
+import { useAppDerivations, useHydrated } from "@/lib/useAppState";
+
+type DraftStep = {
+  id: string;
+  category: RoutineStepCategory;
+  product: Product;
+};
+
+export default function RoutineRegisterPage() {
+  const router = useRouter();
+  const hydrated = useHydrated();
+  const { state, profile } = useAppDerivations();
+  const [tab, setTab] = useState<"manual" | "recommend">("manual");
+  const [steps, setSteps] = useState<DraftStep[]>([]);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetTab, setSheetTab] = useState<"search" | "custom">("search");
+  const [selectedCategory, setSelectedCategory] =
+    useState<RoutineStepCategory>("클렌징");
+  const [query, setQuery] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [customName, setCustomName] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [recIndex, setRecIndex] = useState(0);
+  const [recApplied, setRecApplied] = useState(false);
+  const [recLoading, setRecLoading] = useState(false);
+  const [recError, setRecError] = useState("");
+  const [cooldown, setCooldown] = useState(false);
+  const [dragId, setDragId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (!state.isLoggedIn) router.replace("/login?next=/routine/register");
+    else if (!profile) router.replace("/skin-profile");
+  }, [hydrated, state.isLoggedIn, profile, router]);
+
+  const filteredProducts = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return SAMPLE_PRODUCTS.filter((p) => {
+      const hay = `${p.brand ?? ""} ${p.name}`.toLowerCase();
+      return !q || hay.includes(q);
+    });
+  }, [query]);
+
+  const recommend = useMemo(() => buildRecommendRoutine(recIndex), [recIndex]);
+  const dirty = steps.length > 0 || recApplied;
+
+  if (!hydrated || !profile) {
+    return (
+      <AppShell showNav={false}>
+        <div className="page-pad py-10 text-center text-ink-muted">불러오는 중...</div>
+      </AppShell>
+    );
+  }
+
+  const loadRecommend = (nextIndex = recIndex) => {
+    setRecLoading(true);
+    setRecError("");
+    window.setTimeout(() => {
+      setRecIndex(nextIndex);
+      setRecApplied(false);
+      setRecLoading(false);
+    }, 700);
+  };
+
+  return (
+    <AppShell showNav={false}>
+      <PageHeader
+        title="루틴 등록"
+        center
+        onBack={() => {
+          if (dirty) setConfirmOpen(true);
+          else router.back();
+        }}
+      />
+
+      <div className="page-pad mt-4 space-y-4 pb-8 animate-fade-up">
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setTab("manual");
+              setRecApplied(false);
+            }}
+            className={`rounded-panel border p-3 text-left ${
+              tab === "manual" ? "border-accent bg-accent-faint/40" : "border-line bg-surface-white"
+            }`}
+          >
+            <p className="text-sm font-extrabold text-ink">직접 루틴 만들기</p>
+            <p className="mt-1 text-[11px] text-ink-muted">내가 직접 제품을 추가해요</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setTab("recommend");
+              setSteps([]);
+              loadRecommend(0);
+            }}
+            className={`rounded-panel border p-3 text-left ${
+              tab === "recommend"
+                ? "border-accent bg-accent-faint/40"
+                : "border-line bg-surface-white"
+            }`}
+          >
+            <p className="text-sm font-extrabold text-ink">피부 고민 맞춤 추천</p>
+            <p className="mt-1 text-[11px] text-ink-muted">고민에 맞춘 루틴을 추천받아요</p>
+          </button>
+        </div>
+
+        {tab === "manual" ? (
+          <>
+            <div>
+              <h2 className="text-sm font-extrabold text-ink">루틴 순서 설정</h2>
+              <p className="mt-1 text-xs text-ink-muted">
+                루틴에서 사용할 제품 순서를 설정해 주세요.
+              </p>
+            </div>
+            <Card className="space-y-3 bg-surface">
+              {steps.length === 0 && (
+                <p className="py-4 text-center text-sm text-ink-muted">
+                  단계 추가하기를 눌러 루틴을 구성해보세요
+                </p>
+              )}
+              {steps.map((step) => (
+                <div
+                  key={step.id}
+                  draggable
+                  onDragStart={() => setDragId(step.id)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={() => {
+                    if (!dragId || dragId === step.id) return;
+                    setSteps((prev) => {
+                      const from = prev.findIndex((s) => s.id === dragId);
+                      const to = prev.findIndex((s) => s.id === step.id);
+                      if (from < 0 || to < 0) return prev;
+                      const next = [...prev];
+                      const [item] = next.splice(from, 1);
+                      next.splice(to, 0, item);
+                      return next;
+                    });
+                    setDragId(null);
+                  }}
+                  className="flex items-center gap-3 rounded-panel border border-line bg-surface-white p-3"
+                >
+                  <button
+                    type="button"
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-line text-accent"
+                    onClick={() => setSteps((prev) => prev.filter((s) => s.id !== step.id))}
+                  >
+                    −
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-extrabold text-ink">{step.category}</p>
+                    <p className="truncate text-xs text-ink-muted">
+                      {step.product.brand ? `${step.product.brand} ` : ""}
+                      {step.product.name}
+                    </p>
+                  </div>
+                  <span className="cursor-grab text-ink-muted">☰</span>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setSheetOpen(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-panel border border-dashed border-line py-3 text-sm font-bold text-accent"
+              >
+                <span className="flex h-6 w-6 items-center justify-center rounded-full border border-accent">
+                  +
+                </span>
+                단계 추가하기
+              </button>
+            </Card>
+            <Button
+              fullWidth
+              disabled={steps.length === 0}
+              onClick={async () => {
+                await createRoutine({
+                  title: `${profile.concerns[0]} 루틴`,
+                  concernLabel: profile.concerns[0],
+                  source: "manual",
+                  steps: steps.map((s) => ({ category: s.category, product: s.product })),
+                });
+                router.push("/care-log");
+              }}
+            >
+              루틴 설정 완료
+            </Button>
+          </>
+        ) : (
+          <>
+            <Card>
+              <p className="text-sm font-bold text-ink">이렇게 추천했어요</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Badge>{profile.skinType}</Badge>
+                {profile.concerns.map((c) => (
+                  <Badge key={c}>{c}</Badge>
+                ))}
+                <Badge tone="outline">{profile.sensitivity}</Badge>
+              </div>
+            </Card>
+
+            <Card>
+              {recLoading ? (
+                <p className="py-8 text-center text-sm text-ink-muted">
+                  맞춤 루틴을 만들고 있어요...
+                </p>
+              ) : recError ? (
+                <div className="space-y-3 py-4 text-center">
+                  <p className="text-sm text-accent">{recError}</p>
+                  <Button size="md" onClick={() => loadRecommend(recIndex)}>
+                    다시 시도
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-extrabold text-ink">{recommend.title}</h3>
+                    <Badge tone="soft">AI 추천</Badge>
+                  </div>
+                  {recommend.steps.map((step, index) => (
+                    <div
+                      key={`${step.product.id}-${index}`}
+                      className="flex items-center gap-3 rounded-panel border border-line/70 bg-surface p-3"
+                    >
+                      <div className="flex h-12 w-12 items-center justify-center rounded-panel border border-dashed border-line bg-accent-faint text-xs font-bold text-accent">
+                        {step.category.slice(0, 2)}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-ink">{step.category}</p>
+                        <p className="truncate text-xs text-ink-muted">
+                          {step.product.brand} · {step.product.name}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant={recApplied ? "secondary" : "outline"}
+                disabled={recLoading || Boolean(recError)}
+                onClick={() => setRecApplied(true)}
+              >
+                {recApplied ? "적용됨 ✓" : "추천 루틴 적용"}
+              </Button>
+              <Button
+                variant="ghost"
+                disabled={recLoading || cooldown}
+                onClick={() => {
+                  setCooldown(true);
+                  loadRecommend(recIndex + 1);
+                  window.setTimeout(() => setCooldown(false), 5000);
+                }}
+              >
+                다른 루틴 추천받기
+              </Button>
+            </div>
+
+            <Button
+              fullWidth
+              disabled={!recApplied}
+              onClick={async () => {
+                await createRoutine({
+                  title: recommend.title,
+                  concernLabel: profile.concerns[0],
+                  source: "recommend",
+                  steps: recommend.steps,
+                });
+                router.push("/care-log");
+              }}
+            >
+              루틴 설정 완료
+            </Button>
+          </>
+        )}
+      </div>
+
+      {sheetOpen && (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-ink/35">
+          <div className="max-h-[85svh] w-full max-w-phone overflow-auto rounded-t-[24px] bg-surface-white p-4 animate-fade-up">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-extrabold text-ink">단계 추가</h3>
+              <button type="button" className="text-ink-muted" onClick={() => setSheetOpen(false)}>
+                닫기
+              </button>
+            </div>
+
+            <FieldLabel>루틴 종류</FieldLabel>
+            <div className="mb-4 flex flex-wrap gap-2">
+              {ROUTINE_CATEGORIES.map((cat) => (
+                <SelectChip
+                  key={cat}
+                  selected={selectedCategory === cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className="text-xs"
+                >
+                  {cat}
+                </SelectChip>
+              ))}
+            </div>
+
+            <div className="mb-3 grid grid-cols-2 gap-2">
+              <SelectChip selected={sheetTab === "search"} onClick={() => setSheetTab("search")}>
+                제품 검색
+              </SelectChip>
+              <SelectChip selected={sheetTab === "custom"} onClick={() => setSheetTab("custom")}>
+                직접 제품 등록
+              </SelectChip>
+            </div>
+
+            {sheetTab === "search" ? (
+              <div className="space-y-3">
+                <TextInput
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="제품명 검색"
+                />
+                <div className="max-h-56 space-y-2 overflow-auto">
+                  {filteredProducts.map((product) => {
+                    const selected = selectedProduct?.id === product.id;
+                    return (
+                      <button
+                        key={product.id}
+                        type="button"
+                        onClick={() => setSelectedProduct(selected ? null : product)}
+                        className={`flex w-full items-center justify-between rounded-panel border px-3 py-3 text-left ${
+                          selected ? "border-accent bg-accent-faint" : "border-line"
+                        }`}
+                      >
+                        <div>
+                          <p className="text-sm font-bold text-ink">{product.name}</p>
+                          <p className="text-xs text-ink-muted">{product.brand}</p>
+                        </div>
+                        <span
+                          className={`flex h-5 w-5 items-center justify-center rounded border ${
+                            selected ? "border-accent bg-accent text-white" : "border-line"
+                          }`}
+                        >
+                          {selected ? "✓" : ""}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex h-28 items-center justify-center rounded-panel border border-dashed border-line bg-surface text-sm text-ink-muted">
+                  이미지 추가 (선택)
+                </div>
+                <TextInput
+                  value={customName}
+                  onChange={(e) => {
+                    setCustomName(e.target.value);
+                    if (e.target.value.trim()) {
+                      setSelectedProduct({
+                        id: uid("custom"),
+                        name: e.target.value.trim(),
+                        isCustom: true,
+                        category: selectedCategory,
+                      });
+                    } else {
+                      setSelectedProduct(null);
+                    }
+                  }}
+                  placeholder="제품 이름 입력"
+                />
+              </div>
+            )}
+
+            <Button
+              fullWidth
+              className="mt-4"
+              disabled={!selectedProduct}
+              onClick={() => {
+                if (!selectedProduct) return;
+                setSteps((prev) => [
+                  ...prev,
+                  {
+                    id: uid("draft"),
+                    category: selectedCategory,
+                    product: { ...selectedProduct, category: selectedCategory },
+                  },
+                ]);
+                setSelectedProduct(null);
+                setCustomName("");
+                setQuery("");
+                setSheetOpen(false);
+              }}
+            >
+              완료
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <Modal
+        open={confirmOpen}
+        title="작성을 중단할까요?"
+        description="입력 중인 정보가 저장되지 않을 수 있어요."
+        confirmLabel="나가기"
+        cancelLabel="계속 작성"
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={() => router.back()}
+      />
+    </AppShell>
+  );
+}
