@@ -212,8 +212,8 @@ export default function HomePage() {
         <section>
           <SectionHeader title="이번주 참여 기록" />
           {hasRoutine ? (
-            <Card>
-              <div className="flex justify-between gap-1">
+            <Card className="overflow-hidden">
+              <div className="grid grid-cols-7 gap-x-1">
                 {weekDays.map((day, i) => {
                   const key = todayKey(day);
                   const logged = state.dailyLogs.some(
@@ -223,12 +223,12 @@ export default function HomePage() {
                   const isFuture = day.getTime() > new Date(today).getTime();
                   const icon = weekDayIllustration({ isToday, logged, isFuture });
                   return (
-                    <div key={key} className="flex flex-1 flex-col items-center gap-2">
+                    <div key={key} className="flex min-w-0 flex-col items-center gap-1.5">
                       <span className="text-[11px] font-bold text-ink-muted">
                         {WEEKDAY_LABELS[i]}
                       </span>
                       <div
-                        className={`flex h-11 w-11 items-center justify-center overflow-hidden rounded-full ${
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full ${
                           isToday
                             ? "border-2 border-accent animate-pulse-ring"
                             : icon
@@ -237,7 +237,13 @@ export default function HomePage() {
                         }`}
                       >
                         {icon ? (
-                          <Illustration src={icon} alt="" width={40} height={40} />
+                          <Illustration
+                            src={icon}
+                            alt=""
+                            width={30}
+                            height={30}
+                            className="h-[30px] w-[30px] object-contain"
+                          />
                         ) : null}
                       </div>
                     </div>
