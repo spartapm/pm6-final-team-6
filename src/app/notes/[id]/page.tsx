@@ -153,7 +153,9 @@ export default function NoteDetailPage() {
             <h2 className="mt-2 text-xl font-extrabold text-ink">{note.title}</h2>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {note.tags.map((tag) => (
-                <Badge key={tag}>{tag}</Badge>
+                <Badge key={tag} tone="accent">
+                  {tag}
+                </Badge>
               ))}
             </div>
           </div>
@@ -167,7 +169,7 @@ export default function NoteDetailPage() {
                   className="w-24 shrink-0 rounded-panel border border-line p-2 text-center"
                 >
                   <div className="mx-auto mb-1 flex h-14 w-14 items-center justify-center rounded-panel border border-dashed border-line bg-accent-faint text-[10px] font-bold text-accent">
-                    IMG
+                    {(product.category ?? product.name).slice(0, 2)}
                   </div>
                   <p className="line-clamp-2 text-[11px] text-ink">{product.name}</p>
                 </div>
@@ -211,7 +213,9 @@ export default function NoteDetailPage() {
             <p className="mb-2 text-sm font-bold text-ink">변화 태그</p>
             <div className="flex gap-2 overflow-x-auto no-scrollbar">
               {note.tags.map((tag) => (
-                <Badge key={tag}>{tag}</Badge>
+                <Badge key={tag} tone="accent">
+                  {tag}
+                </Badge>
               ))}
             </div>
           </div>

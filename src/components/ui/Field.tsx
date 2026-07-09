@@ -37,7 +37,7 @@ export function TextInput({
     <div>
       <input
         className={[
-          "h-12 w-full rounded-field border bg-surface-white px-4 text-[15px] text-ink outline-none transition placeholder:text-ink-muted",
+          "h-12 w-full rounded-field border bg-surface-white px-4 text-[15px] text-ink outline-none transition placeholder:text-ink-muted/80",
           error ? "border-accent" : "border-line focus:border-accent",
           className,
         ].join(" ")}
@@ -57,7 +57,7 @@ export function TextArea({
     <div>
       <textarea
         className={[
-          "min-h-[96px] w-full rounded-field border bg-surface-white px-4 py-3 text-[15px] text-ink outline-none transition placeholder:text-ink-muted",
+          "min-h-[96px] w-full rounded-field border bg-surface-white px-4 py-3 text-[15px] text-ink outline-none transition placeholder:text-ink-muted/80",
           error ? "border-accent" : "border-line focus:border-accent",
           className,
         ].join(" ")}

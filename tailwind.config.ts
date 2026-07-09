@@ -8,7 +8,7 @@ const config: Config = {
         ink: {
           DEFAULT: "#220A0E",
           soft: "#61212D",
-          muted: "#B58A94",
+          muted: "#8A5A66",
         },
         accent: {
           DEFAULT: "#FF617D",

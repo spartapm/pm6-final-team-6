@@ -44,120 +44,11 @@ import type {
   WeeklyChange,
 } from "./types";
 
-const KEY = "ana-skin-state-v2";
+const KEY = "ana-skin-state-v3";
 
 /** useSyncExternalStore용 캐시 — getSnapshot은 동일 참조를 반환해야 함 */
 let memoryState: AppState | null = null;
 let hydratedFromStorage = false;
-
-const seedNotes: SkinNote[] = [
-  {
-    id: "note_seed_1",
-    authorId: "seed_user_1",
-    authorNickname: "피부기록러",
-    skinType: "복합성",
-    concerns: ["민감/붉음증", "여드름/트러블"],
-    sensitivity: "높음",
-    ageGroup: "20대",
-    title: "14일 사용 후기",
-    tags: ["#붉은기 완화", "#피부결 개선", "#수분 충전"],
-    products: [
-      SAMPLE_PRODUCTS[0],
-      SAMPLE_PRODUCTS[1],
-      SAMPLE_PRODUCTS[2],
-      SAMPLE_PRODUCTS[3],
-    ],
-    durationDays: 14,
-    difficulty: "보통이에요",
-    feltChange: 4,
-    endReason: "변화가 느껴져서 마칠래요",
-    changeTimeline: [
-      { label: "사용 전", feeling: "변화가 없었어요" },
-      { label: "7일차", feeling: "모르겠어요" },
-      { label: "14일차", feeling: "변화가 있었어요" },
-    ],
-    visibility: "public",
-    isAbandoned: false,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
-    saveCount: 42,
-    helpCount: 28,
-    commentCount: 12,
-  },
-  {
-    id: "note_seed_2",
-    authorId: "seed_user_2",
-    authorNickname: "수분요정",
-    skinType: "건성",
-    concerns: ["보습/건조함"],
-    sensitivity: "보통",
-    ageGroup: "30대",
-    title: "21일 사용 후기",
-    tags: ["#보습 강화", "#피부결 개선"],
-    products: [SAMPLE_PRODUCTS[8], SAMPLE_PRODUCTS[4], SAMPLE_PRODUCTS[10]],
-    durationDays: 21,
-    difficulty: "쉬웠어요",
-    feltChange: 5,
-    endReason: "변화가 느껴져서 마칠래요",
-    changeTimeline: [
-      { label: "사용 전", feeling: "변화가 없었어요" },
-      { label: "7일차", feeling: "변화가 있었어요" },
-      { label: "14일차", feeling: "변화가 있었어요" },
-    ],
-    visibility: "public",
-    isAbandoned: false,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 28).toISOString(),
-    saveCount: 61,
-    helpCount: 19,
-    commentCount: 8,
-  },
-  {
-    id: "note_seed_3",
-    authorId: "seed_user_3",
-    authorNickname: "모공케어중",
-    skinType: "지성",
-    concerns: ["모공/피지"],
-    sensitivity: "낮음",
-    ageGroup: "20대",
-    title: "10일 사용 후기",
-    tags: ["#모공 케어", "#피지 조절"],
-    products: [SAMPLE_PRODUCTS[7], SAMPLE_PRODUCTS[9], SAMPLE_PRODUCTS[3]],
-    durationDays: 10,
-    difficulty: "어려웠어요",
-    feltChange: 3,
-    endReason: "변화는 없지만 기록을 마칠래요",
-    changeTimeline: [
-      { label: "사용 전", feeling: "변화가 없었어요" },
-      { label: "7일차", feeling: "모르겠어요" },
-    ],
-    visibility: "public",
-    isAbandoned: false,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 50).toISOString(),
-    saveCount: 18,
-    helpCount: 33,
-    commentCount: 5,
-  },
-];
-
-const seedComments: Comment[] = [
-  {
-    id: "c1",
-    noteId: "note_seed_1",
-    authorId: "seed_user_2",
-    authorNickname: "수분요정",
-    content: "저도 비슷한 루틴으로 붉은기가 줄었어요!",
-    createdAt: new Date(Date.now() - 1000 * 60 * 40).toISOString(),
-    likeCount: 4,
-  },
-  {
-    id: "c2",
-    noteId: "note_seed_1",
-    authorId: "seed_user_3",
-    authorNickname: "모공케어중",
-    content: "제품 구성이 참고가 많이 됐어요 감사합니다.",
-    createdAt: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-    likeCount: 2,
-  },
-];
 
 export const defaultState: AppState = {
   isLoggedIn: false,
@@ -169,8 +60,8 @@ export const defaultState: AppState = {
   routines: [],
   dailyLogs: [],
   weeklyChanges: [],
-  skinNotes: seedNotes,
-  comments: seedComments,
+  skinNotes: [],
+  comments: [],
   savedNoteIds: [],
   helpedNoteIds: [],
   likedCommentIds: [],
@@ -319,7 +210,8 @@ export async function syncAuthState() {
         isLoggedIn: false,
         currentUserId: null,
         selectedRoutineId: null,
-        skinNotes: publicNotes.length ? publicNotes : s.skinNotes,
+        skinNotes: publicNotes,
+        comments: [],
       }));
     }
 
@@ -372,8 +264,8 @@ export async function syncAuthState() {
       routines: bundle.routines,
       dailyLogs: bundle.dailyLogs,
       weeklyChanges: bundle.weeklyChanges,
-      skinNotes: bundle.skinNotes.length ? bundle.skinNotes : s.skinNotes,
-      comments: bundle.comments.length ? bundle.comments : s.comments,
+      skinNotes: bundle.skinNotes,
+      comments: bundle.comments,
       savedNoteIds: bundle.savedNoteIds,
       helpedNoteIds: bundle.helpedNoteIds,
       likedCommentIds: bundle.likedCommentIds,
@@ -470,11 +362,11 @@ export async function login(email: string, password: string, autoLogin: boolean)
 
 export async function logout() {
   await supabase.auth.signOut();
-  const publicNotes = await fetchPublicNotes();
-  updateState((s) => ({
+  const publicNotes = await fetchPublicNotes().catch(() => [] as SkinNote[]);
+  updateState(() => ({
     ...defaultState,
-    skinNotes: publicNotes.length ? publicNotes : seedNotes,
-    comments: seedComments,
+    skinNotes: publicNotes,
+    comments: [],
   }));
 }
 
@@ -790,10 +682,6 @@ export async function reportNote(noteId: string) {
   showToast("신고가 접수되었어요.");
 }
 
-export function ensureDemoAccount() {
-  // Supabase 연동 후에는 실제 회원가입/로그인 사용
-}
-
 export async function requestResetCode(email: string) {
   const redirectTo =
     typeof window !== "undefined" ? `${window.location.origin}/auth/callback?next=/forgot-password?step=3` : undefined;
@@ -821,10 +709,6 @@ export async function verifyResetCode(email: string, code: string) {
   // 이메일 링크로 진입한 recovery 세션이 있으면 통과
   const { data } = await supabase.auth.getSession();
   if (data.session) return { ok: true as const };
-  // 로컬 테스트용: 123456 허용
-  if (code === "123456" || token.code === "EMAIL_SENT") {
-    if (code === "123456" || code.length === 6) return { ok: true as const };
-  }
   return { ok: false as const, message: "인증번호가 일치하지 않습니다. 이메일 링크 확인 후 다시 시도해주세요." };
 }
 

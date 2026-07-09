@@ -185,7 +185,9 @@ export default function SkinNoteCompletePage() {
               <span className="w-16 shrink-0 text-ink-muted">변화 태그</span>
               <div className="flex flex-wrap gap-1.5">
                 {pending.tags.map((tag) => (
-                  <Badge key={tag}>{tag}</Badge>
+                  <Badge key={tag} tone="accent">
+                    {tag}
+                  </Badge>
                 ))}
               </div>
             </div>

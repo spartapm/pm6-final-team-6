@@ -19,7 +19,7 @@ export default function StarRating({
           key={star}
           type="button"
           disabled={readOnly}
-          className={`${text} ${star <= value ? "text-accent" : "text-line"} ${
+          className={`${text} ${star <= value ? "text-accent" : "text-ink-muted/45"} ${
             readOnly ? "cursor-default" : ""
           }`}
           onClick={() => onChange?.(star === value ? 0 : star)}

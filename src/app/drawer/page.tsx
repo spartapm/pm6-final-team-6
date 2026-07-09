@@ -174,7 +174,7 @@ export default function DrawerPage() {
                         {relativeTime(note.createdAt)}
                       </span>
                     </div>
-                    <p className="mt-1 text-xs text-ink-muted">
+                    <p className="mt-1 text-xs font-medium text-ink-soft">
                       {note.skinType} · {note.concerns[0]} · {note.ageGroup}
                     </p>
                   </div>
@@ -188,17 +188,21 @@ export default function DrawerPage() {
                   <h3 className="mt-2 text-base font-extrabold text-ink">{note.title}</h3>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {note.tags.slice(0, 5).map((tag) => (
-                      <Badge key={tag}>{tag}</Badge>
+                      <Badge key={tag} tone="accent">
+                        {tag}
+                      </Badge>
                     ))}
                   </div>
-                  <div className="mt-3 flex items-center gap-3 text-xs text-ink-muted">
+                  <div className="mt-3 flex items-center gap-3 text-xs font-medium text-ink-soft">
                     <span>사용 {note.durationDays}일</span>
-                    <span>
+                    <span className="text-accent">
                       체감 {"★".repeat(note.feltChange)}
-                      {"☆".repeat(Math.max(0, 5 - note.feltChange))}
+                      <span className="text-ink-muted">
+                        {"☆".repeat(Math.max(0, 5 - note.feltChange))}
+                      </span>
                     </span>
                   </div>
-                  <div className="mt-3 flex gap-4 text-xs font-bold text-ink-soft">
+                  <div className="mt-3 flex gap-4 text-xs font-bold text-ink">
                     <span>저장 {note.saveCount}</span>
                     <span>도움돼요 {note.helpCount}</span>
                     <span>댓글 {note.commentCount}</span>

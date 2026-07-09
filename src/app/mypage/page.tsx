@@ -9,6 +9,7 @@ import Card from "@/components/ui/Card";
 import Illustration from "@/components/ui/Illustration";
 import { SectionHeader } from "@/components/ui/PageHeader";
 import { daysSince } from "@/lib/constants";
+import { compressImageFile, validateImageFile } from "@/lib/image";
 import { defaultAvatar } from "@/lib/illustrations";
 import { logout, showToast, updateAvatar } from "@/lib/store";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
@@ -67,20 +68,22 @@ export default function MyPage() {
             type="file"
             accept="image/jpeg,image/png"
             className="hidden"
-            onChange={(e) => {
+            onChange={async (e) => {
               const file = e.target.files?.[0];
+              e.target.value = "";
               if (!file) return;
-              if (!["image/jpeg", "image/png"].includes(file.type)) {
-                showToast("jpg, png 파일만 등록할 수 있어요.");
+              const invalid = validateImageFile(file);
+              if (invalid) {
+                showToast(invalid);
                 return;
               }
-              if (file.size > 10 * 1024 * 1024) {
-                showToast("사진은 10MB 이하로 등록해주세요.");
-                return;
+              try {
+                const dataUrl = await compressImageFile(file, { maxEdge: 512, quality: 0.85 });
+                await updateAvatar(dataUrl);
+                showToast("프로필 사진이 변경되었어요.");
+              } catch {
+                showToast("사진 업로드에 실패했어요. 다시 시도해주세요.");
               }
-              const reader = new FileReader();
-              reader.onload = () => { void updateAvatar(String(reader.result)); };
-              reader.readAsDataURL(file);
             }}
           />
           <div>

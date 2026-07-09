@@ -157,7 +157,9 @@ export default function RoutineEndPage() {
             ) : (
               <div className="flex flex-wrap gap-2">
                 {tags.map((tag) => (
-                  <Badge key={tag}>{tag}</Badge>
+                  <Badge key={tag} tone="accent">
+                    {tag}
+                  </Badge>
                 ))}
               </div>
             )}

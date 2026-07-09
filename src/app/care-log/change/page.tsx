@@ -9,6 +9,7 @@ import Modal from "@/components/ui/Modal";
 import PageHeader from "@/components/ui/PageHeader";
 import SelectChip from "@/components/ui/SelectChip";
 import { CHANGE_FEELINGS, WEEKLY_CHANGE_TAGS } from "@/lib/constants";
+import { compressImageFile, validateImageFile } from "@/lib/image";
 import { saveWeeklyChange, showToast } from "@/lib/store";
 import type { ChangeFeeling } from "@/lib/types";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
@@ -32,20 +33,19 @@ export default function ChangeRecordPage() {
   const dirty = Boolean(photoUrl || feeling || tags.length);
   const canSave = Boolean(feeling && tags.length > 0);
 
-  const onPickPhoto = (file?: File | null) => {
+  const onPickPhoto = async (file?: File | null) => {
     if (!file) return;
-    if (!["image/jpeg", "image/png"].includes(file.type)) {
-      showToast("jpg, png 파일만 등록할 수 있어요.");
+    const invalid = validateImageFile(file);
+    if (invalid) {
+      showToast(invalid);
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      showToast("사진은 10MB 이하로 등록해주세요.");
-      return;
+    try {
+      const dataUrl = await compressImageFile(file, { maxEdge: 1280, quality: 0.82 });
+      setPhotoUrl(dataUrl);
+    } catch {
+      showToast("사진 업로드에 실패했어요. 다시 시도해주세요.");
     }
-    const reader = new FileReader();
-    reader.onload = () => setPhotoUrl(String(reader.result));
-    reader.onerror = () => showToast("사진 업로드에 실패했어요. 다시 시도해주세요.");
-    reader.readAsDataURL(file);
   };
 
   const helper = useMemo(

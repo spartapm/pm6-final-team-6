@@ -180,8 +180,8 @@ export default function HomePage() {
                     <div className="mx-auto my-3 flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-dashed border-line bg-accent-faint/40">
                       <Illustration src={ILLUSTRATIONS.avatar1} alt="" width={44} height={44} />
                     </div>
-                    <p className="text-xs font-bold text-accent">{card.emptyTitle}</p>
-                    <p className="mt-1 text-[10px] text-accent/80">{card.emptySub}</p>
+                    <p className="text-xs font-bold text-ink-soft">{card.emptyTitle}</p>
+                    <p className="mt-1 text-[10px] text-ink-muted">{card.emptySub}</p>
                   </div>
                 );
               }

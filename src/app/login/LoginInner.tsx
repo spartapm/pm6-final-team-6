@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
@@ -8,9 +8,9 @@ import Button from "@/components/ui/Button";
 import Illustration from "@/components/ui/Illustration";
 import PageHeader from "@/components/ui/PageHeader";
 import { TextInput } from "@/components/ui/Field";
-import { BRAND, DEMO_ACCOUNT, isValidEmail } from "@/lib/constants";
+import { BRAND, isValidEmail } from "@/lib/constants";
 import { ILLUSTRATIONS } from "@/lib/illustrations";
-import { ensureDemoAccount, login } from "@/lib/store";
+import { login } from "@/lib/store";
 
 export default function LoginInner() {
   const router = useRouter();
@@ -21,10 +21,6 @@ export default function LoginInner() {
   const [autoLogin, setAutoLogin] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [formError, setFormError] = useState("");
-
-  useEffect(() => {
-    // use real supabase signup/login
-  }, []);
 
   const errors = useMemo(() => {
     const nextErrors: { email?: string; password?: string } = {};
@@ -111,17 +107,6 @@ export default function LoginInner() {
               회원가입
             </Link>
           </p>
-
-          <button
-            type="button"
-            className="w-full pt-2 text-center text-xs font-bold text-accent"
-            onClick={() => {
-              setEmail(DEMO_ACCOUNT.email);
-              setPassword(DEMO_ACCOUNT.password);
-            }}
-          >
-            데모 입력값 채우기 (회원가입 후 동일 계정으로 로그인)
-          </button>
         </div>
       </div>
     </AppShell>

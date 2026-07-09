@@ -71,12 +71,6 @@ export const CHANGE_TAGS = [
   "#큰 변화 없음",
 ];
 
-export const DEMO_ACCOUNT = {
-  email: "demo@ana.app",
-  password: "demo1234",
-  nickname: "김지연",
-};
-
 export const WEEKLY_CHANGE_TAGS = [
   "#붉은기 완화",
   "#피부결 개선",

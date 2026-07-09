@@ -34,7 +34,7 @@ export default function Button({
   return (
     <button
       className={[
-        "inline-flex items-center justify-center gap-2 rounded-chip font-bold transition disabled:bg-accent-disabled disabled:text-white disabled:shadow-none",
+        "inline-flex items-center justify-center gap-2 rounded-chip font-bold transition disabled:bg-accent-disabled disabled:text-ink-muted disabled:border-transparent disabled:shadow-none",
         variants[variant],
         sizes[size],
         fullWidth ? "w-full" : "",

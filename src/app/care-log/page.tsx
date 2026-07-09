@@ -112,10 +112,10 @@ export default function CareLogPage() {
 
         <Button
           fullWidth
-          disabled={!canSave}
-          variant={todayLog ? "secondary" : "outline"}
+          disabled={!todayLog && !canSave}
+          variant={todayLog ? "secondary" : canSave ? "primary" : "outline"}
           onClick={async () => {
-            if (!canSave) return;
+            if (!canSave || todayLog) return;
             await saveDailyLog(activeRoutine.id, checked);
           }}
         >
@@ -261,12 +261,12 @@ export default function CareLogPage() {
           onClick={() => router.push("/care-log/change")}
           className="flex w-full items-center gap-3 rounded-card border border-line bg-surface-white p-4 text-left shadow-card"
         >
-          <div className="flex h-14 w-14 items-center justify-center rounded-panel border border-dashed border-line bg-accent-faint text-accent">
-            ▣
+          <div className="flex h-14 w-14 items-center justify-center rounded-panel border border-dashed border-line bg-accent-faint text-lg font-extrabold text-accent">
+            {weeklyDone ? "✓" : "＋"}
           </div>
           <div className="min-w-0 flex-1">
             <p className="font-extrabold text-ink">이번주 변화과정기록</p>
-            <p className="mt-1 text-xs text-ink-muted">
+            <p className="mt-1 text-xs font-medium text-ink-soft">
               {weeklyDone
                 ? "이번 주 변화 기록을 완료했어요."
                 : "이번 주 피부 변화를 사진으로 남겨보세요."}
@@ -275,7 +275,9 @@ export default function CareLogPage() {
           <span className="text-accent">›</span>
         </button>
 
-        <p className="text-center text-xs text-ink-muted">매일의 기록이 피부 변화를 만들어요!</p>
+        <p className="text-center text-xs font-medium text-ink-soft">
+          매일의 기록이 피부 변화를 만들어요!
+        </p>
       </div>
 
       {pickerOpen && (
