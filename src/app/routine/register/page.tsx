@@ -13,7 +13,7 @@ import SelectChip from "@/components/ui/SelectChip";
 import { FieldLabel, TextInput } from "@/components/ui/Field";
 import { ROUTINE_CATEGORIES, uid } from "@/lib/constants";
 import { ILLUSTRATIONS } from "@/lib/illustrations";
-import { createRoutine } from "@/lib/store";
+import { createRoutine, showToast } from "@/lib/store";
 import type { Product, RoutineStepCategory } from "@/lib/types";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
 
@@ -179,8 +179,12 @@ export default function RoutineRegisterPage() {
         title="루틴 등록"
         center
         onBack={() => {
+          if (sheetOpen) {
+            setSheetOpen(false);
+            return;
+          }
           if (dirty) setConfirmOpen(true);
-          else router.back();
+          else router.replace("/care-log");
         }}
       />
 
@@ -254,8 +258,15 @@ export default function RoutineRegisterPage() {
                 >
                   <button
                     type="button"
-                    className="flex h-8 w-8 items-center justify-center rounded-full border border-line text-accent"
-                    onClick={() => setSteps((prev) => prev.filter((s) => s.id !== step.id))}
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-line text-accent disabled:opacity-40"
+                    disabled={steps.length <= 1}
+                    onClick={() => {
+                      if (steps.length <= 1) {
+                        showToast("루틴은 최소 1개 단계가 필요해요.");
+                        return;
+                      }
+                      setSteps((prev) => prev.filter((s) => s.id !== step.id));
+                    }}
                   >
                     −
                   </button>

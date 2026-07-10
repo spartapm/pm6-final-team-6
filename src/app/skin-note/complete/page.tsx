@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import Badge from "@/components/ui/Badge";
@@ -13,12 +13,54 @@ import { ILLUSTRATIONS } from "@/lib/illustrations";
 import { finishRoutine, showToast } from "@/lib/store";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
 
+async function downloadNoteCard(element: HTMLElement, filename: string) {
+  const rect = element.getBoundingClientRect();
+  const width = Math.ceil(rect.width);
+  const height = Math.ceil(rect.height);
+  const scale = 2;
+  const canvas = document.createElement("canvas");
+  canvas.width = width * scale;
+  canvas.height = height * scale;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("canvas");
+
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+      <foreignObject width="100%" height="100%">
+        <div xmlns="http://www.w3.org/1999/xhtml">${element.outerHTML}</div>
+      </foreignObject>
+    </svg>
+  `;
+  const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = reject;
+      image.src = url;
+    });
+    ctx.scale(scale, scale);
+    ctx.fillStyle = "#FFFAFB";
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(img, 0, 0, width, height);
+    const png = canvas.toDataURL("image/png");
+    const a = document.createElement("a");
+    a.href = png;
+    a.download = filename;
+    a.click();
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 export default function SkinNoteCompletePage() {
   const router = useRouter();
   const hydrated = useHydrated();
   const { state, user, profile, activeRoutine } = useAppDerivations();
   const pending = state.pendingEnd;
   const [saving, setSaving] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -48,7 +90,18 @@ export default function SkinNoteCompletePage() {
   const createdLabel = formatDateDot(new Date().toISOString());
   const endDate = formatDateDot(new Date().toISOString());
   const startDate = formatDateDot(activeRoutine.startedAt);
-  const weeks = Math.max(1, Math.ceil(duration / 7));
+  const weeks = Math.max(1, Math.floor(duration / 7));
+  const isAbandoned = pending.reason === "지속하기 어려워서 그만할래요";
+
+  const saveCardImage = async () => {
+    if (!cardRef.current) return;
+    try {
+      await downloadNoteCard(cardRef.current, `ana-skin-note-${Date.now()}.png`);
+      showToast("스킨노트 이미지를 저장했어요.");
+    } catch {
+      showToast("이미지 저장에 실패했어요. 다시 시도해주세요.");
+    }
+  };
 
   const complete = async (visibility: "private" | "public") => {
     setSaving(true);
@@ -57,20 +110,20 @@ export default function SkinNoteCompletePage() {
       difficulty: pending.difficulty!,
       tags: pending.tags,
       feltChange: pending.feltChange,
-      visibility,
+      visibility: isAbandoned ? "private" : visibility,
     });
     if (!note) {
       showToast("루틴 종료에 실패했어요. 다시 시도해주세요.");
       setSaving(false);
       return;
     }
-    if (visibility === "private") router.push("/mypage");
-    else router.push("/drawer");
+    if (visibility === "private" || isAbandoned) router.replace("/mypage");
+    else router.replace("/drawer");
   };
 
   return (
     <AppShell showNav={false}>
-      <PageHeader title="" backHref="/routine/end" />
+      <PageHeader title="" backHref="/care-log" />
 
       <div className="page-pad -mt-2 space-y-4 pb-8 animate-fade-up">
         <div className="text-center">
@@ -86,12 +139,17 @@ export default function SkinNoteCompletePage() {
           <p className="mt-1 text-sm text-ink-muted">나의 피부 여정을 기록해 보세요 ✦</p>
         </div>
 
-        <div className="rounded-card border-2 border-accent bg-surface p-4 shadow-card">
+        <div
+          ref={cardRef}
+          className="rounded-card border-2 border-accent bg-surface p-4 shadow-card"
+        >
           <div className="mb-3 flex items-center justify-between gap-2">
             <button
               type="button"
               className="rounded-chip border border-line bg-surface-white px-3 py-1.5 text-xs font-bold text-accent"
-              onClick={() => showToast("경험카드 이미지 저장은 MVP에서 미리보기로 제공돼요.")}
+              onClick={() => {
+                void saveCardImage();
+              }}
             >
               스킨노트 저장하기
             </button>
@@ -152,8 +210,7 @@ export default function SkinNoteCompletePage() {
                 : [{ id: "empty", feeling: "변화가 있었어요" as const }]
               ).map((w, index) => {
                 const feeling = CHANGE_FEELINGS.find((f) => f.value === w.feeling);
-                const label =
-                  index === 0 ? "시작 전" : `${index}주차`;
+                const label = `${(index + 1) * 7}일차`;
                 return (
                   <div key={w.id} className="flex items-center gap-1">
                     <div className="w-16 text-center">
@@ -183,9 +240,9 @@ export default function SkinNoteCompletePage() {
           <div className="space-y-3 pt-3 text-sm">
             <div className="flex gap-3">
               <span className="w-16 shrink-0 text-ink-muted">변화 태그</span>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="grid w-full grid-cols-3 gap-1.5">
                 {pending.tags.map((tag) => (
-                  <Badge key={tag} tone="accent">
+                  <Badge key={tag} tone="accent" className="justify-center text-[10px]">
                     {tag}
                   </Badge>
                 ))}
@@ -214,9 +271,11 @@ export default function SkinNoteCompletePage() {
         >
           나만 보기
         </Button>
-        <Button fullWidth disabled={saving} onClick={() => complete("public")}>
-          공유하고 스킨서랍장 구경하기
-        </Button>
+        {!isAbandoned && (
+          <Button fullWidth disabled={saving} onClick={() => complete("public")}>
+            공유하고 스킨서랍장 구경하기
+          </Button>
+        )}
       </div>
     </AppShell>
   );

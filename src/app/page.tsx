@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import Badge from "@/components/ui/Badge";
@@ -30,7 +29,6 @@ export default function HomePage() {
   const hasRoutine = Boolean(activeRoutine);
   const weekDays = getWeekDays();
   const today = todayKey();
-  const blurHonor = !loggedIn || !hasRoutine;
 
   const honorCards = [
     {
@@ -49,9 +47,9 @@ export default function HomePage() {
     },
     {
       key: "help",
-      label: "좋아요 best",
+      label: "도움돼요 best",
       note: honor.byHelp,
-      emptyTitle: "좋아요 카드 없음",
+      emptyTitle: "도움돼요 카드 없음",
       emptySub: "기록 후 공개",
     },
   ];
@@ -186,12 +184,9 @@ export default function HomePage() {
                 );
               }
               return (
-                <Link
+                <div
                   key={card.key}
-                  href={loggedIn ? `/notes/${note.id}` : `/login?next=/notes/${note.id}`}
-                  className={`rounded-panel border border-line bg-surface-white p-3 text-center transition hover:bg-accent-faint/40 ${
-                    blurHonor ? "blur-[2.5px]" : ""
-                  }`}
+                  className="pointer-events-none rounded-panel border border-line bg-surface-white p-3 text-center"
                 >
                   <p className="text-[11px] font-bold text-ink-soft">{card.label}</p>
                   <div className="mx-auto my-2 flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-line bg-accent-faint">
@@ -203,7 +198,7 @@ export default function HomePage() {
                     />
                   </div>
                   <p className="truncate text-xs font-bold text-ink">{note.authorNickname}</p>
-                </Link>
+                </div>
               );
             })}
           </div>
@@ -220,8 +215,15 @@ export default function HomePage() {
                     (l) => l.date === key && l.routineId === activeRoutine!.id
                   );
                   const isToday = key === today;
+                  const startKey = todayKey(new Date(activeRoutine!.startedAt));
+                  const beforeStart = key < startKey;
                   const isFuture = day.getTime() > new Date(today).getTime();
-                  const icon = weekDayIllustration({ isToday, logged, isFuture });
+                  const icon = weekDayIllustration({
+                    isToday,
+                    logged,
+                    isFuture,
+                    beforeStart,
+                  });
                   return (
                     <div key={key} className="flex min-w-0 flex-col items-center gap-1.5">
                       <span className="text-[11px] font-bold text-ink-muted">
@@ -229,11 +231,11 @@ export default function HomePage() {
                       </span>
                       <div
                         className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full ${
-                          isToday
+                          isToday && !beforeStart
                             ? "border-2 border-accent animate-pulse-ring"
                             : icon
                               ? "bg-accent-faint/30"
-                              : "border border-dashed border-line"
+                              : "border border-dashed border-line bg-transparent"
                         }`}
                       >
                         {icon ? (

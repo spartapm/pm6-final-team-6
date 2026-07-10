@@ -22,6 +22,7 @@ export async function fetchPublicNotes(): Promise<SkinNote[]> {
     .from("skin_notes")
     .select("*")
     .eq("visibility", "public")
+    .eq("is_abandoned", false)
     .order("created_at", { ascending: false });
   if (error || !data) return [];
   return data.map(mapNote);

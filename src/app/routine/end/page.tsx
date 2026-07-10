@@ -64,7 +64,7 @@ export default function RoutineEndPage() {
         center
         onBack={() => {
           if (dirty) setConfirmOpen(true);
-          else router.back();
+          else router.replace("/care-log");
         }}
       />
 

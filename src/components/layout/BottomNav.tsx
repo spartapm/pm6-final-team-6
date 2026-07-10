@@ -96,7 +96,7 @@ function isActive(pathname: string, key: string) {
 export default function BottomNav() {
   const pathname = usePathname() ?? "/";
   const router = useRouter();
-  const { state } = useAppDerivations();
+  const { state, profile, activeRoutine } = useAppDerivations();
 
   return (
     <nav className="bottom-nav z-40 flex w-full shrink-0 items-start justify-around border-t border-line/40 bg-surface-white pt-2 shadow-nav">
@@ -108,8 +108,20 @@ export default function BottomNav() {
             type="button"
             className="flex min-w-[72px] flex-col items-center gap-1 px-2 py-1"
             onClick={() => {
-              if (tab.key === "care" && !state.isLoggedIn) {
-                router.push("/login?next=/care-log");
+              if (tab.key === "care") {
+                if (!state.isLoggedIn) {
+                  router.push("/login?next=/care-log");
+                  return;
+                }
+                if (!profile) {
+                  router.push("/skin-profile");
+                  return;
+                }
+                if (!activeRoutine) {
+                  router.push("/routine/register");
+                  return;
+                }
+                router.push("/care-log");
                 return;
               }
               if (tab.key === "mypage" && !state.isLoggedIn) {

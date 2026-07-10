@@ -33,7 +33,7 @@ export default function MyPage() {
     );
   }
 
-  const completedNotes = myNotes.filter((n) => !n.isAbandoned);
+  const completedNotes = myNotes;
 
   return (
     <AppShell>
@@ -163,7 +163,13 @@ export default function MyPage() {
                   onClick={() => router.push(`/notes/${note.id}`)}
                   className="w-32 shrink-0 rounded-panel border border-line bg-surface-white p-3 text-center"
                 >
-                  <Badge className="mb-2">완료</Badge>
+                  {note.isAbandoned ? (
+                    <Badge tone="outline" className="mb-2">
+                      중도 종료
+                    </Badge>
+                  ) : (
+                    <Badge className="mb-2">완료</Badge>
+                  )}
                   <Illustration
                     src={note.authorAvatar || defaultAvatar(note.id)}
                     alt=""

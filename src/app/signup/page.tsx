@@ -26,16 +26,20 @@ export default function SignupPage() {
   const [submitted, setSubmitted] = useState(false);
   const [formError, setFormError] = useState("");
   const [docModal, setDocModal] = useState<"terms" | "privacy" | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const errors = useMemo(() => {
     const e: Record<string, string> = {};
     if (!nickname.trim()) e.nickname = "닉네임을 입력해주세요.";
+    else if (nickname.trim().length < 2) e.nickname = "닉네임은 2자 이상 입력해주세요.";
+    else if (nickname.trim().length > 12) e.nickname = "닉네임은 12자 이하로 입력해주세요.";
     if (!email.trim()) e.email = "이메일을 입력해주세요.";
     else if (!isValidEmail(email.trim())) e.email = "올바른 이메일 형식으로 입력해주세요.";
     if (!password) e.password = "비밀번호를 입력해주세요.";
     else if (!isValidPassword(password))
       e.password = "비밀번호는 8자 이상, 영문과 숫자를 포함해야 합니다.";
-    if (passwordConfirm !== password) e.passwordConfirm = "비밀번호가 일치하지 않습니다.";
+    if (!passwordConfirm) e.passwordConfirm = "비밀번호 확인을 입력해주세요.";
+    else if (passwordConfirm !== password) e.passwordConfirm = "비밀번호가 일치하지 않습니다.";
     if (!ageGroup) e.ageGroup = "연령대를 선택해주세요.";
     if (!terms) e.terms = "이용약관에 동의해주세요.";
     if (!privacy) e.privacy = "개인정보 처리방침에 동의해주세요.";
@@ -111,7 +115,11 @@ export default function SignupPage() {
           <FieldLabel>성별</FieldLabel>
           <div className="grid grid-cols-2 gap-2">
             {(["여성", "남성"] as const).map((g) => (
-              <SelectChip key={g} selected={gender === g} onClick={() => setGender(g)}>
+              <SelectChip
+                key={g}
+                selected={gender === g}
+                onClick={() => setGender((prev) => (prev === g ? null : g))}
+              >
                 {g}
               </SelectChip>
             ))}
@@ -167,29 +175,35 @@ export default function SignupPage() {
 
         <Button
           fullWidth
-          disabled={!canSubmit}
+          disabled={saving}
           onClick={async () => {
             setSubmitted(true);
+            setFormError("");
             if (!canSubmit || !ageGroup) return;
-            const result = await signup({
-              nickname: nickname.trim(),
-              email: email.trim(),
-              password,
-              ageGroup,
-              gender,
-            });
-            if (!result.ok) {
-              setFormError(result.message);
-              return;
+            setSaving(true);
+            try {
+              const result = await signup({
+                nickname: nickname.trim(),
+                email: email.trim(),
+                password,
+                ageGroup,
+                gender,
+              });
+              if (!result.ok) {
+                setFormError(result.message);
+                return;
+              }
+              if ("needsEmailConfirmation" in result && result.needsEmailConfirmation) {
+                setFormError(result.message || "이메일 인증 후 로그인해주세요.");
+                return;
+              }
+              router.push("/skin-profile");
+            } finally {
+              setSaving(false);
             }
-            if ("needsEmailConfirmation" in result && result.needsEmailConfirmation) {
-              setFormError(result.message || "이메일 인증 후 로그인해주세요.");
-              return;
-            }
-            router.push("/skin-profile");
           }}
         >
-          회원가입
+          {saving ? "가입 중..." : "회원가입"}
         </Button>
 
         <p className="text-center text-sm text-ink-muted">

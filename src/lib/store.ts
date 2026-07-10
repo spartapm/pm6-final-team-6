@@ -179,7 +179,10 @@ export function getMyNotes(state: AppState) {
 
 export function getPublicNotes(state: AppState) {
   return state.skinNotes.filter(
-    (n) => n.visibility === "public" && !state.hiddenNoteIds.includes(n.id)
+    (n) =>
+      n.visibility === "public" &&
+      !n.isAbandoned &&
+      !state.hiddenNoteIds.includes(n.id)
   );
 }
 
@@ -477,7 +480,10 @@ export async function finishRoutine(input: {
 
   const durationDays = daysSince(routine.startedAt);
   const isAbandoned = input.reason === "지속하기 어려워서 그만할래요";
-  const weekly = state.weeklyChanges.filter((w) => w.routineId === routine.id);
+  const visibility = isAbandoned ? "private" : input.visibility;
+  const weekly = state.weeklyChanges
+    .filter((w) => w.routineId === routine.id)
+    .sort((a, b) => a.weekKey.localeCompare(b.weekKey));
   const note: SkinNote = {
     id: newUuid(),
     authorId: user.id,
@@ -497,15 +503,12 @@ export async function finishRoutine(input: {
     changeTimeline:
       weekly.length > 0
         ? weekly.map((w, i) => ({
-            label: i === 0 ? "사용 전" : `${(i + 1) * 7}일차`,
+            label: `${(i + 1) * 7}일차`,
             photoUrl: w.photoUrl,
             feeling: w.feeling,
           }))
-        : [
-            { label: "사용 전", feeling: "변화가 없었어요" },
-            { label: `${durationDays}일차`, feeling: "변화가 있었어요" },
-          ],
-    visibility: input.visibility,
+        : [{ label: `${durationDays}일차`, feeling: "변화가 있었어요" }],
+    visibility,
     isAbandoned,
     createdAt: new Date().toISOString(),
     saveCount: 0,
@@ -781,19 +784,9 @@ export async function updateAvatar(dataUrl: string) {
   await upsertProfile(next);
 }
 
-export function canViewNoteDetail(state: AppState) {
-  const myNotes = getMyNotes(state).filter((n) => n.visibility === "public");
-  const hasPhotoShare = myNotes.some((n) =>
-    n.changeTimeline.some((t) => Boolean(t.photoUrl))
-  );
-  if (hasPhotoShare) return { allowed: true as const, unlimited: true };
-  const hasTagShare = myNotes.length > 0;
-  const today = todayKey();
-  const quota = state.viewQuota.date === today ? state.viewQuota.count : 0;
-  if (!hasTagShare) {
-    return { allowed: quota < 1, unlimited: false, limit: 1, used: quota };
-  }
-  return { allowed: quota < 10, unlimited: false, limit: 10, used: quota };
+/** 런칭 1개월간 스킨노트 열람 제한 미적용 */
+export function canViewNoteDetail(_state: AppState) {
+  return { allowed: true as const, unlimited: true as const, limit: Infinity, used: 0 };
 }
 
 export async function consumeViewQuota() {
@@ -814,8 +807,10 @@ export async function consumeViewQuota() {
 
 export async function dismissBanner(key: "drawer" | "detail") {
   const state = loadState();
+  // 서랍장/상세 안내 배너는 함께 닫힘 처리
   const next = {
-    ...state.bannerDismissed,
+    drawer: true,
+    detail: true,
     [key]: true,
   };
   updateState((s) => ({

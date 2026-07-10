@@ -73,6 +73,8 @@ export const CHANGE_TAGS = [
 
 export const WEEKLY_CHANGE_TAGS = [
   "#붉은기 완화",
+  "#촉촉해졌다",
+  "#장벽 진정",
   "#피부결 개선",
   "#수분 충전",
   "#트러블 감소",
@@ -82,6 +84,7 @@ export const WEEKLY_CHANGE_TAGS = [
   "#탄력 개선",
   "#진정 효과",
   "#보습 강화",
+  "#피지 조절",
 ];
 
 export const SAMPLE_PRODUCTS: Product[] = [

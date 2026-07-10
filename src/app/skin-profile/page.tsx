@@ -24,6 +24,7 @@ export default function SkinProfilePage() {
   const [concerns, setConcerns] = useState<SkinConcern[]>([]);
   const [sensitivity, setSensitivity] = useState<Sensitivity | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [limitModal, setLimitModal] = useState(false);
   const dirty = Boolean(skinType || concerns.length || sensitivity);
 
   useEffect(() => {
@@ -66,16 +67,19 @@ export default function SkinProfilePage() {
       <div className="page-pad mt-5 space-y-5 pb-8 animate-fade-up">
         <div>
           <FieldLabel>프로필</FieldLabel>
-          <Card className="flex items-center gap-3">
+          <Card className="flex min-w-0 items-center gap-3">
             <Illustration
               src={user.avatarUrl || defaultAvatar(user.id)}
               alt=""
               width={44}
               height={44}
-              className="rounded-full"
+              className="shrink-0 rounded-full"
             />
-            <span className="font-extrabold text-ink">{user.nickname}</span>
+            <span className="min-w-0 truncate font-extrabold text-ink">{user.nickname}</span>
           </Card>
+          <p className="mt-1 text-[11px] text-ink-muted">
+            프로필 사진은 마이페이지에서 변경할 수 있어요.
+          </p>
         </div>
 
         <div>
@@ -108,11 +112,17 @@ export default function SkinProfilePage() {
                   <SelectChip
                     key={concern}
                     selected={selected}
-                    onClick={() =>
-                      setConcerns((prev) =>
-                        selected ? prev.filter((c) => c !== concern) : [...prev, concern]
-                      )
-                    }
+                    onClick={() => {
+                      if (selected) {
+                        setConcerns((prev) => prev.filter((c) => c !== concern));
+                        return;
+                      }
+                      if (concerns.length >= 3) {
+                        setLimitModal(true);
+                        return;
+                      }
+                      setConcerns((prev) => [...prev, concern]);
+                    }}
                     className="text-[13px]"
                   >
                     {concern}
@@ -120,7 +130,7 @@ export default function SkinProfilePage() {
                 );
               })}
             </div>
-            <p className="mt-3 text-xs text-ink-muted">* 최소 1개 이상 선택해주세요</p>
+            <p className="mt-3 text-xs text-ink-muted">* 최대 3개 이하로 선택해주세요</p>
           </Card>
         </div>
 
@@ -167,6 +177,14 @@ export default function SkinProfilePage() {
         cancelLabel="계속 작성"
         onCancel={() => setConfirmOpen(false)}
         onConfirm={() => router.back()}
+      />
+      <Modal
+        open={limitModal}
+        title="피부 고민은 최대 3개까지 선택할 수 있어요"
+        description="다른 고민을 선택하려면 기존 선택을 해제해주세요."
+        confirmLabel="확인"
+        hideCancel
+        onConfirm={() => setLimitModal(false)}
       />
     </AppShell>
   );

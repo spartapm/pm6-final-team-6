@@ -8,7 +8,7 @@ import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Illustration from "@/components/ui/Illustration";
 import { daysSince, formatDateDot, todayKey, weekKey } from "@/lib/constants";
-import { careIllustration } from "@/lib/illustrations";
+import { ILLUSTRATIONS, careIllustration } from "@/lib/illustrations";
 import { getMyActiveRoutines, saveDailyLog, selectRoutine } from "@/lib/store";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
 
@@ -153,14 +153,17 @@ export default function CareLogPage() {
             <div className="mt-4 space-y-3">
               <div className="grid grid-cols-3 gap-2 rounded-panel bg-surface p-3 text-center text-xs">
                 <div>
+                  <p className="mb-1 text-base text-accent">☰</p>
                   <p className="text-ink-muted">오늘 루틴</p>
                   <p className="mt-1 font-extrabold text-ink">{total}단계</p>
                 </div>
                 <div>
+                  <p className="mb-1 text-base text-accent">✓</p>
                   <p className="text-ink-muted">완료</p>
                   <p className="mt-1 font-extrabold text-accent">{doneCount}개</p>
                 </div>
                 <div>
+                  <p className="mb-1 text-base text-accent">…</p>
                   <p className="text-ink-muted">남은 단계</p>
                   <p className="mt-1 font-extrabold text-ink">{remain}개</p>
                 </div>
@@ -188,8 +191,17 @@ export default function CareLogPage() {
                     >
                       {step.order}
                     </div>
-                    <div className="flex h-11 w-11 items-center justify-center rounded-panel border border-dashed border-line bg-surface text-[10px] font-bold text-accent">
-                      {step.category.slice(0, 2)}
+                    <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-panel border border-dashed border-line bg-surface text-[10px] font-bold text-accent">
+                      {step.product.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={step.product.imageUrl}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        step.category.slice(0, 2)
+                      )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-extrabold text-ink">{step.category}</p>
@@ -261,8 +273,13 @@ export default function CareLogPage() {
           onClick={() => router.push("/care-log/change")}
           className="flex w-full items-center gap-3 rounded-card border border-line bg-surface-white p-4 text-left shadow-card"
         >
-          <div className="flex h-14 w-14 items-center justify-center rounded-panel border border-dashed border-line bg-accent-faint text-lg font-extrabold text-accent">
-            {weeklyDone ? "✓" : "＋"}
+          <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-panel border border-dashed border-line bg-accent-faint">
+            <Illustration
+              src={weeklyDone ? ILLUSTRATIONS.weekDonePast : ILLUSTRATIONS.weekMissedPast}
+              alt=""
+              width={44}
+              height={44}
+            />
           </div>
           <div className="min-w-0 flex-1">
             <p className="font-extrabold text-ink">이번주 변화과정기록</p>

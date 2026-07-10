@@ -110,14 +110,14 @@ export default function NoteDetailPage() {
   };
 
   return (
-    <AppShell showNav={false}>
+    <AppShell>
       <PageHeader title="스킨노트 상세" backHref="/drawer" />
 
-      <div className="page-pad mt-3 space-y-4 pb-28 animate-fade-up">
+      <div className="page-pad mt-3 space-y-4 pb-8 animate-fade-up">
         {!state.bannerDismissed.detail && (
           <div className="flex items-start justify-between gap-3 rounded-panel border border-line bg-accent-faint/60 px-3 py-3">
             <p className="text-xs leading-relaxed text-ink-soft">
-              경험카드만 공유할 수 있어요. 게시글에는 추가 글을 작성할 수 없어요.
+              스킨노트만 공유할 수 있어요. 게시글에는 추가 글을 작성할 수 없어요.
             </p>
             <button type="button" onClick={() => { void dismissBanner("detail"); }}>
               ✕
@@ -139,17 +139,19 @@ export default function NoteDetailPage() {
             <div className="min-w-0 flex-1">
               <p className="font-extrabold text-ink">{note.authorNickname}</p>
               <p className="mt-1 text-xs text-ink-muted">
-                {note.skinType} · {note.ageGroup} · 민감도 {note.sensitivity} ·{" "}
+                {note.skinType} · {note.concerns[0]} · {note.ageGroup} ·{" "}
                 {relativeTime(note.createdAt)}
               </p>
             </div>
-            <button type="button" className="text-ink-muted" onClick={() => setSheet("note")}>
-              ⋮
-            </button>
+            {isMine && (
+              <button type="button" className="text-ink-muted" onClick={() => setSheet("note")}>
+                ⋮
+              </button>
+            )}
           </div>
 
           <div className="mt-4">
-            <Badge tone="outline">경험 카드</Badge>
+            <Badge tone="outline">스킨노트</Badge>
             <h2 className="mt-2 text-xl font-extrabold text-ink">{note.title}</h2>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {note.tags.map((tag) => (
@@ -162,14 +164,19 @@ export default function NoteDetailPage() {
 
           <div className="mt-4">
             <p className="mb-2 text-sm font-bold text-ink">사용 제품</p>
-            <div className="flex gap-2 overflow-x-auto no-scrollbar">
-              {note.products.slice(0, 4).map((product) => (
+            <div className="flex gap-2 overflow-x-auto no-scrollbar touch-pan-x">
+              {note.products.map((product) => (
                 <div
                   key={product.id}
                   className="w-24 shrink-0 rounded-panel border border-line p-2 text-center"
                 >
-                  <div className="mx-auto mb-1 flex h-14 w-14 items-center justify-center rounded-panel border border-dashed border-line bg-accent-faint text-[10px] font-bold text-accent">
-                    {(product.category ?? product.name).slice(0, 2)}
+                  <div className="mx-auto mb-1 flex h-14 w-14 items-center justify-center overflow-hidden rounded-panel border border-dashed border-line bg-accent-faint text-[10px] font-bold text-accent">
+                    {product.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={product.imageUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      (product.category ?? product.name).slice(0, 2)
+                    )}
                   </div>
                   <p className="line-clamp-2 text-[11px] text-ink">{product.name}</p>
                 </div>
@@ -179,7 +186,7 @@ export default function NoteDetailPage() {
 
           <div className="mt-4">
             <p className="mb-2 text-sm font-bold text-ink">변화 과정</p>
-            <div className="flex gap-2 overflow-x-auto no-scrollbar">
+            <div className="flex gap-2 overflow-x-auto no-scrollbar touch-pan-x">
               {note.changeTimeline.map((item, index) => {
                 const feeling = CHANGE_FEELINGS.find((f) => f.value === item.feeling);
                 return (
@@ -209,30 +216,16 @@ export default function NoteDetailPage() {
             </div>
           </div>
 
-          <div className="mt-4">
-            <p className="mb-2 text-sm font-bold text-ink">변화 태그</p>
-            <div className="flex gap-2 overflow-x-auto no-scrollbar">
-              {note.tags.map((tag) => (
-                <Badge key={tag} tone="accent">
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-4 grid grid-cols-3 gap-2 rounded-panel bg-surface p-3 text-center text-xs">
+          <div className="mt-4 grid grid-cols-2 gap-2 rounded-panel bg-surface p-3 text-center text-xs">
             <div>
               <p className="text-ink-muted">사용 기간</p>
               <p className="mt-1 font-extrabold text-ink">{note.durationDays}일</p>
             </div>
             <div>
-              <p className="text-ink-muted">난이도</p>
-              <p className="mt-1 font-extrabold text-ink">{note.difficulty}</p>
-            </div>
-            <div>
               <p className="text-ink-muted">체감 변화</p>
-              <div className="mt-1 flex justify-center">
+              <div className="mt-1 flex items-center justify-center gap-1">
                 <StarRating value={note.feltChange} readOnly size="sm" />
+                <span className="font-extrabold text-ink">{note.feltChange}</span>
               </div>
             </div>
           </div>
@@ -265,17 +258,20 @@ export default function NoteDetailPage() {
         <div>
           <div className="mb-3 flex items-center justify-between">
             <h3 className="font-extrabold text-ink">댓글 {comments.length}</h3>
-            <button
-              type="button"
-              className="text-xs font-bold text-accent"
-              onClick={() => setSort((s) => (s === "latest" ? "likes" : "latest"))}
-            >
-              {sort === "latest" ? "최신순" : "좋아요순"} ▾
-            </button>
+            <div className="relative">
+              <button
+                type="button"
+                className="text-xs font-bold text-accent"
+                onClick={() => setSort((s) => (s === "latest" ? "likes" : "latest"))}
+              >
+                {sort === "latest" ? "최신순" : "좋아요순"} ▾
+              </button>
+            </div>
           </div>
           <div className="space-y-3">
             {comments.map((item) => {
               const liked = state.likedCommentIds.includes(item.id);
+              const isMyComment = item.authorId === state.currentUserId;
               return (
                 <Card key={item.id} className="!p-3">
                   <div className="flex items-start gap-2">
@@ -289,16 +285,18 @@ export default function NoteDetailPage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-bold text-ink">{item.authorNickname}</p>
-                        <button
-                          type="button"
-                          className="text-ink-muted"
-                          onClick={() => {
-                            setTargetCommentId(item.id);
-                            setSheet("comment");
-                          }}
-                        >
-                          ⋮
-                        </button>
+                        {isMyComment && (
+                          <button
+                            type="button"
+                            className="text-ink-muted"
+                            onClick={() => {
+                              setTargetCommentId(item.id);
+                              setSheet("comment");
+                            }}
+                          >
+                            ⋮
+                          </button>
+                        )}
                       </div>
                       <p className="mt-1 text-sm text-ink-soft">{item.content}</p>
                       <div className="mt-1 flex items-center gap-3 text-[11px] text-ink-muted">
@@ -320,27 +318,29 @@ export default function NoteDetailPage() {
         </div>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-phone gap-2 border-t border-line/50 bg-surface-white p-3">
-        <TextInput
-          id="comment-input"
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          placeholder="따뜻한 댓글을 남겨주세요."
-          onFocus={() => {
-            if (!state.isLoggedIn) setLoginModal(true);
-          }}
-        />
-        <Button
-          size="md"
-          disabled={!comment.trim()}
-          onClick={() =>
-            requireLogin(() => {
-              void addComment(note.id, comment.trim()).then(() => setComment(""));
-            })
-          }
-        >
-          등록
-        </Button>
+      <div className="sticky bottom-0 z-30 -mx-0 border-t border-line/50 bg-surface-white p-3">
+        <div className="flex gap-2">
+          <TextInput
+            id="comment-input"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="따뜻한 댓글을 남겨주세요."
+            onFocus={() => {
+              if (!state.isLoggedIn) setLoginModal(true);
+            }}
+          />
+          <Button
+            size="md"
+            disabled={!comment.trim()}
+            onClick={() =>
+              requireLogin(() => {
+                void addComment(note.id, comment.trim()).then(() => setComment(""));
+              })
+            }
+          >
+            등록
+          </Button>
+        </div>
       </div>
 
       {sheet && (

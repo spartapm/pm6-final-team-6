@@ -3,12 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
+import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
-import Card from "@/components/ui/Card";
 import Modal from "@/components/ui/Modal";
 import PageHeader from "@/components/ui/PageHeader";
 import SelectChip from "@/components/ui/SelectChip";
-import { CHANGE_FEELINGS, WEEKLY_CHANGE_TAGS } from "@/lib/constants";
+import { CHANGE_FEELINGS, WEEKLY_CHANGE_TAGS, weekKey } from "@/lib/constants";
 import { compressImageFile, validateImageFile } from "@/lib/image";
 import { saveWeeklyChange, showToast } from "@/lib/store";
 import type { ChangeFeeling } from "@/lib/types";
@@ -23,12 +23,26 @@ export default function ChangeRecordPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [hydratedForm, setHydratedForm] = useState(false);
 
   useEffect(() => {
     if (!hydrated) return;
     if (!state.isLoggedIn) router.replace("/login?next=/care-log/change");
     else if (!activeRoutine) router.replace("/care-log");
   }, [hydrated, state.isLoggedIn, activeRoutine, router]);
+
+  useEffect(() => {
+    if (!hydrated || !activeRoutine || hydratedForm) return;
+    const existing = state.weeklyChanges.find(
+      (w) => w.routineId === activeRoutine.id && w.weekKey === weekKey()
+    );
+    if (existing) {
+      setPhotoUrl(existing.photoUrl);
+      setFeeling(existing.feeling);
+      setTags(existing.tags);
+    }
+    setHydratedForm(true);
+  }, [hydrated, activeRoutine, state.weeklyChanges, hydratedForm]);
 
   const dirty = Boolean(photoUrl || feeling || tags.length);
   const canSave = Boolean(feeling && tags.length > 0);
@@ -49,7 +63,7 @@ export default function ChangeRecordPage() {
   };
 
   const helper = useMemo(
-    () => "사진을 등록하지 않아도 기록할 수 있어요. 아래에서 변화 여부와 태그를 선택해주세요.",
+    () => "변화 사진을 비교적으로 볼 수 있어요. 사진을 등록하지 않아도 기록할 수 있어요.",
     []
   );
 
@@ -75,7 +89,11 @@ export default function ChangeRecordPage() {
 
       <div className="page-pad mt-5 space-y-5 pb-8 animate-fade-up">
         <div>
-          <h2 className="mb-2 text-sm font-extrabold text-ink">이번 주 변화 사진</h2>
+          <div className="mb-2 flex items-center gap-2">
+            <h2 className="text-sm font-extrabold text-ink">이번 주 변화 사진</h2>
+            <Badge tone="muted">선택</Badge>
+          </div>
+          <p className="mb-2 text-xs text-ink-muted">{helper}</p>
           {photoUrl ? (
             <div className="relative overflow-hidden rounded-card border border-line">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -102,12 +120,11 @@ export default function ChangeRecordPage() {
           )}
         </div>
 
-        <Card>
-          <p className="text-xs leading-relaxed text-ink-muted">{helper}</p>
-        </Card>
-
         <div>
-          <h2 className="mb-2 text-sm font-extrabold text-ink">이번 주 피부 변화는 어땠나요?</h2>
+          <div className="mb-2 flex items-center gap-2">
+            <h2 className="text-sm font-extrabold text-ink">이번 주 피부 변화는 어땠나요?</h2>
+            <Badge tone="muted">필수</Badge>
+          </div>
           <div className="grid grid-cols-3 gap-2">
             {CHANGE_FEELINGS.map((item) => (
               <SelectChip
@@ -124,7 +141,10 @@ export default function ChangeRecordPage() {
         </div>
 
         <div>
-          <h2 className="mb-2 text-sm font-extrabold text-ink">어떤 변화가 있었나요?</h2>
+          <div className="mb-2 flex items-center gap-2">
+            <h2 className="text-sm font-extrabold text-ink">어떤 변화가 있었나요?</h2>
+            <Badge tone="muted">복수 선택 가능</Badge>
+          </div>
           <div className="flex flex-wrap gap-2">
             {WEEKLY_CHANGE_TAGS.map((tag) => {
               const selected = tags.includes(tag);

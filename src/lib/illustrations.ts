@@ -67,8 +67,10 @@ export function weekDayIllustration(opts: {
   isToday: boolean;
   logged: boolean;
   isFuture: boolean;
+  /** 루틴 시작일 이전 — 미참여와 구분되는 빈 슬롯 */
+  beforeStart?: boolean;
 }) {
-  if (opts.isFuture) return null;
+  if (opts.isFuture || opts.beforeStart) return null;
   if (opts.isToday) {
     return opts.logged ? ILLUSTRATIONS.weekDoneToday : ILLUSTRATIONS.weekMissedToday;
   }
