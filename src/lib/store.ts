@@ -1,8 +1,6 @@
 "use client";
 
 import {
-  RECOMMEND_ROUTINES,
-  SAMPLE_PRODUCTS,
   daysSince,
   todayKey,
   uid,
@@ -419,17 +417,6 @@ export async function createRoutine(input: {
   return routine;
 }
 
-export function buildRecommendRoutine(index = 0) {
-  const rec = RECOMMEND_ROUTINES[index % RECOMMEND_ROUTINES.length];
-  return {
-    ...rec,
-    steps: rec.steps.map((step) => ({
-      category: step.category,
-      product: SAMPLE_PRODUCTS.find((p) => p.id === step.productId)!,
-    })),
-  };
-}
-
 export async function saveDailyLog(routineId: string, completedStepIds: string[]) {
   const date = todayKey();
   const state = loadState();
@@ -683,50 +670,102 @@ export async function reportNote(noteId: string) {
 }
 
 export async function requestResetCode(email: string) {
-  const redirectTo =
-    typeof window !== "undefined" ? `${window.location.origin}/auth/callback?next=/forgot-password?step=3` : undefined;
-  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
-  if (error) {
-    return { ok: false as const, message: error.message || "가입되지 않은 이메일입니다." };
+  try {
+    const res = await fetch("/api/auth/send-otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = (await res.json()) as { ok?: boolean; message?: string };
+    if (!res.ok || !data.ok) {
+      return {
+        ok: false as const,
+        message: data.message || "가입되지 않은 이메일입니다.",
+      };
+    }
+    return { ok: true as const };
+  } catch {
+    return {
+      ok: false as const,
+      message: "인증번호 발송에 실패했습니다. 잠시 후 다시 시도해주세요.",
+    };
   }
-  updateState((s) => ({
-    ...s,
-    resetTokens: {
-      ...s.resetTokens,
-      [email]: { code: "EMAIL_SENT", expiresAt: Date.now() + 60 * 60 * 1000 },
-    },
-  }));
-  return { ok: true as const, code: "EMAIL_SENT" };
 }
 
 export async function verifyResetCode(email: string, code: string) {
-  const state = loadState();
-  const token = state.resetTokens[email];
-  if (!token) return { ok: false as const, message: "인증번호가 만료되었습니다. 다시 시도해주세요." };
-  if (Date.now() > token.expiresAt) {
-    return { ok: false as const, message: "인증번호가 만료되었습니다. 다시 시도해주세요." };
+  try {
+    const res = await fetch("/api/auth/verify-otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, otp: code }),
+    });
+    const data = (await res.json()) as {
+      ok?: boolean;
+      message?: string;
+      resetToken?: string;
+    };
+    if (!res.ok || !data.ok || !data.resetToken) {
+      return {
+        ok: false as const,
+        message: data.message || "인증번호가 일치하지 않습니다.",
+      };
+    }
+    updateState((s) => ({
+      ...s,
+      resetTokens: {
+        ...s.resetTokens,
+        [email]: {
+          code: data.resetToken!,
+          expiresAt: Date.now() + 15 * 60 * 1000,
+        },
+      },
+    }));
+    return { ok: true as const, resetToken: data.resetToken };
+  } catch {
+    return { ok: false as const, message: "인증 확인에 실패했습니다." };
   }
-  // 이메일 링크로 진입한 recovery 세션이 있으면 통과
-  const { data } = await supabase.auth.getSession();
-  if (data.session) return { ok: true as const };
-  return { ok: false as const, message: "인증번호가 일치하지 않습니다. 이메일 링크 확인 후 다시 시도해주세요." };
 }
 
 export async function resetPassword(email: string, password: string) {
-  const { error } = await supabase.auth.updateUser({ password });
-  if (error) {
-    // recovery 세션이 없으면 안내
-    showToast(error.message || "비밀번호 변경에 실패했습니다. 이메일 링크로 다시 접속해주세요.");
-    return { ok: false as const, message: error.message };
+  const state = loadState();
+  const token = state.resetTokens[email];
+  if (!token?.code || Date.now() > token.expiresAt) {
+    return {
+      ok: false as const,
+      message: "인증이 만료되었습니다. 다시 시도해주세요.",
+    };
   }
-  updateState((s) => ({
-    ...s,
-    resetTokens: Object.fromEntries(
-      Object.entries(s.resetTokens).filter(([key]) => key !== email)
-    ),
-  }));
-  await supabase.auth.signOut();
-  return { ok: true as const };
+
+  try {
+    const res = await fetch("/api/auth/reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email,
+        resetToken: token.code,
+        password,
+      }),
+    });
+    const data = (await res.json()) as { ok?: boolean; message?: string };
+    if (!res.ok || !data.ok) {
+      return {
+        ok: false as const,
+        message: data.message || "비밀번호 변경에 실패했습니다. 다시 시도해주세요.",
+      };
+    }
+    updateState((s) => ({
+      ...s,
+      resetTokens: Object.fromEntries(
+        Object.entries(s.resetTokens).filter(([key]) => key !== email)
+      ),
+    }));
+    return { ok: true as const };
+  } catch {
+    return {
+      ok: false as const,
+      message: "비밀번호 변경에 실패했습니다. 다시 시도해주세요.",
+    };
+  }
 }
 
 export async function updateAvatar(dataUrl: string) {

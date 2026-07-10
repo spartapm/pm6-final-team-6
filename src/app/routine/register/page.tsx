@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import Badge from "@/components/ui/Badge";
@@ -11,9 +11,9 @@ import Modal from "@/components/ui/Modal";
 import PageHeader from "@/components/ui/PageHeader";
 import SelectChip from "@/components/ui/SelectChip";
 import { FieldLabel, TextInput } from "@/components/ui/Field";
-import { ROUTINE_CATEGORIES, SAMPLE_PRODUCTS, uid } from "@/lib/constants";
+import { ROUTINE_CATEGORIES, uid } from "@/lib/constants";
 import { ILLUSTRATIONS } from "@/lib/illustrations";
-import { buildRecommendRoutine, createRoutine } from "@/lib/store";
+import { createRoutine } from "@/lib/store";
 import type { Product, RoutineStepCategory } from "@/lib/types";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
 
@@ -21,6 +21,14 @@ type DraftStep = {
   id: string;
   category: RoutineStepCategory;
   product: Product;
+};
+
+type RecommendPayload = {
+  title: string;
+  steps: Array<{
+    category: RoutineStepCategory;
+    product: Product;
+  }>;
 };
 
 export default function RoutineRegisterPage() {
@@ -34,10 +42,13 @@ export default function RoutineRegisterPage() {
   const [selectedCategory, setSelectedCategory] =
     useState<RoutineStepCategory>("클렌징");
   const [query, setQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [customName, setCustomName] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [recIndex, setRecIndex] = useState(0);
+  const [recommend, setRecommend] = useState<RecommendPayload | null>(null);
   const [recApplied, setRecApplied] = useState(false);
   const [recLoading, setRecLoading] = useState(false);
   const [recError, setRecError] = useState("");
@@ -50,15 +61,53 @@ export default function RoutineRegisterPage() {
     else if (!profile) router.replace("/skin-profile");
   }, [hydrated, state.isLoggedIn, profile, router]);
 
-  const filteredProducts = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return SAMPLE_PRODUCTS.filter((p) => {
-      const hay = `${p.brand ?? ""} ${p.name}`.toLowerCase();
-      return !q || hay.includes(q);
-    });
-  }, [query]);
+  useEffect(() => {
+    if (!sheetOpen || sheetTab !== "search") return;
+    const q = query.trim();
+    if (!q) {
+      setSearchResults([]);
+      setSearchError("");
+      setSearchLoading(false);
+      return;
+    }
 
-  const recommend = useMemo(() => buildRecommendRoutine(recIndex), [recIndex]);
+    const timer = window.setTimeout(async () => {
+      setSearchLoading(true);
+      setSearchError("");
+      try {
+        const res = await fetch(`/api/products/search?query=${encodeURIComponent(q)}`);
+        const data = (await res.json()) as {
+          ok?: boolean;
+          message?: string;
+          items?: Array<{ id: string; title: string; image: string; brand?: string }>;
+        };
+        if (!res.ok || !data.ok) {
+          setSearchResults([]);
+          setSearchError(
+            data.message || "제품 검색에 실패했어요. 직접 제품 등록하기를 이용해주세요."
+          );
+          return;
+        }
+        setSearchResults(
+          (data.items || []).map((item) => ({
+            id: item.id,
+            name: item.title,
+            brand: item.brand,
+            imageUrl: item.image,
+            category: selectedCategory,
+          }))
+        );
+      } catch {
+        setSearchResults([]);
+        setSearchError("제품 검색에 실패했어요. 직접 제품 등록하기를 이용해주세요.");
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 400);
+
+    return () => window.clearTimeout(timer);
+  }, [query, sheetOpen, sheetTab, selectedCategory]);
+
   const dirty = steps.length > 0 || recApplied;
 
   if (!hydrated || !profile) {
@@ -69,14 +118,59 @@ export default function RoutineRegisterPage() {
     );
   }
 
-  const loadRecommend = (nextIndex = recIndex) => {
+  const loadRecommend = async () => {
     setRecLoading(true);
     setRecError("");
-    window.setTimeout(() => {
-      setRecIndex(nextIndex);
-      setRecApplied(false);
+    setRecApplied(false);
+    try {
+      const res = await fetch("/api/routines/recommend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          skinType: profile.skinType,
+          concern: profile.concerns[0],
+          sensitivity: profile.sensitivity,
+        }),
+      });
+      const data = (await res.json()) as {
+        ok?: boolean;
+        message?: string;
+        title?: string;
+        steps?: Array<{
+          category: string;
+          productName: string;
+          brand?: string;
+          imageUrl?: string;
+        }>;
+      };
+      if (!res.ok || !data.ok || !data.steps?.length) {
+        setRecommend(null);
+        setRecError(data.message || "추천 루틴을 불러오지 못했어요. 다시 시도해주세요");
+        return;
+      }
+      setRecommend({
+        title: data.title || `${profile.concerns[0]} 맞춤 루틴`,
+        steps: data.steps.map((step) => ({
+          category: (ROUTINE_CATEGORIES.includes(step.category as RoutineStepCategory)
+            ? step.category
+            : "기타") as RoutineStepCategory,
+          product: {
+            id: uid("rec"),
+            name: step.productName,
+            brand: step.brand,
+            imageUrl: step.imageUrl,
+            category: (ROUTINE_CATEGORIES.includes(step.category as RoutineStepCategory)
+              ? step.category
+              : "기타") as RoutineStepCategory,
+          },
+        })),
+      });
+    } catch {
+      setRecommend(null);
+      setRecError("추천 루틴을 불러오지 못했어요. 다시 시도해주세요");
+    } finally {
       setRecLoading(false);
-    }, 700);
+    }
   };
 
   return (
@@ -110,7 +204,7 @@ export default function RoutineRegisterPage() {
             onClick={() => {
               setTab("recommend");
               setSteps([]);
-              loadRecommend(0);
+              void loadRecommend();
             }}
             className={`rounded-panel border p-3 text-left ${
               tab === "recommend"
@@ -230,11 +324,11 @@ export default function RoutineRegisterPage() {
                     className="mx-auto"
                   />
                   <p className="text-sm text-accent">{recError}</p>
-                  <Button size="md" onClick={() => loadRecommend(recIndex)}>
+                  <Button size="md" onClick={() => void loadRecommend()}>
                     다시 시도
                   </Button>
                 </div>
-              ) : (
+              ) : recommend ? (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h3 className="font-extrabold text-ink">{recommend.title}</h3>
@@ -245,25 +339,35 @@ export default function RoutineRegisterPage() {
                       key={`${step.product.id}-${index}`}
                       className="flex items-center gap-3 rounded-panel border border-line/70 bg-surface p-3"
                     >
-                      <div className="flex h-12 w-12 items-center justify-center rounded-panel border border-dashed border-line bg-accent-faint text-xs font-bold text-accent">
-                        {step.category.slice(0, 2)}
-                      </div>
+                      {step.product.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={step.product.imageUrl}
+                          alt=""
+                          className="h-12 w-12 rounded-panel object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-12 w-12 items-center justify-center rounded-panel border border-dashed border-line bg-accent-faint text-xs font-bold text-accent">
+                          {step.category.slice(0, 2)}
+                        </div>
+                      )}
                       <div className="min-w-0">
                         <p className="text-sm font-bold text-ink">{step.category}</p>
                         <p className="truncate text-xs text-ink-muted">
-                          {step.product.brand} · {step.product.name}
+                          {step.product.brand ? `${step.product.brand} · ` : ""}
+                          {step.product.name}
                         </p>
                       </div>
                     </div>
                   ))}
                 </div>
-              )}
+              ) : null}
             </Card>
 
             <div className="grid grid-cols-2 gap-2">
               <Button
                 variant={recApplied ? "secondary" : "outline"}
-                disabled={recLoading || Boolean(recError)}
+                disabled={recLoading || Boolean(recError) || !recommend}
                 onClick={() => setRecApplied(true)}
               >
                 {recApplied ? "적용됨 ✓" : "추천 루틴 적용"}
@@ -273,7 +377,7 @@ export default function RoutineRegisterPage() {
                 disabled={recLoading || cooldown}
                 onClick={() => {
                   setCooldown(true);
-                  loadRecommend(recIndex + 1);
+                  void loadRecommend();
                   window.setTimeout(() => setCooldown(false), 5000);
                 }}
               >
@@ -283,8 +387,9 @@ export default function RoutineRegisterPage() {
 
             <Button
               fullWidth
-              disabled={!recApplied}
+              disabled={!recApplied || !recommend}
               onClick={async () => {
+                if (!recommend) return;
                 await createRoutine({
                   title: recommend.title,
                   concernLabel: profile.concerns[0],
@@ -328,7 +433,13 @@ export default function RoutineRegisterPage() {
               <SelectChip selected={sheetTab === "search"} onClick={() => setSheetTab("search")}>
                 제품 검색
               </SelectChip>
-              <SelectChip selected={sheetTab === "custom"} onClick={() => setSheetTab("custom")}>
+              <SelectChip
+                selected={sheetTab === "custom"}
+                onClick={() => {
+                  setSheetTab("custom");
+                  setSearchError("");
+                }}
+              >
                 직접 제품 등록
               </SelectChip>
             </div>
@@ -340,21 +451,66 @@ export default function RoutineRegisterPage() {
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="제품명 검색"
                 />
+                {searchLoading && (
+                  <p className="text-center text-xs text-ink-muted">검색 중...</p>
+                )}
+                {searchError && (
+                  <div className="space-y-2 rounded-panel border border-line bg-surface p-3 text-center">
+                    <p className="text-sm text-accent">{searchError}</p>
+                    <button
+                      type="button"
+                      className="text-sm font-bold text-accent underline"
+                      onClick={() => {
+                        setSheetTab("custom");
+                        setSearchError("");
+                      }}
+                    >
+                      직접 제품 등록하기
+                    </button>
+                  </div>
+                )}
                 <div className="max-h-56 space-y-2 overflow-auto">
-                  {filteredProducts.map((product) => {
+                  {!searchLoading &&
+                    !searchError &&
+                    query.trim() &&
+                    searchResults.length === 0 && (
+                      <div className="space-y-2 py-4 text-center">
+                        <p className="text-sm text-ink-muted">검색 결과가 없어요.</p>
+                        <button
+                          type="button"
+                          className="text-sm font-bold text-accent underline"
+                          onClick={() => setSheetTab("custom")}
+                        >
+                          직접 제품 등록하기
+                        </button>
+                      </div>
+                    )}
+                  {searchResults.map((product) => {
                     const selected = selectedProduct?.id === product.id;
                     return (
                       <button
                         key={product.id}
                         type="button"
                         onClick={() => setSelectedProduct(selected ? null : product)}
-                        className={`flex w-full items-center justify-between rounded-panel border px-3 py-3 text-left ${
+                        className={`flex w-full items-center gap-3 rounded-panel border px-3 py-3 text-left ${
                           selected ? "border-accent bg-accent-faint" : "border-line"
                         }`}
                       >
-                        <div>
-                          <p className="text-sm font-bold text-ink">{product.name}</p>
-                          <p className="text-xs text-ink-muted">{product.brand}</p>
+                        {product.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={product.imageUrl}
+                            alt=""
+                            className="h-10 w-10 rounded-panel object-cover"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded-panel bg-surface" />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-bold text-ink">{product.name}</p>
+                          {product.brand && (
+                            <p className="text-xs text-ink-muted">{product.brand}</p>
+                          )}
                         </div>
                         <span
                           className={`flex h-5 w-5 items-center justify-center rounded border ${
@@ -410,6 +566,8 @@ export default function RoutineRegisterPage() {
                 setSelectedProduct(null);
                 setCustomName("");
                 setQuery("");
+                setSearchResults([]);
+                setSearchError("");
                 setSheetOpen(false);
               }}
             >

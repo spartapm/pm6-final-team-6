@@ -24,11 +24,14 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState("");
   const [seconds, setSeconds] = useState(180);
   const [expired, setExpired] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [canResend, setCanResend] = useState(false);
 
   useEffect(() => {
     if (step !== 2 || expired) return;
     if (seconds <= 0) {
       setExpired(true);
+      setCanResend(true);
       return;
     }
     const timer = window.setTimeout(() => setSeconds((s) => s - 1), 1000);
@@ -87,7 +90,7 @@ export default function ForgotPasswordPage() {
             </div>
             <Button
               fullWidth
-              disabled={!emailOk}
+              disabled={!emailOk || busy}
               onClick={async () => {
                 if (!email.trim()) {
                   setError("이메일을 입력해주세요.");
@@ -97,17 +100,20 @@ export default function ForgotPasswordPage() {
                   setError("올바른 이메일 형식으로 입력해주세요.");
                   return;
                 }
+                setBusy(true);
                 const result = await requestResetCode(email.trim());
+                setBusy(false);
                 if (!result.ok) {
                   setError(result.message);
                   return;
                 }
                 setSeconds(180);
                 setExpired(false);
+                setCanResend(false);
                 setCode("");
                 setError("");
                 setStep(2);
-                showToast("비밀번호 재설정 메일을 보냈어요. 메일 링크를 확인해주세요.");
+                showToast("인증번호를 이메일로 보냈어요.");
               }}
             >
               인증번호 받기
@@ -142,9 +148,12 @@ export default function ForgotPasswordPage() {
             </div>
             <button
               type="button"
-              className="text-sm font-bold text-accent"
+              className="text-sm font-bold text-accent disabled:opacity-40"
+              disabled={!canResend || busy}
               onClick={async () => {
+                setBusy(true);
                 const result = await requestResetCode(email.trim());
+                setBusy(false);
                 if (!result.ok) {
                   setError(result.message);
                   return;
@@ -152,17 +161,20 @@ export default function ForgotPasswordPage() {
                 setCode("");
                 setSeconds(180);
                 setExpired(false);
+                setCanResend(false);
                 setError("");
-                showToast("재설정 메일을 다시 보냈어요.");
+                showToast("인증번호를 다시 보냈어요.");
               }}
             >
               인증번호 재전송
             </button>
             <Button
               fullWidth
-              disabled={!codeOk || expired}
+              disabled={!codeOk || expired || busy}
               onClick={async () => {
+                setBusy(true);
                 const result = await verifyResetCode(email.trim(), code);
+                setBusy(false);
                 if (!result.ok) {
                   setError(result.message);
                   return;
@@ -214,9 +226,11 @@ export default function ForgotPasswordPage() {
             </div>
             <Button
               fullWidth
-              disabled={!passwordOk}
+              disabled={!passwordOk || busy}
               onClick={async () => {
+                setBusy(true);
                 const result = await resetPassword(email.trim(), password);
+                setBusy(false);
                 if (result && "ok" in result && !result.ok) {
                   setError(result.message || "비밀번호 변경에 실패했습니다.");
                   return;
