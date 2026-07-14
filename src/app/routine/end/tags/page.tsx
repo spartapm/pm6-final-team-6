@@ -15,7 +15,7 @@ import { ILLUSTRATIONS } from "@/lib/illustrations";
 import { setPendingEnd, showToast } from "@/lib/store";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
 
-const NONE_TAG = "#큰 변화 없음";
+const NONE_TAGS = new Set(["#큰 변화 없음", "#아직 잘 모르겠음", "#좀 더 지켜봐야 함"]);
 
 export default function ChangeTagsPage() {
   const router = useRouter();
@@ -33,15 +33,15 @@ export default function ChangeTagsPage() {
   const dirty = JSON.stringify(tags) !== JSON.stringify(initial);
 
   const toggleTag = (tag: string) => {
-    if (tag === NONE_TAG) {
-      setTags([NONE_TAG]);
+    if (NONE_TAGS.has(tag)) {
+      setTags([tag]);
       return;
     }
     if (tags.includes(tag)) {
       setTags((prev) => prev.filter((t) => t !== tag));
       return;
     }
-    if (tags.includes(NONE_TAG)) {
+    if (tags.some((t) => NONE_TAGS.has(t))) {
       setTags([tag]);
       return;
     }
@@ -75,28 +75,35 @@ export default function ChangeTagsPage() {
         />
 
         <div className="flex items-center justify-between">
-          <p className="text-sm font-bold text-ink">이번 루틴에서 느낀 변화를 선택해주세요</p>
+          <p className="text-sm font-bold text-ink">해당되는 태그를 선택해주세요</p>
           <Badge tone="soft">최대 5개</Badge>
         </div>
-        <p className="text-sm font-extrabold text-accent">
-          {tags.length}/5
-        </p>
+        <p className="text-sm font-extrabold text-accent">{tags.length}/5</p>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-3 gap-2">
           {CHANGE_TAGS.map((tag) => (
             <SelectChip
               key={tag}
               selected={tags.includes(tag)}
-              className="text-xs"
+              className="justify-center text-[11px]"
               onClick={() => toggleTag(tag)}
             >
-              {tags.includes(tag) ? `✓ ${tag}` : tag}
+              {tag}
             </SelectChip>
           ))}
         </div>
 
-        <Card>
-          <p className="text-xs text-ink-muted">태그는 스킨노트 생성과 루틴 분석에 활용돼요.</p>
+        <Card className="flex items-center gap-3 !p-3">
+          <Illustration
+            src={ILLUSTRATIONS.tagsHint}
+            alt=""
+            width={48}
+            height={48}
+            className="shrink-0"
+          />
+          <p className="text-xs leading-relaxed text-ink-muted">
+            태그는 스킨노트 생성과 루틴 분석에 활용돼요.
+          </p>
         </Card>
 
         <Button
@@ -112,7 +119,7 @@ export default function ChangeTagsPage() {
             router.push("/routine/end");
           }}
         >
-          선택 완료 ({tags.length})
+          선택 완료
         </Button>
       </div>
 

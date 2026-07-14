@@ -130,7 +130,7 @@ export default function HomePage() {
                       ? "오늘 루틴 기록하기"
                       : hasProfile
                         ? "오늘 루틴 등록하기"
-                        : "오늘 루틴 기록하기"}
+                        : "피부 프로필 등록하기"}
                   </span>
                   <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-white">
                     →

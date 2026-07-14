@@ -7,6 +7,7 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Illustration from "@/components/ui/Illustration";
+import Modal from "@/components/ui/Modal";
 import { daysSince, formatDateDot, todayKey, weekKey } from "@/lib/constants";
 import { ILLUSTRATIONS, careIllustration } from "@/lib/illustrations";
 import { getMyActiveRoutines, saveDailyLog, selectRoutine } from "@/lib/store";
@@ -16,9 +17,9 @@ export default function CareLogPage() {
   const router = useRouter();
   const hydrated = useHydrated();
   const { state, profile, activeRoutine } = useAppDerivations();
-  const [expanded, setExpanded] = useState(false);
   const [checked, setChecked] = useState<string[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [endConfirmOpen, setEndConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -36,12 +37,8 @@ export default function CareLogPage() {
   );
 
   useEffect(() => {
-    if (todayLog) {
-      setChecked(todayLog.completedStepIds);
-      setExpanded(true);
-    } else {
-      setChecked([]);
-    }
+    if (todayLog) setChecked(todayLog.completedStepIds);
+    else setChecked([]);
   }, [todayLog, activeRoutine?.id]);
 
   const weeklyDone = useMemo(() => {
@@ -72,10 +69,7 @@ export default function CareLogPage() {
           />
           <h1 className="text-xl font-extrabold text-ink">진행 중인 루틴이 없어요</h1>
           <p className="text-sm text-ink-muted">루틴을 등록하고 오늘의 케어를 시작해보세요</p>
-          <Button
-            fullWidth
-            onClick={() => router.push(profile ? "/routine/register" : "/skin-profile")}
-          >
+          <Button fullWidth onClick={() => router.push("/skin-profile")}>
             루틴 등록하기
           </Button>
         </div>
@@ -91,65 +85,56 @@ export default function CareLogPage() {
 
   return (
     <AppShell>
-      <div className="page-pad space-y-4 pt-5 pb-6 animate-fade-up">
-        <Card className="overflow-hidden text-center">
-          <div className="mx-auto mb-3 flex h-40 w-full items-center justify-center">
-            <Illustration
-              src={careIllustration(profile.skinType, allDone)}
-              alt={`${profile.skinType} 구역 캐릭터`}
-              width={200}
-              height={150}
-              priority
-            />
-          </div>
-          <Badge tone="outline">
-            {profile.skinType} 구역{expanded ? " 1등" : ""}
-          </Badge>
-          <h1 className="mt-3 text-2xl font-extrabold text-ink">입주</h1>
-          <p className="mt-1 text-sm font-bold text-ink-soft">새 주민이 입주했어요</p>
-          <p className="mt-1 text-xs text-ink-muted">이제 이 피부 구역을 함께 기록해봐요.</p>
-        </Card>
+      <div className="flex h-full min-h-0 flex-col">
+        <div className="page-pad flex items-center justify-between gap-2 pt-4">
+          <h1 className="text-lg font-extrabold text-ink">케어로그</h1>
+          <button
+            type="button"
+            onClick={() => setEndConfirmOpen(true)}
+            className="rounded-chip border border-accent bg-surface-white px-3 py-1.5 text-xs font-bold text-accent"
+          >
+            루틴 종료
+          </button>
+        </div>
 
-        <Button
-          fullWidth
-          disabled={!todayLog && !canSave}
-          variant={todayLog ? "secondary" : canSave ? "primary" : "outline"}
-          onClick={async () => {
-            if (!canSave || todayLog) return;
-            await saveDailyLog(activeRoutine.id, checked);
-          }}
-        >
-          <span className="flex h-6 w-6 items-center justify-center rounded-full border border-current text-xs">
-            ✓
-          </span>
-          {todayLog ? "오늘 기록 완료" : "오늘 했어요"}
-        </Button>
-
-        <Card>
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="text-accent">✓</span>
-              <h2 className="font-extrabold text-ink">케어로그</h2>
-              <span className="text-accent">✦</span>
+        <div className="page-pad min-h-0 flex-1 space-y-4 overflow-y-auto pb-4 pt-3 animate-fade-up">
+          <Card className="overflow-hidden !p-0 text-center">
+            <div className="flex w-full items-center justify-center bg-accent-faint/30 px-2 pt-4">
+              <Illustration
+                src={careIllustration(profile.skinType, allDone)}
+                alt={`${profile.skinType} 구역 캐릭터`}
+                width={280}
+                height={200}
+                className="h-auto w-full max-w-[280px] object-contain"
+                priority
+              />
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                if (myRoutines.length > 1) setPickerOpen(true);
-                else setExpanded((v) => !v);
-              }}
-              className="rounded-chip border border-line px-3 py-1.5 text-xs font-bold text-accent"
-            >
-              {myRoutines.length > 1
-                ? "루틴 선택하기"
-                : expanded
-                  ? "접기"
-                  : "오늘 루틴 보기"}{" "}
-              ▾
-            </button>
-          </div>
+            <div className="px-4 pb-4 pt-2">
+              <Badge tone="outline">{profile.skinType} 구역</Badge>
+              <h2 className="mt-3 text-2xl font-extrabold text-ink">입주</h2>
+              <p className="mt-1 text-sm font-bold text-ink-soft">새 주민이 입주했어요</p>
+              <p className="mt-1 text-xs text-ink-muted">이제 이 피부 구역을 함께 기록해봐요.</p>
+            </div>
+          </Card>
 
-          {expanded ? (
+          <Card>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-accent">✓</span>
+                <h2 className="font-extrabold text-ink">케어로그</h2>
+                <span className="text-accent">✦</span>
+              </div>
+              {myRoutines.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setPickerOpen(true)}
+                  className="rounded-chip border border-line px-3 py-1.5 text-xs font-bold text-accent"
+                >
+                  루틴 선택하기 ▾
+                </button>
+              )}
+            </div>
+
             <div className="mt-4 space-y-3">
               <div className="grid grid-cols-3 gap-2 rounded-panel bg-surface p-3 text-center text-xs">
                 <div>
@@ -168,6 +153,7 @@ export default function CareLogPage() {
                   <p className="mt-1 font-extrabold text-ink">{remain}개</p>
                 </div>
               </div>
+
               {activeRoutine.steps.map((step) => {
                 const isChecked = checked.includes(step.id);
                 return (
@@ -228,74 +214,95 @@ export default function CareLogPage() {
                   </button>
                 );
               })}
-              {myRoutines.length > 1 && (
-                <button
-                  type="button"
-                  className="w-full text-center text-xs font-bold text-accent"
-                  onClick={() => setExpanded(false)}
-                >
-                  접기
-                </button>
-              )}
+            </div>
+          </Card>
+
+          {weeklyDone ? (
+            <div className="flex w-full items-center gap-3 rounded-card border border-line bg-surface-white p-4 shadow-card">
+              <Illustration
+                src={ILLUSTRATIONS.changeCard}
+                alt=""
+                width={56}
+                height={56}
+                className="shrink-0"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="font-extrabold text-ink">이번 주 변화 과정 기록 완료!</p>
+                <p className="mt-1 text-xs font-medium text-ink-soft">다음주에 기록할 수 있어요.</p>
+              </div>
             </div>
           ) : (
-            <p className="mt-4 text-center text-sm text-ink-muted">
-              루틴 단계를 보려면 &apos;오늘 루틴 보기&apos;를 선택하세요.
-            </p>
+            <button
+              type="button"
+              onClick={() => router.push("/care-log/change")}
+              className="flex w-full items-center gap-3 rounded-card border border-line bg-surface-white p-4 text-left shadow-card"
+            >
+              <Illustration
+                src={ILLUSTRATIONS.changeCard}
+                alt=""
+                width={56}
+                height={56}
+                className="shrink-0"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="font-extrabold text-ink">이번 주 변화 과정 기록</p>
+                <p className="mt-1 text-xs font-medium text-ink-soft">
+                  이번 주 피부 변화를 사진으로 남겨보세요.
+                </p>
+              </div>
+              <span className="text-accent">›</span>
+            </button>
           )}
-        </Card>
 
-        <Card className="grid grid-cols-[1fr_auto_1fr_auto] items-center gap-2">
-          <div>
-            <p className="text-[11px] text-ink-muted">루틴 시작일</p>
-            <p className="mt-1 text-sm font-bold text-ink">
-              {formatDateDot(activeRoutine.startedAt)}
-            </p>
-          </div>
-          <div className="h-10 border-l border-dashed border-line" />
-          <div>
-            <p className="text-[11px] text-ink-muted">시작한 지</p>
-            <p className="mt-1 text-sm font-bold text-ink">
-              {daysSince(activeRoutine.startedAt)}일
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => router.push("/routine/end")}
-            className="rounded-[10px] border border-line px-2.5 py-2 text-[11px] font-bold text-accent"
+          <Card className="grid grid-cols-2 gap-2">
+            <div>
+              <p className="text-[11px] text-ink-muted">루틴 시작일</p>
+              <p className="mt-1 text-sm font-bold text-ink">
+                {formatDateDot(activeRoutine.startedAt)}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] text-ink-muted">시작한 지</p>
+              <p className="mt-1 text-sm font-bold text-ink">
+                {daysSince(activeRoutine.startedAt)}일
+              </p>
+            </div>
+          </Card>
+
+          <p className="pb-2 text-center text-xs font-medium text-ink-soft">
+            매일의 기록이 피부 변화를 만들어요!
+          </p>
+        </div>
+
+        <div className="page-pad shrink-0 border-t border-line/40 bg-surface-white py-3">
+          <Button
+            fullWidth
+            disabled={!todayLog && !canSave}
+            variant={todayLog ? "secondary" : canSave ? "primary" : "outline"}
+            onClick={async () => {
+              if (!canSave || todayLog) return;
+              await saveDailyLog(activeRoutine.id, checked);
+            }}
           >
-            ⚑ 루틴 종료하기
-          </button>
-        </Card>
-
-        <button
-          type="button"
-          onClick={() => router.push("/care-log/change")}
-          className="flex w-full items-center gap-3 rounded-card border border-line bg-surface-white p-4 text-left shadow-card"
-        >
-          <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-panel border border-dashed border-line bg-accent-faint">
-            <Illustration
-              src={weeklyDone ? ILLUSTRATIONS.weekDonePast : ILLUSTRATIONS.weekMissedPast}
-              alt=""
-              width={44}
-              height={44}
-            />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="font-extrabold text-ink">이번주 변화과정기록</p>
-            <p className="mt-1 text-xs font-medium text-ink-soft">
-              {weeklyDone
-                ? "이번 주 변화 기록을 완료했어요."
-                : "이번 주 피부 변화를 사진으로 남겨보세요."}
-            </p>
-          </div>
-          <span className="text-accent">›</span>
-        </button>
-
-        <p className="text-center text-xs font-medium text-ink-soft">
-          매일의 기록이 피부 변화를 만들어요!
-        </p>
+            <span className="flex h-6 w-6 items-center justify-center rounded-full border border-current text-xs">
+              ✓
+            </span>
+            {todayLog ? "오늘 기록 완료" : "오늘 했어요"}
+          </Button>
+        </div>
       </div>
+
+      <Modal
+        open={endConfirmOpen}
+        title="이 루틴을 종료할까요?"
+        confirmLabel="예"
+        cancelLabel="아니요"
+        onCancel={() => setEndConfirmOpen(false)}
+        onConfirm={() => {
+          setEndConfirmOpen(false);
+          router.push("/routine/end");
+        }}
+      />
 
       {pickerOpen && (
         <div className="fixed inset-0 z-[70] flex items-end justify-center bg-ink/35">
@@ -318,7 +325,6 @@ export default function CareLogPage() {
                   }`}
                   onClick={async () => {
                     await selectRoutine(routine.id);
-                    setExpanded(true);
                     setPickerOpen(false);
                   }}
                 >

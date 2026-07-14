@@ -37,8 +37,8 @@ export default function LoginInner() {
       <PageHeader title="" backHref="/" />
       <div className="page-pad -mt-2 animate-fade-up">
         <div className="mb-8 text-center">
-          <div className="mx-auto flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border border-dashed border-line bg-accent-faint/40">
-            <Illustration src={ILLUSTRATIONS.homeHero} alt="ANA" width={100} height={88} priority />
+          <div className="mx-auto flex items-center justify-center">
+            <Illustration src={ILLUSTRATIONS.homeHero} alt="ANA" width={120} height={105} priority />
           </div>
           <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-ink-soft">{BRAND}</h1>
           <p className="mt-1 text-sm font-bold text-ink-soft">A Note Archive</p>

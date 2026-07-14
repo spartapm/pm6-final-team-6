@@ -2,6 +2,7 @@
 
 import {
   daysSince,
+  daysSinceAt,
   todayKey,
   uid,
   weekKey,
@@ -25,6 +26,7 @@ import {
   upsertPrefs,
   upsertProfile,
   upsertSkinProfile,
+  deleteSkinProfile,
   upsertWeeklyChange,
 } from "./db";
 import { supabase } from "./supabase";
@@ -483,7 +485,9 @@ export async function finishRoutine(input: {
   const visibility = isAbandoned ? "private" : input.visibility;
   const weekly = state.weeklyChanges
     .filter((w) => w.routineId === routine.id)
-    .sort((a, b) => a.weekKey.localeCompare(b.weekKey));
+    .sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
   const note: SkinNote = {
     id: newUuid(),
     authorId: user.id,
@@ -502,8 +506,8 @@ export async function finishRoutine(input: {
     endReason: input.reason,
     changeTimeline:
       weekly.length > 0
-        ? weekly.map((w, i) => ({
-            label: `${(i + 1) * 7}일차`,
+        ? weekly.map((w) => ({
+            label: `${daysSinceAt(routine.startedAt, w.createdAt)}일차`,
             photoUrl: w.photoUrl,
             feeling: w.feeling,
           }))
@@ -516,18 +520,24 @@ export async function finishRoutine(input: {
     commentCount: 0,
   };
 
-  updateState((s) => ({
-    ...s,
-    routines: s.routines.map((r) =>
-      r.id === routine.id ? { ...r, status: "ended" as const } : r
-    ),
-    selectedRoutineId: null,
-    skinNotes: [note, ...s.skinNotes],
-    pendingEnd: null,
-  }));
+  updateState((s) => {
+    const nextProfiles = { ...s.profiles };
+    delete nextProfiles[user.id];
+    return {
+      ...s,
+      routines: s.routines.map((r) =>
+        r.id === routine.id ? { ...r, status: "ended" as const } : r
+      ),
+      selectedRoutineId: null,
+      skinNotes: [note, ...s.skinNotes],
+      pendingEnd: null,
+      profiles: nextProfiles,
+    };
+  });
 
   await updateRoutineStatus(routine.id, "ended");
   await insertSkinNote(note);
+  await deleteSkinProfile(user.id);
   await upsertPrefs(user.id, {
     selectedRoutineId: null,
     bannerDrawer: state.bannerDismissed.drawer,
@@ -782,6 +792,11 @@ export async function updateAvatar(dataUrl: string) {
     accounts: s.accounts.map((a) => (a.id === s.currentUserId ? next : a)),
   }));
   await upsertProfile(next);
+}
+
+/** 프로필 사진을 기본 아바타로 초기화 */
+export async function clearAvatar() {
+  await updateAvatar("");
 }
 
 /** 런칭 1개월간 스킨노트 열람 제한 미적용 */

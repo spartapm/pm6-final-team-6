@@ -341,9 +341,13 @@ export default function RoutineRegisterPage() {
                 </div>
               ) : recommend ? (
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-extrabold text-ink">{recommend.title}</h3>
-                    <Badge tone="soft">AI 추천</Badge>
+                  <div className="flex items-start gap-2">
+                    <h3 className="min-w-0 flex-1 truncate font-extrabold text-ink">
+                      {recommend.title}
+                    </h3>
+                    <Badge tone="soft" className="shrink-0 whitespace-nowrap">
+                      AI 추천
+                    </Badge>
                   </div>
                   {recommend.steps.map((step, index) => (
                     <div
@@ -380,12 +384,14 @@ export default function RoutineRegisterPage() {
                 variant={recApplied ? "secondary" : "outline"}
                 disabled={recLoading || Boolean(recError) || !recommend}
                 onClick={() => setRecApplied(true)}
+                className="whitespace-nowrap text-sm"
               >
                 {recApplied ? "적용됨 ✓" : "추천 루틴 적용"}
               </Button>
               <Button
                 variant="ghost"
                 disabled={recLoading || cooldown}
+                className="whitespace-nowrap px-2 text-sm"
                 onClick={() => {
                   setCooldown(true);
                   void loadRecommend();
@@ -595,7 +601,7 @@ export default function RoutineRegisterPage() {
         confirmLabel="나가기"
         cancelLabel="계속 작성"
         onCancel={() => setConfirmOpen(false)}
-        onConfirm={() => router.back()}
+        onConfirm={() => router.replace("/care-log")}
       />
     </AppShell>
   );

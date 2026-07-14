@@ -19,7 +19,6 @@ import {
   consumeViewQuota,
   deleteComment,
   deleteNote,
-  dismissBanner,
   hideNote,
   markNoteViewed,
   reportNote,
@@ -38,6 +37,7 @@ export default function NoteDetailPage() {
   const note = state.skinNotes.find((n) => n.id === params.id);
   const [comment, setComment] = useState("");
   const [sort, setSort] = useState<"latest" | "likes">("latest");
+  const [sortOpen, setSortOpen] = useState(false);
   const [sheet, setSheet] = useState<"note" | "comment" | null>(null);
   const [targetCommentId, setTargetCommentId] = useState<string | null>(null);
   const [loginModal, setLoginModal] = useState(false);
@@ -47,16 +47,16 @@ export default function NoteDetailPage() {
 
   useEffect(() => {
     if (!hydrated || !note) return;
-    if (!state.isLoggedIn) {
-      router.replace(`/login?next=/notes/${note.id}`);
-      return;
-    }
     const quota = canViewNoteDetail(state);
-    if (!quota.allowed && note.authorId !== state.currentUserId) {
+    if (state.isLoggedIn && !quota.allowed && note.authorId !== state.currentUserId) {
       setQuotaModal(true);
       return;
     }
-    if (note.authorId !== state.currentUserId && !quota.unlimited) {
+    if (
+      state.isLoggedIn &&
+      note.authorId !== state.currentUserId &&
+      !quota.unlimited
+    ) {
       void consumeViewQuota();
     }
     markNoteViewed(note.id);
@@ -114,17 +114,6 @@ export default function NoteDetailPage() {
       <PageHeader title="스킨노트 상세" backHref="/drawer" />
 
       <div className="page-pad mt-3 space-y-4 pb-8 animate-fade-up">
-        {!state.bannerDismissed.detail && (
-          <div className="flex items-start justify-between gap-3 rounded-panel border border-line bg-accent-faint/60 px-3 py-3">
-            <p className="text-xs leading-relaxed text-ink-soft">
-              스킨노트만 공유할 수 있어요. 게시글에는 추가 글을 작성할 수 없어요.
-            </p>
-            <button type="button" onClick={() => { void dismissBanner("detail"); }}>
-              ✕
-            </button>
-          </div>
-        )}
-
         <Card>
           <div className="flex items-start gap-3">
             <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-line bg-accent-faint">
@@ -223,10 +212,14 @@ export default function NoteDetailPage() {
             </div>
             <div>
               <p className="text-ink-muted">체감 변화</p>
-              <div className="mt-1 flex items-center justify-center gap-1">
-                <StarRating value={note.feltChange} readOnly size="sm" />
-                <span className="font-extrabold text-ink">{note.feltChange}</span>
-              </div>
+              {note.feltChange > 0 ? (
+                <div className="mt-1 flex items-center justify-center gap-1">
+                  <StarRating value={note.feltChange} readOnly size="sm" />
+                  <span className="font-extrabold text-ink">{note.feltChange}</span>
+                </div>
+              ) : (
+                <p className="mt-1 font-extrabold text-ink-muted">-</p>
+              )}
             </div>
           </div>
 
@@ -262,10 +255,38 @@ export default function NoteDetailPage() {
               <button
                 type="button"
                 className="text-xs font-bold text-accent"
-                onClick={() => setSort((s) => (s === "latest" ? "likes" : "latest"))}
+                onClick={() => setSortOpen((v) => !v)}
               >
                 {sort === "latest" ? "최신순" : "좋아요순"} ▾
               </button>
+              {sortOpen && (
+                <div className="absolute right-0 top-7 z-20 min-w-[100px] overflow-hidden rounded-panel border border-line bg-surface-white shadow-card">
+                  <button
+                    type="button"
+                    className={`block w-full px-3 py-2 text-left text-xs font-bold ${
+                      sort === "latest" ? "bg-accent-faint text-accent" : "text-ink"
+                    }`}
+                    onClick={() => {
+                      setSort("latest");
+                      setSortOpen(false);
+                    }}
+                  >
+                    최신순
+                  </button>
+                  <button
+                    type="button"
+                    className={`block w-full px-3 py-2 text-left text-xs font-bold ${
+                      sort === "likes" ? "bg-accent-faint text-accent" : "text-ink"
+                    }`}
+                    onClick={() => {
+                      setSort("likes");
+                      setSortOpen(false);
+                    }}
+                  >
+                    좋아요순
+                  </button>
+                </div>
+              )}
             </div>
           </div>
           <div className="space-y-3">
@@ -276,7 +297,7 @@ export default function NoteDetailPage() {
                 <Card key={item.id} className="!p-3">
                   <div className="flex items-start gap-2">
                     <Illustration
-                      src={defaultAvatar(item.authorId || item.authorNickname)}
+                      src={item.authorAvatar || defaultAvatar(item.authorId || item.authorNickname)}
                       alt=""
                       width={32}
                       height={32}
@@ -316,30 +337,30 @@ export default function NoteDetailPage() {
             })}
           </div>
         </div>
-      </div>
 
-      <div className="sticky bottom-0 z-30 -mx-0 border-t border-line/50 bg-surface-white p-3">
-        <div className="flex gap-2">
-          <TextInput
-            id="comment-input"
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            placeholder="따뜻한 댓글을 남겨주세요."
-            onFocus={() => {
-              if (!state.isLoggedIn) setLoginModal(true);
-            }}
-          />
-          <Button
-            size="md"
-            disabled={!comment.trim()}
-            onClick={() =>
-              requireLogin(() => {
-                void addComment(note.id, comment.trim()).then(() => setComment(""));
-              })
-            }
-          >
-            등록
-          </Button>
+        <div className="border-t border-line/50 bg-surface-white p-3">
+          <div className="flex gap-2">
+            <TextInput
+              id="comment-input"
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="따뜻한 댓글을 남겨주세요."
+              onFocus={() => {
+                if (!state.isLoggedIn) setLoginModal(true);
+              }}
+            />
+            <Button
+              size="md"
+              disabled={!comment.trim()}
+              onClick={() =>
+                requireLogin(() => {
+                  void addComment(note.id, comment.trim()).then(() => setComment(""));
+                })
+              }
+            >
+              등록
+            </Button>
+          </div>
         </div>
       </div>
 

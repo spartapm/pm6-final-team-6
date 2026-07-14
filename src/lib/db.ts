@@ -141,6 +141,10 @@ export async function upsertSkinProfile(userId: string, profile: SkinProfile) {
   });
 }
 
+export async function deleteSkinProfile(userId: string) {
+  return supabase.from("skin_profiles").delete().eq("user_id", userId);
+}
+
 export async function insertRoutine(routine: Routine) {
   return supabase.from("routines").insert({
     id: routine.id,

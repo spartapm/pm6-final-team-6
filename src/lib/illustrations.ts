@@ -10,6 +10,8 @@ export const ILLUSTRATIONS = {
   endHero: "/illustrations/end-hero.svg",
   tagsHero1: "/illustrations/tags-hero-1.svg",
   tagsHero2: "/illustrations/tags-hero-2.svg",
+  tagsHint: "/illustrations/tags-hint.svg",
+  changeCard: "/illustrations/change-card.svg",
   endDiffEasy: "/illustrations/end-diff-easy.svg",
   endDiffNormal: "/illustrations/end-diff-normal.svg",
   endDiffHard: "/illustrations/end-diff-hard.svg",

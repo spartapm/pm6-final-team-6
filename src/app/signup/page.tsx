@@ -197,7 +197,7 @@ export default function SignupPage() {
                 setFormError(result.message || "이메일 인증 후 로그인해주세요.");
                 return;
               }
-              router.push("/skin-profile");
+              router.push("/");
             } finally {
               setSaving(false);
             }

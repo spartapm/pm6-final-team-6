@@ -2,56 +2,28 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toPng } from "html-to-image";
 import AppShell from "@/components/layout/AppShell";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Illustration from "@/components/ui/Illustration";
 import PageHeader from "@/components/ui/PageHeader";
 import StarRating from "@/components/ui/StarRating";
-import { BRAND, CHANGE_FEELINGS, daysSince, formatDateDot } from "@/lib/constants";
+import { BRAND, CHANGE_FEELINGS, daysSince, daysSinceAt, formatDateDot } from "@/lib/constants";
 import { ILLUSTRATIONS } from "@/lib/illustrations";
 import { finishRoutine, showToast } from "@/lib/store";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
 
 async function downloadNoteCard(element: HTMLElement, filename: string) {
-  const rect = element.getBoundingClientRect();
-  const width = Math.ceil(rect.width);
-  const height = Math.ceil(rect.height);
-  const scale = 2;
-  const canvas = document.createElement("canvas");
-  canvas.width = width * scale;
-  canvas.height = height * scale;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("canvas");
-
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-      <foreignObject width="100%" height="100%">
-        <div xmlns="http://www.w3.org/1999/xhtml">${element.outerHTML}</div>
-      </foreignObject>
-    </svg>
-  `;
-  const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  try {
-    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const image = new Image();
-      image.onload = () => resolve(image);
-      image.onerror = reject;
-      image.src = url;
-    });
-    ctx.scale(scale, scale);
-    ctx.fillStyle = "#FFFAFB";
-    ctx.fillRect(0, 0, width, height);
-    ctx.drawImage(img, 0, 0, width, height);
-    const png = canvas.toDataURL("image/png");
-    const a = document.createElement("a");
-    a.href = png;
-    a.download = filename;
-    a.click();
-  } finally {
-    URL.revokeObjectURL(url);
-  }
+  const dataUrl = await toPng(element, {
+    cacheBust: true,
+    pixelRatio: 2,
+    backgroundColor: "#FFFAFB",
+  });
+  const a = document.createElement("a");
+  a.href = dataUrl;
+  a.download = filename;
+  a.click();
 }
 
 export default function SkinNoteCompletePage() {
@@ -60,20 +32,25 @@ export default function SkinNoteCompletePage() {
   const { state, user, profile, activeRoutine } = useAppDerivations();
   const pending = state.pendingEnd;
   const [saving, setSaving] = useState(false);
+  const [finishing, setFinishing] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || finishing) return;
     if (!state.isLoggedIn) router.replace("/login?next=/skin-note/complete");
     else if (!activeRoutine || !pending?.reason || !pending.difficulty || !pending.tags.length) {
-      router.replace("/care-log");
+      router.replace("/routine/end");
     }
-  }, [hydrated, state.isLoggedIn, activeRoutine, pending, router]);
+  }, [hydrated, state.isLoggedIn, activeRoutine, pending, router, finishing]);
 
   const weekly = useMemo(
     () =>
       activeRoutine
-        ? state.weeklyChanges.filter((w) => w.routineId === activeRoutine.id)
+        ? state.weeklyChanges
+            .filter((w) => w.routineId === activeRoutine.id)
+            .sort(
+              (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            )
         : [],
     [state.weeklyChanges, activeRoutine]
   );
@@ -105,6 +82,7 @@ export default function SkinNoteCompletePage() {
 
   const complete = async (visibility: "private" | "public") => {
     setSaving(true);
+    setFinishing(true);
     const note = await finishRoutine({
       reason: pending.reason!,
       difficulty: pending.difficulty!,
@@ -115,6 +93,7 @@ export default function SkinNoteCompletePage() {
     if (!note) {
       showToast("루틴 종료에 실패했어요. 다시 시도해주세요.");
       setSaving(false);
+      setFinishing(false);
       return;
     }
     if (visibility === "private" || isAbandoned) router.replace("/mypage");
@@ -123,7 +102,10 @@ export default function SkinNoteCompletePage() {
 
   return (
     <AppShell showNav={false}>
-      <PageHeader title="" backHref="/care-log" />
+      <PageHeader
+        title=""
+        onBack={() => router.replace("/routine/end")}
+      />
 
       <div className="page-pad -mt-2 space-y-4 pb-8 animate-fade-up">
         <div className="text-center">
@@ -174,9 +156,18 @@ export default function SkinNoteCompletePage() {
                 {activeRoutine.steps.map((step) => (
                   <div
                     key={step.id}
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] border border-dashed border-line bg-accent-faint text-[9px] font-bold text-accent"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[10px] border border-dashed border-line bg-accent-faint text-[9px] font-bold text-accent"
                   >
-                    {step.category.slice(0, 2)}
+                    {step.product.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={step.product.imageUrl}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      step.category.slice(0, 2)
+                    )}
                   </div>
                 ))}
               </div>
@@ -207,10 +198,10 @@ export default function SkinNoteCompletePage() {
             <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
               {(weekly.length > 0
                 ? weekly
-                : [{ id: "empty", feeling: "변화가 있었어요" as const }]
-              ).map((w, index) => {
+                : [{ id: "empty", feeling: "변화가 있었어요" as const, createdAt: new Date().toISOString() }]
+              ).map((w, index, arr) => {
                 const feeling = CHANGE_FEELINGS.find((f) => f.value === w.feeling);
-                const label = `${(index + 1) * 7}일차`;
+                const label = `${daysSinceAt(activeRoutine.startedAt, w.createdAt)}일차`;
                 return (
                   <div key={w.id} className="flex items-center gap-1">
                     <div className="w-16 text-center">
@@ -228,9 +219,7 @@ export default function SkinNoteCompletePage() {
                       )}
                       <p className="mt-1 text-[10px] text-ink-muted">{label}</p>
                     </div>
-                    {index < Math.max(weekly.length, 1) - 1 && (
-                      <span className="text-accent">→</span>
-                    )}
+                    {index < arr.length - 1 && <span className="text-accent">→</span>}
                   </div>
                 );
               })}
@@ -248,10 +237,12 @@ export default function SkinNoteCompletePage() {
                 ))}
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="w-16 shrink-0 text-ink-muted">체감 변화</span>
-              <StarRating value={pending.feltChange} readOnly size="sm" />
-            </div>
+            {pending.feltChange > 0 && (
+              <div className="flex items-center gap-3">
+                <span className="w-16 shrink-0 text-ink-muted">체감 변화</span>
+                <StarRating value={pending.feltChange} readOnly size="sm" />
+              </div>
+            )}
             <div className="flex gap-3">
               <span className="w-16 shrink-0 text-ink-muted">종료 사유</span>
               <span className="font-bold text-ink">{pending.reason}</span>

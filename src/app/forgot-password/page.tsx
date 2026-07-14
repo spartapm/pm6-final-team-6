@@ -155,7 +155,9 @@ export default function ForgotPasswordPage() {
                 const result = await requestResetCode(email.trim());
                 setBusy(false);
                 if (!result.ok) {
-                  setError(result.message);
+                  setError(
+                    "인증번호 재전송에 실패했습니다. 잠시 후 다시 시도해주세요."
+                  );
                   return;
                 }
                 setCode("");
@@ -232,7 +234,12 @@ export default function ForgotPasswordPage() {
                 const result = await resetPassword(email.trim(), password);
                 setBusy(false);
                 if (result && "ok" in result && !result.ok) {
-                  setError(result.message || "비밀번호 변경에 실패했습니다.");
+                  setError(
+                    result.message?.includes("same") ||
+                      result.message?.includes("같")
+                      ? "새로운 비밀번호를 입력해주세요"
+                      : result.message || "비밀번호 변경에 실패했습니다."
+                  );
                   return;
                 }
                 showToast("비밀번호가 변경되었습니다. 새 비밀번호로 로그인해주세요.");

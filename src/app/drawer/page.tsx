@@ -20,7 +20,7 @@ import type { SkinNote, SkinType } from "@/lib/types";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
 
 type Tab = "전체" | "저장" | "인기";
-type DurationFilter = "전체" | "7일 미만" | "7일 이상" | "14일 이상";
+type DurationFilter = "전체" | "7일 이하" | "14일 이하" | "30일 이하";
 type ConcernFilter = (typeof DRAWER_CONCERN_FILTERS)[number];
 
 export default function DrawerPage() {
@@ -50,13 +50,13 @@ export default function DrawerPage() {
     if (photoOnly) list = list.filter((n) => n.changeTimeline.some((t) => t.photoUrl));
     if (skinTypes.length)
       list = list.filter((n) => skinTypes.includes(n.skinType));
-    if (concerns.length)
+    if (concerns.length && !concerns.includes("전체"))
       list = list.filter((n) =>
-        concerns.some((c) => c !== "전체" && concernFilterMatch(c, n.concerns))
+        concerns.some((c) => concernFilterMatch(c, n.concerns))
       );
-    if (duration === "7일 미만") list = list.filter((n) => n.durationDays < 7);
-    if (duration === "7일 이상") list = list.filter((n) => n.durationDays >= 7);
-    if (duration === "14일 이상") list = list.filter((n) => n.durationDays >= 14);
+    if (duration === "7일 이하") list = list.filter((n) => n.durationDays <= 7);
+    if (duration === "14일 이하") list = list.filter((n) => n.durationDays <= 14);
+    if (duration === "30일 이하") list = list.filter((n) => n.durationDays <= 30);
     return list;
   }, [publicNotes, tab, state.savedNoteIds, photoOnly, skinTypes, concerns, duration]);
 
@@ -66,7 +66,11 @@ export default function DrawerPage() {
     duration !== "전체" ? duration : null,
   ].filter(Boolean) as string[];
 
-  const toggleDraftType = (item: SkinType) => {
+  const toggleDraftType = (item: SkinType | "전체") => {
+    if (item === "전체") {
+      setDraftTypes([]);
+      return;
+    }
     setDraftTypes((prev) =>
       prev.includes(item) ? prev.filter((t) => t !== item) : [...prev, item]
     );
@@ -77,9 +81,10 @@ export default function DrawerPage() {
       setDraftConcerns([]);
       return;
     }
-    setDraftConcerns((prev) =>
-      prev.includes(item) ? prev.filter((c) => c !== item) : [...prev, item]
-    );
+    setDraftConcerns((prev) => {
+      const next = prev.includes(item) ? prev.filter((c) => c !== item) : [...prev, item];
+      return next.filter((c) => c !== "전체");
+    });
   };
 
   if (!hydrated) {
@@ -188,10 +193,6 @@ export default function DrawerPage() {
                       type="button"
                       className="flex min-w-0 flex-1 items-start gap-3 text-left"
                       onClick={() => {
-                        if (!state.isLoggedIn) {
-                          router.push(`/login?next=/notes/${note.id}`);
-                          return;
-                        }
                         router.push(`/notes/${note.id}`);
                       }}
                     >
@@ -235,10 +236,6 @@ export default function DrawerPage() {
                     type="button"
                     className="mt-3 w-full text-left"
                     onClick={() => {
-                      if (!state.isLoggedIn) {
-                        router.push(`/login?next=/notes/${note.id}`);
-                        return;
-                      }
                       router.push(`/notes/${note.id}`);
                     }}
                   >
@@ -290,6 +287,13 @@ export default function DrawerPage() {
               <section>
                 <p className="mb-2 text-sm font-extrabold text-ink">피부 타입 (복수 선택)</p>
                 <div className="flex flex-wrap gap-2">
+                  <SelectChip
+                    selected={draftTypes.length === 0}
+                    onClick={() => toggleDraftType("전체")}
+                    className="text-xs"
+                  >
+                    전체
+                  </SelectChip>
                   {SKIN_TYPES.map((item) => (
                     <SelectChip
                       key={item}
@@ -308,10 +312,14 @@ export default function DrawerPage() {
               <section>
                 <p className="mb-2 text-sm font-extrabold text-ink">피부 고민 (복수 선택)</p>
                 <div className="flex flex-wrap gap-2">
-                  {DRAWER_CONCERN_FILTERS.filter((c) => c !== "전체").map((item) => (
+                  {DRAWER_CONCERN_FILTERS.map((item) => (
                     <SelectChip
                       key={item}
-                      selected={draftConcerns.includes(item)}
+                      selected={
+                        item === "전체"
+                          ? draftConcerns.length === 0
+                          : draftConcerns.includes(item)
+                      }
                       onClick={() => toggleDraftConcern(item)}
                       className="text-xs"
                     >
@@ -326,7 +334,7 @@ export default function DrawerPage() {
               <section>
                 <p className="mb-2 text-sm font-extrabold text-ink">사용 기간</p>
                 <div className="flex flex-wrap gap-2">
-                  {(["전체", "7일 미만", "7일 이상", "14일 이상"] as DurationFilter[]).map(
+                  {(["전체", "7일 이하", "14일 이하", "30일 이하"] as DurationFilter[]).map(
                     (item) => (
                       <SelectChip
                         key={item}

@@ -47,7 +47,9 @@ export default function RoutineEndPage() {
 
   const dirty = Boolean(reason || difficulty || tags.length || feltChange > 0);
   const canFinish = Boolean(reason && difficulty && tags.length > 0);
-  const previewTags = CHANGE_TAGS.filter((t) => t !== "#큰 변화 없음").slice(0, 6);
+  const previewTags = CHANGE_TAGS.filter(
+    (t) => !["#큰 변화 없음", "#아직 잘 모르겠음", "#좀 더 지켜봐야 함"].includes(t)
+  ).slice(0, 6);
 
   if (!hydrated || !activeRoutine) {
     return (
@@ -177,7 +179,12 @@ export default function RoutineEndPage() {
                         showToast("태그는 최대 5개까지 선택할 수 있어요.");
                       else
                         setTags((prev) => [
-                          ...prev.filter((t) => t !== "#큰 변화 없음"),
+                          ...prev.filter(
+                            (t) =>
+                              !["#큰 변화 없음", "#아직 잘 모르겠음", "#좀 더 지켜봐야 함"].includes(
+                                t
+                              )
+                          ),
                           tag,
                         ]);
                     }}
@@ -232,7 +239,7 @@ export default function RoutineEndPage() {
         confirmLabel="나가기"
         cancelLabel="계속 작성"
         onCancel={() => setConfirmOpen(false)}
-        onConfirm={() => router.back()}
+        onConfirm={() => router.replace("/care-log")}
       />
     </AppShell>
   );
