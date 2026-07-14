@@ -10,6 +10,7 @@ import Modal from "@/components/ui/Modal";
 import PageHeader from "@/components/ui/PageHeader";
 import SelectChip from "@/components/ui/SelectChip";
 import { FieldLabel } from "@/components/ui/Field";
+import { trackEvent } from "@/lib/analytics";
 import { SENSITIVITIES, SKIN_CONCERNS, SKIN_TYPES } from "@/lib/constants";
 import { defaultAvatar } from "@/lib/illustrations";
 import { saveSkinProfile } from "@/lib/store";
@@ -158,6 +159,11 @@ export default function SkinProfilePage() {
             onClick={async () => {
               if (!skinType || !sensitivity) return;
               await saveSkinProfile({ skinType, concerns, sensitivity });
+              trackEvent("skin_profile_saved", {
+                skin_type: skinType,
+                concerns: concerns.join(","),
+                sensitivity,
+              });
               router.push("/routine/register");
             }}
           >

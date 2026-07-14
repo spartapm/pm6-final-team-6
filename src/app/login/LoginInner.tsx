@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
@@ -8,6 +8,7 @@ import Button from "@/components/ui/Button";
 import Illustration from "@/components/ui/Illustration";
 import PageHeader from "@/components/ui/PageHeader";
 import { TextInput } from "@/components/ui/Field";
+import { trackEvent, trackScreenView } from "@/lib/analytics";
 import { BRAND, isValidEmail } from "@/lib/constants";
 import { ILLUSTRATIONS } from "@/lib/illustrations";
 import { login } from "@/lib/store";
@@ -21,6 +22,10 @@ export default function LoginInner() {
   const [autoLogin, setAutoLogin] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [formError, setFormError] = useState("");
+
+  useEffect(() => {
+    trackScreenView("login");
+  }, []);
 
   const errors = useMemo(() => {
     const nextErrors: { email?: string; password?: string } = {};
@@ -95,6 +100,7 @@ export default function LoginInner() {
                 setFormError(result.message);
                 return;
               }
+              trackEvent("login", { method: "email" });
               router.replace(next);
             }}
           >
@@ -103,7 +109,11 @@ export default function LoginInner() {
 
           <p className="pt-2 text-center text-sm text-ink-muted">
             아직 계정이 없으신가요?{" "}
-            <Link href="/signup" className="font-extrabold text-ink underline">
+            <Link
+              href="/signup"
+              className="font-extrabold text-ink underline"
+              onClick={() => trackEvent("signup_start", { entry_point: "login_screen" })}
+            >
               회원가입
             </Link>
           </p>

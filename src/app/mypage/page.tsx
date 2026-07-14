@@ -9,6 +9,7 @@ import Card from "@/components/ui/Card";
 import Illustration from "@/components/ui/Illustration";
 import { SectionHeader } from "@/components/ui/PageHeader";
 import StarRating from "@/components/ui/StarRating";
+import { trackEvent } from "@/lib/analytics";
 import { BRAND, CHANGE_FEELINGS, daysSince, formatDateDot } from "@/lib/constants";
 import { compressImageFile, validateImageFile } from "@/lib/image";
 import { defaultAvatar } from "@/lib/illustrations";
@@ -130,7 +131,10 @@ export default function MyPage() {
             <button
               type="button"
               className="w-full rounded-card border border-line bg-surface-white p-4 text-left shadow-card"
-              onClick={() => router.push("/care-log")}
+              onClick={() => {
+                trackEvent("mypage_routine_click", { routine_id: activeRoutine.id });
+                router.push("/care-log");
+              }}
             >
               <Badge>진행중</Badge>
               <div className="mt-2 flex items-center justify-between gap-2">
@@ -177,7 +181,10 @@ export default function MyPage() {
                 <button
                   key={note.id}
                   type="button"
-                  onClick={() => setPreviewNote(note)}
+                  onClick={() => {
+                    trackEvent("mypage_skinnote_click", { card_id: note.id });
+                    setPreviewNote(note);
+                  }}
                   className="w-32 shrink-0 rounded-panel border border-line bg-surface-white p-3 text-center"
                 >
                   {note.isAbandoned ? (
@@ -207,6 +214,7 @@ export default function MyPage() {
           fullWidth
           onClick={async () => {
             await logout();
+            trackEvent("logout", { entry_point: "mypage" });
             router.push("/login");
           }}
         >

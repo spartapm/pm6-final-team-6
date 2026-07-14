@@ -11,6 +11,7 @@ import Modal from "@/components/ui/Modal";
 import PageHeader from "@/components/ui/PageHeader";
 import SelectChip from "@/components/ui/SelectChip";
 import { FieldLabel, TextInput } from "@/components/ui/Field";
+import { trackEvent } from "@/lib/analytics";
 import { ROUTINE_CATEGORIES, uid } from "@/lib/constants";
 import { ILLUSTRATIONS } from "@/lib/illustrations";
 import { createRoutine, showToast } from "@/lib/store";
@@ -24,6 +25,7 @@ type DraftStep = {
 };
 
 type RecommendPayload = {
+  id?: string;
   title: string;
   steps: Array<{
     category: RoutineStepCategory;
@@ -119,6 +121,7 @@ export default function RoutineRegisterPage() {
   }
 
   const loadRecommend = async () => {
+    const previousId = recommend?.id;
     setRecLoading(true);
     setRecError("");
     setRecApplied(false);
@@ -148,7 +151,9 @@ export default function RoutineRegisterPage() {
         setRecError(data.message || "추천 루틴을 불러오지 못했어요. 다시 시도해주세요");
         return;
       }
+      const nextId = uid("r");
       setRecommend({
+        id: nextId,
         title: data.title || `${profile.concerns[0]} 맞춤 루틴`,
         steps: data.steps.map((step) => ({
           category: (ROUTINE_CATEGORIES.includes(step.category as RoutineStepCategory)
@@ -165,6 +170,9 @@ export default function RoutineRegisterPage() {
           },
         })),
       });
+      if (previousId) {
+        trackEvent("recommend_reshuffle", { previous_recommend_id: previousId });
+      }
     } catch {
       setRecommend(null);
       setRecError("추천 루틴을 불러오지 못했어요. 다시 시도해주세요");
@@ -180,6 +188,7 @@ export default function RoutineRegisterPage() {
         center
         onBack={() => {
           if (sheetOpen) {
+            trackEvent("popup_close", { action: "cancel" });
             setSheetOpen(false);
             return;
           }
@@ -301,6 +310,10 @@ export default function RoutineRegisterPage() {
                   source: "manual",
                   steps: steps.map((s) => ({ category: s.category, product: s.product })),
                 });
+                trackEvent("routine_start", {
+                  routine_type: "direct",
+                  step_count: steps.length,
+                });
                 router.push("/care-log");
               }}
             >
@@ -383,7 +396,12 @@ export default function RoutineRegisterPage() {
               <Button
                 variant={recApplied ? "secondary" : "outline"}
                 disabled={recLoading || Boolean(recError) || !recommend}
-                onClick={() => setRecApplied(true)}
+                onClick={() => {
+                  setRecApplied(true);
+                  if (recommend?.id) {
+                    trackEvent("recommend_apply", { recommend_id: recommend.id });
+                  }
+                }}
                 className="whitespace-nowrap text-sm"
               >
                 {recApplied ? "적용됨 ✓" : "추천 루틴 적용"}
@@ -413,6 +431,11 @@ export default function RoutineRegisterPage() {
                   source: "recommend",
                   steps: recommend.steps,
                 });
+                trackEvent("routine_start", {
+                  routine_type: "recommend",
+                  recommend_id: recommend.id,
+                  step_count: recommend.steps.length,
+                });
                 router.push("/care-log");
               }}
             >
@@ -427,7 +450,14 @@ export default function RoutineRegisterPage() {
           <div className="max-h-[85svh] w-full max-w-phone overflow-auto rounded-t-[24px] bg-surface-white p-4 animate-fade-up">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-extrabold text-ink">단계 추가</h3>
-              <button type="button" className="text-ink-muted" onClick={() => setSheetOpen(false)}>
+              <button
+                type="button"
+                className="text-ink-muted"
+                onClick={() => {
+                  trackEvent("popup_close", { action: "cancel" });
+                  setSheetOpen(false);
+                }}
+              >
                 닫기
               </button>
             </div>
@@ -572,6 +602,13 @@ export default function RoutineRegisterPage() {
               disabled={!selectedProduct}
               onClick={() => {
                 if (!selectedProduct) return;
+                const isCustom = Boolean(selectedProduct.isCustom);
+                if (isCustom) {
+                  trackEvent("product_custom_register", {
+                    has_image: Boolean(selectedProduct.imageUrl),
+                  });
+                }
+                trackEvent("routine_step_add", { step_type: selectedCategory });
                 setSteps((prev) => [
                   ...prev,
                   {
@@ -580,6 +617,7 @@ export default function RoutineRegisterPage() {
                     product: { ...selectedProduct, category: selectedCategory },
                   },
                 ]);
+                trackEvent("popup_close", { action: "complete" });
                 setSelectedProduct(null);
                 setCustomName("");
                 setQuery("");

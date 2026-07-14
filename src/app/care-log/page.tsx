@@ -8,6 +8,7 @@ import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Illustration from "@/components/ui/Illustration";
 import Modal from "@/components/ui/Modal";
+import { trackEvent, trackScreenView } from "@/lib/analytics";
 import { daysSince, formatDateDot, todayKey, weekKey } from "@/lib/constants";
 import { ILLUSTRATIONS, careIllustration } from "@/lib/illustrations";
 import { getMyActiveRoutines, saveDailyLog, selectRoutine } from "@/lib/store";
@@ -47,6 +48,13 @@ export default function CareLogPage() {
       (w) => w.routineId === activeRoutine.id && w.weekKey === weekKey()
     );
   }, [state.weeklyChanges, activeRoutine]);
+
+  useEffect(() => {
+    if (!hydrated || !state.isLoggedIn) return;
+    trackScreenView("carelog_main", {
+      has_active_routine: Boolean(activeRoutine),
+    });
+  }, [hydrated, state.isLoggedIn, activeRoutine?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!hydrated) {
     return (
@@ -234,7 +242,10 @@ export default function CareLogPage() {
           ) : (
             <button
               type="button"
-              onClick={() => router.push("/care-log/change")}
+              onClick={() => {
+                trackEvent("week_record_click", { is_completed: false });
+                router.push("/care-log/change");
+              }}
               className="flex w-full items-center gap-3 rounded-card border border-line bg-surface-white p-4 text-left shadow-card"
             >
               <Illustration
@@ -282,6 +293,15 @@ export default function CareLogPage() {
             onClick={async () => {
               if (!canSave || todayLog) return;
               await saveDailyLog(activeRoutine.id, checked);
+              const completionRate =
+                total > 0 ? Math.round((doneCount / total) * 100) / 100 : 0;
+              trackEvent("today_done", {
+                checked_count: doneCount,
+                total_steps: total,
+                completion_rate: completionRate,
+                day_since_start: daysSince(activeRoutine.startedAt),
+                is_full_complete: doneCount === total,
+              });
             }}
           >
             <span className="flex h-6 w-6 items-center justify-center rounded-full border border-current text-xs">

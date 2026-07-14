@@ -10,6 +10,7 @@ import Illustration from "@/components/ui/Illustration";
 import Modal from "@/components/ui/Modal";
 import PageHeader from "@/components/ui/PageHeader";
 import SelectChip from "@/components/ui/SelectChip";
+import { trackEvent } from "@/lib/analytics";
 import { CHANGE_TAGS } from "@/lib/constants";
 import { ILLUSTRATIONS } from "@/lib/illustrations";
 import { setPendingEnd, showToast } from "@/lib/store";
@@ -115,6 +116,10 @@ export default function ChangeTagsPage() {
               difficulty: state.pendingEnd?.difficulty,
               tags,
               feltChange: state.pendingEnd?.feltChange ?? 0,
+            });
+            trackEvent("tag_complete", {
+              selected_tags: tags.join(","),
+              tag_count: tags.length,
             });
             router.push("/routine/end");
           }}

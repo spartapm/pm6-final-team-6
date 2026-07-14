@@ -8,7 +8,8 @@ import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import PageHeader from "@/components/ui/PageHeader";
 import SelectChip from "@/components/ui/SelectChip";
-import { CHANGE_FEELINGS, WEEKLY_CHANGE_TAGS, weekKey } from "@/lib/constants";
+import { mapChangeStatus, trackEvent } from "@/lib/analytics";
+import { CHANGE_FEELINGS, WEEKLY_CHANGE_TAGS, daysSince, weekKey } from "@/lib/constants";
 import { compressImageFile, validateImageFile } from "@/lib/image";
 import { saveWeeklyChange, showToast } from "@/lib/store";
 import type { ChangeFeeling } from "@/lib/types";
@@ -130,7 +131,12 @@ export default function ChangeRecordPage() {
               <SelectChip
                 key={item.value}
                 selected={feeling === item.value}
-                onClick={() => setFeeling(item.value)}
+                onClick={() => {
+                  setFeeling(item.value);
+                  trackEvent("week_change_select", {
+                    change_status: mapChangeStatus(item.value),
+                  });
+                }}
                 className="flex-col gap-1 py-3 text-[12px]"
               >
                 <span className="text-lg">{item.emoji}</span>
@@ -154,9 +160,15 @@ export default function ChangeRecordPage() {
                   selected={selected}
                   className="text-xs"
                   onClick={() => {
-                    if (selected) setTags((prev) => prev.filter((t) => t !== tag));
-                    else if (tags.length >= 5) showToast("태그는 최대 5개까지 선택할 수 있어요.");
-                    else setTags((prev) => [...prev, tag]);
+                    if (selected) {
+                      setTags((prev) => prev.filter((t) => t !== tag));
+                      trackEvent("week_tag_select", { tag_name: tag, action: "remove" });
+                    } else if (tags.length >= 5) {
+                      showToast("태그는 최대 5개까지 선택할 수 있어요.");
+                    } else {
+                      setTags((prev) => [...prev, tag]);
+                      trackEvent("week_tag_select", { tag_name: tag, action: "add" });
+                    }
                   }}
                 >
                   {tag}
@@ -177,6 +189,11 @@ export default function ChangeRecordPage() {
                 photoUrl,
                 feeling: feeling!,
                 tags,
+              });
+              trackEvent("week_record_saved", {
+                has_photo: Boolean(photoUrl),
+                tag_count: tags.length,
+                week_number: Math.max(1, Math.ceil(daysSince(activeRoutine.startedAt) / 7)),
               });
               router.push("/care-log");
             } catch {

@@ -8,6 +8,7 @@ import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Illustration from "@/components/ui/Illustration";
 import SelectChip from "@/components/ui/SelectChip";
+import { trackEvent } from "@/lib/analytics";
 import {
   DRAWER_CONCERN_FILTERS,
   SKIN_TYPES,
@@ -68,21 +69,49 @@ export default function DrawerPage() {
 
   const toggleDraftType = (item: SkinType | "전체") => {
     if (item === "전체") {
+      if (draftTypes.length > 0) {
+        draftTypes.forEach((t) =>
+          trackEvent("filter_apply", {
+            filter_type: "skin_type",
+            filter_value: t,
+            action: "remove",
+          })
+        );
+      }
       setDraftTypes([]);
       return;
     }
-    setDraftTypes((prev) =>
-      prev.includes(item) ? prev.filter((t) => t !== item) : [...prev, item]
-    );
+    setDraftTypes((prev) => {
+      const removing = prev.includes(item);
+      trackEvent("filter_apply", {
+        filter_type: "skin_type",
+        filter_value: item,
+        action: removing ? "remove" : "add",
+      });
+      return removing ? prev.filter((t) => t !== item) : [...prev, item];
+    });
   };
 
   const toggleDraftConcern = (item: ConcernFilter) => {
     if (item === "전체") {
+      draftConcerns.forEach((c) =>
+        trackEvent("filter_apply", {
+          filter_type: "concern",
+          filter_value: c,
+          action: "remove",
+        })
+      );
       setDraftConcerns([]);
       return;
     }
     setDraftConcerns((prev) => {
-      const next = prev.includes(item) ? prev.filter((c) => c !== item) : [...prev, item];
+      const removing = prev.includes(item);
+      trackEvent("filter_apply", {
+        filter_type: "concern",
+        filter_value: item,
+        action: removing ? "remove" : "add",
+      });
+      const next = removing ? prev.filter((c) => c !== item) : [...prev, item];
       return next.filter((c) => c !== "전체");
     });
   };
@@ -181,8 +210,12 @@ export default function DrawerPage() {
           </Card>
         ) : (
           <div className="space-y-3">
-            {notes.map((note) => {
+            {notes.map((note, position) => {
               const isMine = note.authorId === state.currentUserId;
+              const openNote = () => {
+                trackEvent("card_click", { card_id: note.id, position });
+                router.push(`/notes/${note.id}`);
+              };
               return (
                 <div
                   key={note.id}
@@ -192,9 +225,7 @@ export default function DrawerPage() {
                     <button
                       type="button"
                       className="flex min-w-0 flex-1 items-start gap-3 text-left"
-                      onClick={() => {
-                        router.push(`/notes/${note.id}`);
-                      }}
+                      onClick={openNote}
                     >
                       <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-line bg-accent-faint">
                         <Illustration
@@ -235,9 +266,7 @@ export default function DrawerPage() {
                   <button
                     type="button"
                     className="mt-3 w-full text-left"
-                    onClick={() => {
-                      router.push(`/notes/${note.id}`);
-                    }}
+                    onClick={openNote}
                   >
                     <Badge tone="outline">스킨노트</Badge>
                     <h3 className="mt-2 text-base font-extrabold text-ink">{note.title}</h3>
@@ -339,7 +368,16 @@ export default function DrawerPage() {
                       <SelectChip
                         key={item}
                         selected={draftDuration === item}
-                        onClick={() => setDraftDuration(item)}
+                        onClick={() => {
+                          if (draftDuration !== item) {
+                            trackEvent("filter_apply", {
+                              filter_type: "duration",
+                              filter_value: item,
+                              action: "add",
+                            });
+                          }
+                          setDraftDuration(item);
+                        }}
                         className="text-xs"
                       >
                         {item}

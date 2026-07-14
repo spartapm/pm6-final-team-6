@@ -9,6 +9,7 @@ import Modal from "@/components/ui/Modal";
 import PageHeader from "@/components/ui/PageHeader";
 import SelectChip from "@/components/ui/SelectChip";
 import { FieldLabel, SelectInput, TextInput } from "@/components/ui/Field";
+import { mapAgeRange, mapGender, trackEvent } from "@/lib/analytics";
 import { AGE_GROUPS, isValidEmail, isValidPassword } from "@/lib/constants";
 import { signup } from "@/lib/store";
 import type { AgeGroup, Gender } from "@/lib/types";
@@ -197,6 +198,11 @@ export default function SignupPage() {
                 setFormError(result.message || "이메일 인증 후 로그인해주세요.");
                 return;
               }
+              trackEvent("sign_up", {
+                method: "email",
+                age_range: mapAgeRange(ageGroup),
+                gender: mapGender(gender),
+              });
               router.push("/");
             } finally {
               setSaving(false);

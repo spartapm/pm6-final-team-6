@@ -9,6 +9,7 @@ import Button from "@/components/ui/Button";
 import Illustration from "@/components/ui/Illustration";
 import PageHeader from "@/components/ui/PageHeader";
 import StarRating from "@/components/ui/StarRating";
+import { trackEvent } from "@/lib/analytics";
 import { BRAND, CHANGE_FEELINGS, daysSince, daysSinceAt, formatDateDot } from "@/lib/constants";
 import { ILLUSTRATIONS } from "@/lib/illustrations";
 import { finishRoutine, showToast } from "@/lib/store";
@@ -96,8 +97,21 @@ export default function SkinNoteCompletePage() {
       setFinishing(false);
       return;
     }
-    if (visibility === "private" || isAbandoned) router.replace("/mypage");
-    else router.replace("/drawer");
+    trackEvent("skinnote_created", {
+      routine_duration: duration,
+      skin_type: profile.skinType,
+      concerns: profile.concerns.join(","),
+      has_photos: weekly.some((w) => Boolean(w.photoUrl)),
+      tag_count: pending.tags.length,
+      star_rating: pending.feltChange,
+    });
+    if (visibility === "private" || isAbandoned) {
+      trackEvent("skinnote_private", { card_id: note.id });
+      router.replace("/mypage");
+    } else {
+      trackEvent("skinnote_shared", { card_id: note.id });
+      router.replace("/drawer");
+    }
   };
 
   return (

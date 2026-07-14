@@ -11,6 +11,7 @@ import Modal from "@/components/ui/Modal";
 import PageHeader from "@/components/ui/PageHeader";
 import StarRating from "@/components/ui/StarRating";
 import { TextInput } from "@/components/ui/Field";
+import { trackEvent, trackScreenView } from "@/lib/analytics";
 import { CHANGE_FEELINGS, relativeTime } from "@/lib/constants";
 import { defaultAvatar } from "@/lib/illustrations";
 import {
@@ -61,6 +62,7 @@ export default function NoteDetailPage() {
     }
     markNoteViewed(note.id);
     setAllowed(true);
+    trackScreenView("community_detail", { card_id: note.id });
   }, [hydrated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const comments = useMemo(() => {
@@ -227,14 +229,28 @@ export default function NoteDetailPage() {
             <button
               type="button"
               className={saved ? "text-accent" : "text-ink-soft"}
-              onClick={() => requireLogin(() => { void toggleSaveNote(note.id); })}
+              onClick={() =>
+                requireLogin(() => {
+                  const nextAction = saved ? "remove" : "add";
+                  void toggleSaveNote(note.id).then(() => {
+                    trackEvent("card_save", { card_id: note.id, action: nextAction });
+                  });
+                })
+              }
             >
               저장 {note.saveCount}
             </button>
             <button
               type="button"
               className={helped ? "text-accent" : "text-ink-soft"}
-              onClick={() => requireLogin(() => { void toggleHelpNote(note.id); })}
+              onClick={() =>
+                requireLogin(() => {
+                  const nextAction = helped ? "remove" : "add";
+                  void toggleHelpNote(note.id).then(() => {
+                    trackEvent("card_helpful", { card_id: note.id, action: nextAction });
+                  });
+                })
+              }
             >
               도움돼요 {note.helpCount}
             </button>
@@ -354,7 +370,14 @@ export default function NoteDetailPage() {
               disabled={!comment.trim()}
               onClick={() =>
                 requireLogin(() => {
-                  void addComment(note.id, comment.trim()).then(() => setComment(""));
+                  void addComment(note.id, comment.trim()).then(() => {
+                    trackEvent("comment_write", {
+                      card_id: note.id,
+                      has_image: false,
+                      is_reply: false,
+                    });
+                    setComment("");
+                  });
                 })
               }
             >
