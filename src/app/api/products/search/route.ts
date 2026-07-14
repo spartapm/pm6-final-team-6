@@ -32,7 +32,7 @@ export async function GET(req: Request) {
   } catch (error) {
     const message =
       error instanceof Error && error.message.includes("not configured")
-        ? "서버 환경변수가 설정되지 않았습니다."
+        ? "서버 API 키 설정에 문제가 있습니다."
         : "제품 검색에 실패했어요. 직접 제품 등록하기를 이용해주세요.";
     return NextResponse.json({ ok: false, message, items: [] }, { status: 502 });
   }

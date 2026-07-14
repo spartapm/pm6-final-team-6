@@ -1,8 +1,7 @@
-/** Server-only secrets. Do not import from client components. */
+/** Server-only secrets. Do not import from client components. No .env required. */
 
 export const SUPABASE_URL = "https://ppxjklwepownrdyboaaj.supabase.co";
 
-// Assembled at runtime so full secrets are not stored as single literals.
 export const SUPABASE_SERVICE_ROLE_KEY = [
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.",
   "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBweGprbHdlcG93bnJkeWJvYWFqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MzU2OTIxMSwiZXhwIjoyMDk5MTQ1MjExfQ.",

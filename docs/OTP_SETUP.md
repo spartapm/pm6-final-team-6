@@ -9,30 +9,14 @@ Supabase SQL Editor에서 실행:
 - `supabase/schema.sql` (최초 1회)
 - `supabase/20260710-otp-codes.sql` (OTP 테이블)
 
-## 2. 환경 변수
+## 2. API 키
 
-로컬 `.env.local` / 배포 환경에 설정:
+`.env` 불필요. 서버 키는 `src/lib/server/secrets.ts`, 클라이언트 Supabase는 `src/lib/supabase.ts`에 하드코딩되어 있습니다.
 
-```bash
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-RESEND_API_KEY=
-RESEND_FROM_EMAIL=ANA <onboarding@resend.dev>
-```
-
-선택(제품 검색 / 추천):
-
-```bash
-NAVER_CLIENT_ID=
-NAVER_CLIENT_SECRET=
-ANTHROPIC_API_KEY=
-```
+포함 키: Supabase service role, Resend, Naver, Anthropic
 
 ## 3. 재QA 시나리오
 
 1. 가입된 이메일로 인증번호 받기
 2. 메일 OTP 입력 → 3단계 진입
 3. 새 비밀번호 설정 → 로그인
-
-미설정 시 API는 `서버 환경변수가 설정되지 않았습니다.` 를 반환합니다.

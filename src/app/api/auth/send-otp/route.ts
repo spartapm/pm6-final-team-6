@@ -30,7 +30,7 @@ export async function POST(req: Request) {
   } catch (error) {
     const message =
       error instanceof Error && error.message.includes("not configured")
-        ? "서버 환경변수가 설정되지 않았습니다."
+        ? "서버 API 키 설정에 문제가 있습니다."
         : "인증번호 발송에 실패했습니다. 잠시 후 다시 시도해주세요.";
     return NextResponse.json({ ok: false, message }, { status: 500 });
   }
