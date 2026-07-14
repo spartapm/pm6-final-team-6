@@ -64,7 +64,7 @@ export default function CareLogPage() {
     );
   }
 
-  if (!activeRoutine || !profile) {
+  if (!activeRoutine) {
     return (
       <AppShell>
         <div className="page-pad space-y-4 pt-10 text-center animate-fade-up">
@@ -75,10 +75,51 @@ export default function CareLogPage() {
             height={120}
             className="mx-auto"
           />
-          <h1 className="text-xl font-extrabold text-ink">진행 중인 루틴이 없어요</h1>
-          <p className="text-sm text-ink-muted">루틴을 등록하고 오늘의 케어를 시작해보세요</p>
+          {profile ? (
+            <>
+              <h1 className="text-xl font-extrabold text-ink">내 피부 프로필을 확인해 주세요</h1>
+              <p className="text-sm leading-relaxed text-ink-muted">
+                루틴을 시작하기 전,
+                <br />
+                피부 타입과 고민 정보를 수정할 수 있어요.
+              </p>
+              <Button fullWidth onClick={() => router.push("/skin-profile")}>
+                피부 프로필 수정하기
+              </Button>
+            </>
+          ) : (
+            <>
+              <h1 className="text-xl font-extrabold text-ink">진행 중인 루틴이 없어요</h1>
+              <p className="text-sm text-ink-muted">루틴을 등록하고 오늘의 케어를 시작해보세요</p>
+              <Button fullWidth onClick={() => router.push("/skin-profile")}>
+                루틴 등록하기
+              </Button>
+            </>
+          )}
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <AppShell>
+        <div className="page-pad space-y-4 pt-10 text-center animate-fade-up">
+          <Illustration
+            src={careIllustration(null, false)}
+            alt=""
+            width={140}
+            height={120}
+            className="mx-auto"
+          />
+          <h1 className="text-xl font-extrabold text-ink">내 피부 프로필을 확인해 주세요</h1>
+          <p className="text-sm leading-relaxed text-ink-muted">
+            루틴을 시작하기 전,
+            <br />
+            피부 타입과 고민 정보를 수정할 수 있어요.
+          </p>
           <Button fullWidth onClick={() => router.push("/skin-profile")}>
-            루틴 등록하기
+            피부 프로필 수정하기
           </Button>
         </div>
       </AppShell>
@@ -122,6 +163,21 @@ export default function CareLogPage() {
               <h2 className="mt-3 text-2xl font-extrabold text-ink">입주</h2>
               <p className="mt-1 text-sm font-bold text-ink-soft">새 주민이 입주했어요</p>
               <p className="mt-1 text-xs text-ink-muted">이제 이 피부 구역을 함께 기록해봐요.</p>
+            </div>
+          </Card>
+
+          <Card className="grid grid-cols-2 gap-2">
+            <div>
+              <p className="text-[11px] text-ink-muted">루틴 시작일</p>
+              <p className="mt-1 text-sm font-bold text-ink">
+                {formatDateDot(activeRoutine.startedAt)}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] text-ink-muted">시작한 지</p>
+              <p className="mt-1 text-sm font-bold text-ink">
+                {daysSince(activeRoutine.startedAt)}일
+              </p>
             </div>
           </Card>
 
@@ -264,21 +320,6 @@ export default function CareLogPage() {
               <span className="text-accent">›</span>
             </button>
           )}
-
-          <Card className="grid grid-cols-2 gap-2">
-            <div>
-              <p className="text-[11px] text-ink-muted">루틴 시작일</p>
-              <p className="mt-1 text-sm font-bold text-ink">
-                {formatDateDot(activeRoutine.startedAt)}
-              </p>
-            </div>
-            <div>
-              <p className="text-[11px] text-ink-muted">시작한 지</p>
-              <p className="mt-1 text-sm font-bold text-ink">
-                {daysSince(activeRoutine.startedAt)}일
-              </p>
-            </div>
-          </Card>
 
           <p className="pb-2 text-center text-xs font-medium text-ink-soft">
             매일의 기록이 피부 변화를 만들어요!

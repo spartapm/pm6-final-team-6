@@ -15,16 +15,80 @@ import { ILLUSTRATIONS } from "@/lib/illustrations";
 import { finishRoutine, showToast } from "@/lib/store";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
 
+async function inlineSameOriginImages(root: HTMLElement) {
+  const images = Array.from(root.querySelectorAll("img"));
+  await Promise.all(
+    images.map(async (img) => {
+      const src = img.getAttribute("src") || "";
+      if (!src || src.startsWith("data:")) return;
+      // External product images often fail CORS and break html-to-image.
+      if (!src.startsWith(window.location.origin) && !src.startsWith("/")) {
+        const label = (img.alt || "제품").slice(0, 2);
+        const canvas = document.createElement("canvas");
+        canvas.width = 80;
+        canvas.height = 80;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.fillStyle = "#FFE8ED";
+          ctx.fillRect(0, 0, 80, 80);
+          ctx.fillStyle = "#FF617D";
+          ctx.font = "bold 22px sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(label, 40, 42);
+          img.src = canvas.toDataURL("image/png");
+        }
+        return;
+      }
+      try {
+        const res = await fetch(src, { cache: "force-cache" });
+        const blob = await res.blob();
+        img.src = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      } catch {
+        // keep original; capture may still succeed for same-origin
+      }
+    })
+  );
+}
+
 async function downloadNoteCard(element: HTMLElement, filename: string) {
+  await inlineSameOriginImages(element);
   const dataUrl = await toPng(element, {
     cacheBust: true,
     pixelRatio: 2,
     backgroundColor: "#FFFAFB",
+    skipFonts: true,
   });
-  const a = document.createElement("a");
-  a.href = dataUrl;
-  a.download = filename;
-  a.click();
+
+  const blob = await (await fetch(dataUrl)).blob();
+  const file = new File([blob], filename, { type: "image/png" });
+
+  const nav = navigator as Navigator & {
+    canShare?: (data?: ShareData) => boolean;
+    share?: (data?: ShareData) => Promise<void>;
+  };
+  if (typeof nav.canShare === "function" && nav.canShare({ files: [file] }) && nav.share) {
+    await nav.share({ files: [file], title: "ANA 스킨노트" });
+    return;
+  }
+
+  const objectUrl = URL.createObjectURL(blob);
+  try {
+    const a = document.createElement("a");
+    a.href = objectUrl;
+    a.download = filename;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
 }
 
 export default function SkinNoteCompletePage() {
@@ -135,23 +199,23 @@ export default function SkinNoteCompletePage() {
           <p className="mt-1 text-sm text-ink-muted">나의 피부 여정을 기록해 보세요 ✦</p>
         </div>
 
+        <div className="flex items-center justify-between gap-2">
+          <button
+            type="button"
+            className="rounded-chip border border-line bg-surface-white px-3 py-1.5 text-xs font-bold text-accent"
+            onClick={() => {
+              void saveCardImage();
+            }}
+          >
+            스킨노트 저장하기
+          </button>
+          <span className="text-[11px] text-ink-muted">{createdLabel} 생성</span>
+        </div>
+
         <div
           ref={cardRef}
           className="rounded-card border-2 border-accent bg-surface p-4 shadow-card"
         >
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <button
-              type="button"
-              className="rounded-chip border border-line bg-surface-white px-3 py-1.5 text-xs font-bold text-accent"
-              onClick={() => {
-                void saveCardImage();
-              }}
-            >
-              스킨노트 저장하기
-            </button>
-            <span className="text-[11px] text-ink-muted">{createdLabel} 생성</span>
-          </div>
-
           <div className="space-y-3 border-b border-dashed border-line pb-3 text-sm">
             <div className="flex gap-3">
               <span className="w-16 shrink-0 text-ink-muted">피부 타입</span>

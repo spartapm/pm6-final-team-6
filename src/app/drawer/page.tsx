@@ -21,7 +21,7 @@ import type { SkinNote, SkinType } from "@/lib/types";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
 
 type Tab = "전체" | "저장" | "인기";
-type DurationFilter = "전체" | "7일 이하" | "14일 이하" | "30일 이하";
+type DurationFilter = "전체" | "14일 이하" | "30일 이하";
 type ConcernFilter = (typeof DRAWER_CONCERN_FILTERS)[number];
 
 export default function DrawerPage() {
@@ -55,7 +55,6 @@ export default function DrawerPage() {
       list = list.filter((n) =>
         concerns.some((c) => concernFilterMatch(c, n.concerns))
       );
-    if (duration === "7일 이하") list = list.filter((n) => n.durationDays <= 7);
     if (duration === "14일 이하") list = list.filter((n) => n.durationDays <= 14);
     if (duration === "30일 이하") list = list.filter((n) => n.durationDays <= 30);
     return list;
@@ -363,7 +362,7 @@ export default function DrawerPage() {
               <section>
                 <p className="mb-2 text-sm font-extrabold text-ink">사용 기간</p>
                 <div className="flex flex-wrap gap-2">
-                  {(["전체", "7일 이하", "14일 이하", "30일 이하"] as DurationFilter[]).map(
+                  {(["전체", "14일 이하", "30일 이하"] as DurationFilter[]).map(
                     (item) => (
                       <SelectChip
                         key={item}

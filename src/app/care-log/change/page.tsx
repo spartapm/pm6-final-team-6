@@ -5,12 +5,19 @@ import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
+import Illustration from "@/components/ui/Illustration";
 import Modal from "@/components/ui/Modal";
 import PageHeader from "@/components/ui/PageHeader";
 import SelectChip from "@/components/ui/SelectChip";
 import { mapChangeStatus, trackEvent } from "@/lib/analytics";
-import { CHANGE_FEELINGS, WEEKLY_CHANGE_TAGS, daysSince, weekKey } from "@/lib/constants";
+import {
+  CHANGE_FEELING_OPTIONS,
+  WEEKLY_CHANGE_TAGS,
+  daysSince,
+  weekKey,
+} from "@/lib/constants";
 import { compressImageFile, validateImageFile } from "@/lib/image";
+import { weekFeelingIllustration } from "@/lib/illustrations";
 import { saveWeeklyChange, showToast } from "@/lib/store";
 import type { ChangeFeeling } from "@/lib/types";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
@@ -80,13 +87,13 @@ export default function ChangeRecordPage() {
     <AppShell showNav={false}>
       <PageHeader
         title="변화 과정 기록"
-        subtitle="피부 변화 과정을 기록해보세요."
+        subtitle="피부 변화 과정을 기록해보세요. 기록할수록 루틴이 더 정확해져요."
+        center
         onBack={() => {
           if (dirty) setConfirmOpen(true);
           else router.push("/care-log");
         }}
       />
-      <p className="page-pad mt-1 text-xs text-ink-muted">기록할 수록 루틴이 더 정확해져요.</p>
 
       <div className="page-pad mt-5 space-y-5 pb-8 animate-fade-up">
         <div>
@@ -122,27 +129,50 @@ export default function ChangeRecordPage() {
         </div>
 
         <div>
-          <div className="mb-2 flex items-center gap-2">
-            <h2 className="text-sm font-extrabold text-ink">이번 주 피부 변화는 어땠나요?</h2>
-            <Badge tone="muted">필수</Badge>
+          <div className="mb-3 flex items-center gap-2">
+            <h2 className="text-sm font-extrabold text-ink">이번 주 피부 변화는 어떠셨나요?</h2>
+            <Badge>필수</Badge>
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            {CHANGE_FEELINGS.map((item) => (
-              <SelectChip
-                key={item.value}
-                selected={feeling === item.value}
-                onClick={() => {
-                  setFeeling(item.value);
-                  trackEvent("week_change_select", {
-                    change_status: mapChangeStatus(item.value),
-                  });
-                }}
-                className="flex-col gap-1 py-3 text-[12px]"
-              >
-                <span className="text-lg">{item.emoji}</span>
-                {item.value}
-              </SelectChip>
-            ))}
+          <div className="grid grid-cols-3 gap-3">
+            {CHANGE_FEELING_OPTIONS.map((item) => {
+              const selected = feeling === item.value;
+              return (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => {
+                    setFeeling(item.value);
+                    trackEvent("week_change_select", {
+                      change_status: mapChangeStatus(item.value),
+                    });
+                  }}
+                  className="flex flex-col items-center gap-2 text-center"
+                >
+                  <div
+                    className={`flex h-[88px] w-[88px] items-center justify-center rounded-full transition ${
+                      selected
+                        ? "bg-accent-faint ring-2 ring-accent"
+                        : "bg-transparent"
+                    }`}
+                  >
+                    <Illustration
+                      src={weekFeelingIllustration(item.icon)}
+                      alt={item.label}
+                      width={72}
+                      height={72}
+                      className="h-[72px] w-[72px] object-contain"
+                    />
+                  </div>
+                  <span
+                    className={`text-[12px] font-bold leading-tight ${
+                      selected ? "text-accent" : "text-ink-soft"
+                    }`}
+                  >
+                    {item.label}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -151,30 +181,32 @@ export default function ChangeRecordPage() {
             <h2 className="text-sm font-extrabold text-ink">어떤 변화가 있었나요?</h2>
             <Badge tone="muted">복수 선택 가능</Badge>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {WEEKLY_CHANGE_TAGS.map((tag) => {
-              const selected = tags.includes(tag);
-              return (
-                <SelectChip
-                  key={tag}
-                  selected={selected}
-                  className="text-xs"
-                  onClick={() => {
-                    if (selected) {
-                      setTags((prev) => prev.filter((t) => t !== tag));
-                      trackEvent("week_tag_select", { tag_name: tag, action: "remove" });
-                    } else if (tags.length >= 5) {
-                      showToast("태그는 최대 5개까지 선택할 수 있어요.");
-                    } else {
-                      setTags((prev) => [...prev, tag]);
-                      trackEvent("week_tag_select", { tag_name: tag, action: "add" });
-                    }
-                  }}
-                >
-                  {tag}
-                </SelectChip>
-              );
-            })}
+          <div className="max-h-56 overflow-y-auto rounded-panel border border-line/60 p-3">
+            <div className="grid grid-cols-3 gap-2">
+              {WEEKLY_CHANGE_TAGS.map((tag) => {
+                const selected = tags.includes(tag);
+                return (
+                  <SelectChip
+                    key={tag}
+                    selected={selected}
+                    className="justify-center text-[11px]"
+                    onClick={() => {
+                      if (selected) {
+                        setTags((prev) => prev.filter((t) => t !== tag));
+                        trackEvent("week_tag_select", { tag_name: tag, action: "remove" });
+                      } else if (tags.length >= 5) {
+                        showToast("태그는 최대 5개까지 선택할 수 있어요.");
+                      } else {
+                        setTags((prev) => [...prev, tag]);
+                        trackEvent("week_tag_select", { tag_name: tag, action: "add" });
+                      }
+                    }}
+                  >
+                    {tag}
+                  </SelectChip>
+                );
+              })}
+            </div>
           </div>
         </div>
 

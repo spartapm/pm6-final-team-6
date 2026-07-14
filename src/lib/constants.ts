@@ -80,22 +80,16 @@ export const CHANGE_TAGS = [
   "#건조해짐",
 ];
 
-export const WEEKLY_CHANGE_TAGS = [
-  "#붉은기 완화",
-  "#촉촉해졌다",
-  "#피부톤 개선",
-  "#자극 적음",
-  "#장벽 진정",
-  "#번들거림 감소",
-  "#트러블 진정",
-  "#각질 완화",
-  "#여드름 완화",
-  "#트러블 자국 옅어짐",
-  "#색소침착 완화",
-  "#잔주름 완화",
-  "#당김 감소",
-  "#속건조 감소",
-  "#가려움 감소",
+export const WEEKLY_CHANGE_TAGS = [...CHANGE_TAGS];
+
+export const CHANGE_FEELING_OPTIONS: Array<{
+  value: ChangeFeeling;
+  label: string;
+  icon: "yes" | "unknown" | "no";
+}> = [
+  { value: "변화가 있었어요", label: "변화가 있어요", icon: "yes" },
+  { value: "모르겠어요", label: "모르겠어요", icon: "unknown" },
+  { value: "변화가 없었어요", label: "변화가 없었어요", icon: "no" },
 ];
 
 export const SAMPLE_PRODUCTS: Product[] = [

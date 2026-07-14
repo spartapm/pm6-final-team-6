@@ -57,6 +57,12 @@ export function difficultyIllustration(difficulty: Difficulty) {
   return END_DIFF[difficulty];
 }
 
+export function weekFeelingIllustration(feeling: "yes" | "unknown" | "no") {
+  if (feeling === "yes") return ILLUSTRATIONS.endDiffEasy;
+  if (feeling === "unknown") return ILLUSTRATIONS.endDiffNormal;
+  return ILLUSTRATIONS.endDiffHard;
+}
+
 /** 유저 id/닉네임 기반 안정적인 기본 아바타 */
 export function defaultAvatar(seed?: string | null) {
   if (!seed) return AVATARS[0];

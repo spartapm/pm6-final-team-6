@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import Badge from "@/components/ui/Badge";
@@ -56,12 +56,46 @@ export default function RoutineRegisterPage() {
   const [recError, setRecError] = useState("");
   const [cooldown, setCooldown] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
+  const sheetHistoryRef = useRef(false);
+  const closingSheetRef = useRef(false);
+
+  const closeSheet = (action: "complete" | "cancel") => {
+    trackEvent("popup_close", { action });
+    closingSheetRef.current = true;
+    setSheetOpen(false);
+    if (sheetHistoryRef.current) {
+      sheetHistoryRef.current = false;
+      window.history.back();
+    }
+  };
+
+  const openSheet = () => {
+    setSheetOpen(true);
+    window.history.pushState({ anaSheet: true }, "");
+    sheetHistoryRef.current = true;
+  };
 
   useEffect(() => {
     if (!hydrated) return;
     if (!state.isLoggedIn) router.replace("/login?next=/routine/register");
     else if (!profile) router.replace("/skin-profile");
   }, [hydrated, state.isLoggedIn, profile, router]);
+
+  useEffect(() => {
+    const onPopState = () => {
+      if (closingSheetRef.current) {
+        closingSheetRef.current = false;
+        return;
+      }
+      if (sheetOpen) {
+        sheetHistoryRef.current = false;
+        setSheetOpen(false);
+        trackEvent("popup_close", { action: "cancel" });
+      }
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [sheetOpen]);
 
   useEffect(() => {
     if (!sheetOpen || sheetTab !== "search") return;
@@ -188,8 +222,7 @@ export default function RoutineRegisterPage() {
         center
         onBack={() => {
           if (sheetOpen) {
-            trackEvent("popup_close", { action: "cancel" });
-            setSheetOpen(false);
+            closeSheet("cancel");
             return;
           }
           if (dirty) setConfirmOpen(true);
@@ -291,7 +324,7 @@ export default function RoutineRegisterPage() {
               ))}
               <button
                 type="button"
-                onClick={() => setSheetOpen(true)}
+                onClick={() => openSheet()}
                 className="flex w-full items-center justify-center gap-2 rounded-panel border border-dashed border-line py-3 text-sm font-bold text-accent"
               >
                 <span className="flex h-6 w-6 items-center justify-center rounded-full border border-accent">
@@ -453,10 +486,7 @@ export default function RoutineRegisterPage() {
               <button
                 type="button"
                 className="text-ink-muted"
-                onClick={() => {
-                  trackEvent("popup_close", { action: "cancel" });
-                  setSheetOpen(false);
-                }}
+                onClick={() => closeSheet("cancel")}
               >
                 닫기
               </button>
@@ -617,13 +647,12 @@ export default function RoutineRegisterPage() {
                     product: { ...selectedProduct, category: selectedCategory },
                   },
                 ]);
-                trackEvent("popup_close", { action: "complete" });
                 setSelectedProduct(null);
                 setCustomName("");
                 setQuery("");
                 setSearchResults([]);
                 setSearchError("");
-                setSheetOpen(false);
+                closeSheet("complete");
               }}
             >
               완료
