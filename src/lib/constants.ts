@@ -87,7 +87,7 @@ export const CHANGE_FEELING_OPTIONS: Array<{
   label: string;
   icon: "yes" | "unknown" | "no";
 }> = [
-  { value: "변화가 있었어요", label: "변화가 있어요", icon: "yes" },
+  { value: "변화가 있었어요", label: "변화가 있었어요", icon: "yes" },
   { value: "모르겠어요", label: "모르겠어요", icon: "unknown" },
   { value: "변화가 없었어요", label: "변화가 없었어요", icon: "no" },
 ];

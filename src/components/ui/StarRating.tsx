@@ -19,9 +19,14 @@ export default function StarRating({
           key={star}
           type="button"
           disabled={readOnly}
-          className={`${text} ${star <= value ? "text-accent" : "text-ink-muted/45"} ${
-            readOnly ? "cursor-default" : ""
-          }`}
+          className={`${text} ${
+            star <= value ? "text-star" : "text-star-empty drop-shadow-[0_0_0.5px_#7CA5FE]"
+          } ${readOnly ? "cursor-default" : ""}`}
+          style={
+            star > value
+              ? { WebkitTextStroke: "1px #7CA5FE", color: "#F9FBFE" }
+              : undefined
+          }
           onClick={() => onChange?.(star === value ? 0 : star)}
           aria-label={`${star}점`}
         >

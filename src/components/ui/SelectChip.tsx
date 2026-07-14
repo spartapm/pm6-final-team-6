@@ -15,10 +15,10 @@ export default function SelectChip({
     <button
       type="button"
       className={[
-        "rounded-[12px] border px-3 py-2.5 text-sm font-bold transition",
+        "rounded-chip border px-3 py-2.5 text-sm font-bold transition",
         selected
-          ? "border-accent bg-accent text-white"
-          : "border-line bg-surface-white text-ink enabled:hover:bg-accent-faint",
+          ? "border-sky bg-sky text-white shadow-sm"
+          : "border-sky bg-surface-card text-ink-soft enabled:hover:bg-sky-faint",
         className,
       ].join(" ")}
       {...props}

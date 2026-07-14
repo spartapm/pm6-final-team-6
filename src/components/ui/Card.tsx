@@ -12,7 +12,7 @@ export default function Card({
   return (
     <div
       className={[
-        "rounded-card border border-line bg-surface-white shadow-card",
+        "rounded-card border border-line bg-surface-card shadow-card",
         padded ? "p-4" : "",
         className,
       ].join(" ")}

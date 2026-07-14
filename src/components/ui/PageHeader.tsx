@@ -75,12 +75,12 @@ export function SectionHeader({
     <div className="mb-3 flex items-center justify-between">
       <h2 className="text-base font-extrabold text-ink">{title}</h2>
       {actionHref ? (
-        <Link href={actionHref} className="text-sm font-bold text-accent">
-          {actionLabel ?? "더보기"}
+        <Link href={actionHref} className="text-sm font-bold text-sky">
+          {actionLabel ?? "더보기 >"}
         </Link>
       ) : onAction ? (
-        <button type="button" onClick={onAction} className="text-sm font-bold text-accent">
-          {actionLabel ?? "더보기"}
+        <button type="button" onClick={onAction} className="text-sm font-bold text-sky">
+          {actionLabel ?? "더보기 >"}
         </button>
       ) : null}
     </div>

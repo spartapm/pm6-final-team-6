@@ -45,9 +45,9 @@ export default function LoginInner() {
           <div className="mx-auto flex items-center justify-center">
             <Illustration src={ILLUSTRATIONS.homeHero} alt="ANA" width={120} height={105} priority />
           </div>
-          <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-ink-soft">{BRAND}</h1>
-          <p className="mt-1 text-sm font-bold text-ink-soft">A Note Archive</p>
-          <p className="mt-3 text-sm text-ink-soft">내 피부 고민에 맞는 루틴을 기록해요</p>
+          <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-ink">{BRAND}</h1>
+          <p className="mt-1 text-sm font-bold text-ink-muted">A Note Archive</p>
+          <p className="mt-3 text-sm text-ink-muted">내 피부 고민에 맞는 루틴을 기록해요</p>
         </div>
 
         <div className="space-y-3">
@@ -77,7 +77,7 @@ export default function LoginInner() {
                 type="checkbox"
                 checked={autoLogin}
                 onChange={(e) => setAutoLogin(e.target.checked)}
-                className="h-4 w-4 accent-accent"
+                className="h-4 w-4 accent-sky"
               />
               자동 로그인
             </label>
@@ -86,12 +86,13 @@ export default function LoginInner() {
             </Link>
           </div>
 
-          {formError && <p className="text-sm font-medium text-accent">{formError}</p>}
+          {formError && (
+            <p className="text-[10px] font-medium text-[#ff0000]">{formError}</p>
+          )}
 
           <Button
             fullWidth
             disabled={!canSubmit}
-            className="!rounded-field"
             onClick={async () => {
               setSubmitted(true);
               if (errors.email || errors.password) return;

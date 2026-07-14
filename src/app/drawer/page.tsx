@@ -3,11 +3,11 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
-import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Illustration from "@/components/ui/Illustration";
 import SelectChip from "@/components/ui/SelectChip";
+import StarRating from "@/components/ui/StarRating";
 import { trackEvent } from "@/lib/analytics";
 import {
   DRAWER_CONCERN_FILTERS,
@@ -23,6 +23,18 @@ import { useAppDerivations, useHydrated } from "@/lib/useAppState";
 type Tab = "전체" | "저장" | "인기";
 type DurationFilter = "전체" | "14일 이하" | "30일 이하";
 type ConcernFilter = (typeof DRAWER_CONCERN_FILTERS)[number];
+
+function RadioDot({ selected }: { selected: boolean }) {
+  return (
+    <span
+      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+        selected ? "border-sky" : "border-sky/60"
+      }`}
+    >
+      {selected && <span className="h-2.5 w-2.5 rounded-full bg-sky" />}
+    </span>
+  );
+}
 
 export default function DrawerPage() {
   const router = useRouter();
@@ -49,8 +61,7 @@ export default function DrawerPage() {
       );
 
     if (photoOnly) list = list.filter((n) => n.changeTimeline.some((t) => t.photoUrl));
-    if (skinTypes.length)
-      list = list.filter((n) => skinTypes.includes(n.skinType));
+    if (skinTypes.length) list = list.filter((n) => skinTypes.includes(n.skinType));
     if (concerns.length && !concerns.includes("전체"))
       list = list.filter((n) =>
         concerns.some((c) => concernFilterMatch(c, n.concerns))
@@ -68,15 +79,6 @@ export default function DrawerPage() {
 
   const toggleDraftType = (item: SkinType | "전체") => {
     if (item === "전체") {
-      if (draftTypes.length > 0) {
-        draftTypes.forEach((t) =>
-          trackEvent("filter_apply", {
-            filter_type: "skin_type",
-            filter_value: t,
-            action: "remove",
-          })
-        );
-      }
       setDraftTypes([]);
       return;
     }
@@ -93,13 +95,6 @@ export default function DrawerPage() {
 
   const toggleDraftConcern = (item: ConcernFilter) => {
     if (item === "전체") {
-      draftConcerns.forEach((c) =>
-        trackEvent("filter_apply", {
-          filter_type: "concern",
-          filter_value: c,
-          action: "remove",
-        })
-      );
       setDraftConcerns([]);
       return;
     }
@@ -126,35 +121,45 @@ export default function DrawerPage() {
   return (
     <AppShell>
       <div className="page-pad space-y-4 pt-5 pb-6 animate-fade-up">
-        <h1 className="text-xl font-extrabold text-ink">스킨서랍장</h1>
+        <header className="text-center">
+          <h1 className="text-[22px] font-extrabold text-ink">스킨 서랍장</h1>
+          <p className="mt-1 text-sm text-ink-muted">나의 루틴을 나누고 함께 성장해요!</p>
+        </header>
 
         {!state.bannerDismissed.drawer && (
-          <div className="flex items-start justify-between gap-3 rounded-panel border border-line bg-accent-faint/60 px-3 py-3">
-            <p className="text-xs leading-relaxed text-ink-soft">
-              스킨노트만 공유할 수 있어요. 게시글에는 추가 글을 작성할 수 없어요.
+          <div className="flex items-start gap-2.5 rounded-[14px] border border-line bg-surface-card px-3 py-3">
+            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-sky text-[11px] font-bold text-sky">
+              i
+            </span>
+            <p className="min-w-0 flex-1 text-xs leading-relaxed text-ink-soft">
+              스킨노트만 공유할 수 있어요.
+              <br />
+              게시글에는 추가 글을 작성할 수 없어요.
             </p>
             <button
               type="button"
-              className="text-ink-muted"
+              className="shrink-0 text-ink-muted"
               onClick={() => {
                 void dismissBanner("drawer");
               }}
+              aria-label="닫기"
             >
               ✕
             </button>
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-2">
+        {/* Tabs */}
+        <div className="flex border-b border-line/50">
           {(["전체", "저장", "인기"] as Tab[]).map((item) => (
             <button
               key={item}
               type="button"
               onClick={() => setTab(item)}
-              className={`h-10 rounded-chip text-sm font-bold ${
+              className={`flex-1 pb-2.5 text-sm font-extrabold ${
                 tab === item
-                  ? "bg-accent text-white"
-                  : "border border-line bg-surface-white text-ink-soft"
+                  ? "border-b-2 border-sky text-ink"
+                  : "text-ink-muted"
               }`}
             >
               {item}
@@ -162,18 +167,8 @@ export default function DrawerPage() {
           ))}
         </div>
 
+        {/* Filters */}
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-          <button
-            type="button"
-            onClick={() => setPhotoOnly((v) => !v)}
-            className={`shrink-0 rounded-chip border px-3 py-2 text-xs font-bold ${
-              photoOnly
-                ? "border-accent bg-accent text-white"
-                : "border-line bg-surface-white text-ink"
-            }`}
-          >
-            사진 {photoOnly ? "ON" : "OFF"}
-          </button>
           <button
             type="button"
             onClick={() => {
@@ -182,18 +177,36 @@ export default function DrawerPage() {
               setDraftDuration(duration);
               setFilterOpen(true);
             }}
-            className="shrink-0 rounded-chip border border-line bg-surface-white px-3 py-2 text-xs font-bold text-ink"
+            className="shrink-0 rounded-chip border border-sky bg-surface-card px-3 py-2 text-xs font-bold text-ink"
           >
-            조건 선택
+            조건 선택 ▾
           </button>
           {activeChips.map((chip) => (
             <span
               key={chip}
-              className="shrink-0 rounded-chip bg-accent-faint px-3 py-2 text-xs font-bold text-accent"
+              className="shrink-0 rounded-chip border border-sky bg-surface-card px-3 py-2 text-xs font-bold text-ink"
             >
               {chip}
             </span>
           ))}
+          <div className="ml-auto flex shrink-0 items-center gap-1.5 pl-2">
+            <span className="text-xs font-bold text-ink-muted">사진</span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={photoOnly}
+              onClick={() => setPhotoOnly((v) => !v)}
+              className={`relative h-6 w-11 rounded-full transition ${
+                photoOnly ? "bg-sky" : "bg-[#D5DEEB]"
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition ${
+                  photoOnly ? "left-[22px]" : "left-0.5"
+                }`}
+              />
+            </button>
+          </div>
         </div>
 
         {notes.length === 0 ? (
@@ -218,15 +231,15 @@ export default function DrawerPage() {
               return (
                 <div
                   key={note.id}
-                  className="w-full rounded-card border border-line bg-surface-white p-4 text-left shadow-card"
+                  className="relative w-full rounded-card border border-line bg-surface-card p-4 text-left shadow-card"
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-2.5">
                     <button
                       type="button"
-                      className="flex min-w-0 flex-1 items-start gap-3 text-left"
+                      className="flex min-w-0 flex-1 items-start gap-2.5 text-left"
                       onClick={openNote}
                     >
-                      <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-line bg-accent-faint">
+                      <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-dashed border-line bg-surface-empty">
                         <Illustration
                           src={note.authorAvatar || defaultAvatar(note.authorId)}
                           alt=""
@@ -237,12 +250,14 @@ export default function DrawerPage() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
-                          <p className="font-extrabold text-ink">{note.authorNickname}</p>
-                          <span className="text-[11px] text-ink-muted">
+                          <p className="truncate font-extrabold text-ink">
+                            {note.authorNickname}
+                          </p>
+                          <span className="shrink-0 text-[11px] text-ink-muted">
                             {relativeTime(note.createdAt)}
                           </span>
                         </div>
-                        <p className="mt-1 text-xs font-medium text-ink-soft">
+                        <p className="mt-0.5 text-xs text-ink-muted">
                           {note.skinType} · {note.concerns[0]} · {note.ageGroup}
                         </p>
                       </div>
@@ -254,7 +269,7 @@ export default function DrawerPage() {
                         aria-label="더보기"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setMenuNoteId(note.id);
+                          setMenuNoteId((id) => (id === note.id ? null : note.id));
                         }}
                       >
                         ⋮
@@ -262,33 +277,60 @@ export default function DrawerPage() {
                     )}
                   </div>
 
-                  <button
-                    type="button"
-                    className="mt-3 w-full text-left"
-                    onClick={openNote}
-                  >
-                    <Badge tone="outline">스킨노트</Badge>
-                    <h3 className="mt-2 text-base font-extrabold text-ink">{note.title}</h3>
+                  {menuNoteId === note.id && (
+                    <div className="absolute right-3 top-12 z-10 overflow-hidden rounded-[12px] border border-line bg-surface-card shadow-card">
+                      <button
+                        type="button"
+                        className="block w-full px-4 py-2.5 text-left text-sm font-bold text-accent"
+                        onClick={() => {
+                          void deleteNote(note.id).then(() => {
+                            showToast("스킨노트를 삭제했어요.");
+                            setMenuNoteId(null);
+                          });
+                        }}
+                      >
+                        삭제하기
+                      </button>
+                    </div>
+                  )}
+
+                  <button type="button" className="mt-3 w-full text-left" onClick={openNote}>
+                    <p className="text-[12px] font-bold text-sky">✦ 스킨노트</p>
+                    <h3 className="mt-1 text-[15px] font-extrabold text-ink">{note.title}</h3>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {note.tags.slice(0, 5).map((tag) => (
-                        <Badge key={tag} tone="accent">
+                        <SelectChip
+                          key={tag}
+                          selected={false}
+                          className="pointer-events-none !px-2 !py-1 text-[10px]"
+                        >
                           {tag}
-                        </Badge>
+                        </SelectChip>
                       ))}
                     </div>
-                    <div className="mt-3 flex items-center gap-3 text-xs font-medium text-ink-soft">
-                      <span>사용 {note.durationDays}일</span>
-                      <span className="text-accent">
-                        체감 {"★".repeat(note.feltChange)}
-                        <span className="text-ink-muted">
-                          {"☆".repeat(Math.max(0, 5 - note.feltChange))}
-                        </span>{" "}
-                        {note.feltChange}
-                      </span>
+
+                    <div className="mt-3 grid grid-cols-2 gap-2 rounded-[12px] border border-dashed border-line/80 px-3 py-2.5 text-center text-[11px]">
+                      <div className="border-r border-dashed border-line/60">
+                        <p className="text-ink-muted">사용 기간</p>
+                        <p className="mt-0.5 font-extrabold text-ink">{note.durationDays}일</p>
+                      </div>
+                      <div>
+                        <p className="text-ink-muted">체감 변화</p>
+                        <div className="mt-0.5 flex items-center justify-center gap-1">
+                          {note.feltChange > 0 ? (
+                            <>
+                              <StarRating value={note.feltChange} readOnly size="sm" />
+                              <span className="font-extrabold text-ink">{note.feltChange}</span>
+                            </>
+                          ) : (
+                            <span className="font-extrabold text-ink-muted">-</span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </button>
 
-                  <div className="mt-3 flex gap-4 text-xs font-bold text-ink">
+                  <div className="mt-3 flex gap-4 text-xs font-bold text-ink-muted">
                     <span>저장 {note.saveCount}</span>
                     <span>도움돼요 {note.helpCount}</span>
                     <span>댓글 {note.commentCount}</span>
@@ -300,94 +342,117 @@ export default function DrawerPage() {
         )}
       </div>
 
+      {/* Filter sheet */}
       {filterOpen && (
         <div className="fixed inset-0 z-[70] flex items-end justify-center bg-ink/35">
-          <div className="max-h-[88svh] w-full max-w-phone overflow-auto rounded-t-[24px] bg-page p-4 animate-fade-up">
-            <div className="mb-4 flex items-center justify-between">
+          <div className="max-h-[88svh] w-full max-w-phone overflow-auto rounded-t-[24px] border border-line bg-surface-card p-4 animate-fade-up">
+            <div className="mb-3 flex items-center justify-between">
               <div className="w-8" />
               <h3 className="text-lg font-extrabold text-ink">조건 선택</h3>
-              <button type="button" className="w-8 text-right" onClick={() => setFilterOpen(false)}>
+              <button
+                type="button"
+                className="w-8 text-right text-ink-muted"
+                onClick={() => setFilterOpen(false)}
+              >
                 ✕
               </button>
             </div>
 
-            <div className="space-y-4 rounded-card border border-line bg-surface-white p-4">
-              <section>
-                <p className="mb-2 text-sm font-extrabold text-ink">피부 타입 (복수 선택)</p>
-                <div className="flex flex-wrap gap-2">
-                  <SelectChip
-                    selected={draftTypes.length === 0}
-                    onClick={() => toggleDraftType("전체")}
-                    className="text-xs"
+            <div className="space-y-1">
+              <section className="border-b border-dashed border-line/70 pb-3">
+                <p className="mb-1 px-1 text-sm font-extrabold text-ink">피부 타입</p>
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between px-1 py-2.5"
+                  onClick={() => toggleDraftType("전체")}
+                >
+                  <span
+                    className={`text-sm font-bold ${
+                      draftTypes.length === 0 ? "text-ink" : "text-ink-muted"
+                    }`}
                   >
                     전체
-                  </SelectChip>
-                  {SKIN_TYPES.map((item) => (
-                    <SelectChip
-                      key={item}
-                      selected={draftTypes.includes(item)}
-                      onClick={() => toggleDraftType(item)}
-                      className="text-xs"
+                  </span>
+                  <RadioDot selected={draftTypes.length === 0} />
+                </button>
+                {SKIN_TYPES.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    className="flex w-full items-center justify-between px-1 py-2.5"
+                    onClick={() => toggleDraftType(item)}
+                  >
+                    <span
+                      className={`text-sm font-bold ${
+                        draftTypes.includes(item) ? "text-ink" : "text-ink-muted"
+                      }`}
                     >
                       {item}
-                    </SelectChip>
-                  ))}
-                </div>
+                    </span>
+                    <RadioDot selected={draftTypes.includes(item)} />
+                  </button>
+                ))}
               </section>
 
-              <div className="border-t border-dashed border-line" />
-
-              <section>
-                <p className="mb-2 text-sm font-extrabold text-ink">피부 고민 (복수 선택)</p>
-                <div className="flex flex-wrap gap-2">
-                  {DRAWER_CONCERN_FILTERS.map((item) => (
-                    <SelectChip
+              <section className="border-b border-dashed border-line/70 py-3">
+                <p className="mb-1 px-1 text-sm font-extrabold text-ink">피부 고민</p>
+                {DRAWER_CONCERN_FILTERS.map((item) => {
+                  const selected =
+                    item === "전체"
+                      ? draftConcerns.length === 0
+                      : draftConcerns.includes(item);
+                  return (
+                    <button
                       key={item}
-                      selected={
-                        item === "전체"
-                          ? draftConcerns.length === 0
-                          : draftConcerns.includes(item)
-                      }
+                      type="button"
+                      className="flex w-full items-center justify-between px-1 py-2.5"
                       onClick={() => toggleDraftConcern(item)}
-                      className="text-xs"
                     >
-                      {item}
-                    </SelectChip>
-                  ))}
-                </div>
-              </section>
-
-              <div className="border-t border-dashed border-line" />
-
-              <section>
-                <p className="mb-2 text-sm font-extrabold text-ink">사용 기간</p>
-                <div className="flex flex-wrap gap-2">
-                  {(["전체", "14일 이하", "30일 이하"] as DurationFilter[]).map(
-                    (item) => (
-                      <SelectChip
-                        key={item}
-                        selected={draftDuration === item}
-                        onClick={() => {
-                          if (draftDuration !== item) {
-                            trackEvent("filter_apply", {
-                              filter_type: "duration",
-                              filter_value: item,
-                              action: "add",
-                            });
-                          }
-                          setDraftDuration(item);
-                        }}
-                        className="text-xs"
+                      <span
+                        className={`text-sm font-bold ${
+                          selected ? "text-ink" : "text-ink-muted"
+                        }`}
                       >
                         {item}
-                      </SelectChip>
-                    )
-                  )}
-                </div>
+                      </span>
+                      <RadioDot selected={selected} />
+                    </button>
+                  );
+                })}
+              </section>
+
+              <section className="pt-3">
+                <p className="mb-1 px-1 text-sm font-extrabold text-ink">사용 기간</p>
+                {(["전체", "14일 이하", "30일 이하"] as DurationFilter[]).map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    className="flex w-full items-center justify-between px-1 py-2.5"
+                    onClick={() => {
+                      if (draftDuration !== item) {
+                        trackEvent("filter_apply", {
+                          filter_type: "duration",
+                          filter_value: item,
+                          action: "add",
+                        });
+                      }
+                      setDraftDuration(item);
+                    }}
+                  >
+                    <span
+                      className={`text-sm font-bold ${
+                        draftDuration === item ? "text-ink" : "text-ink-muted"
+                      }`}
+                    >
+                      {item}
+                    </span>
+                    <RadioDot selected={draftDuration === item} />
+                  </button>
+                ))}
               </section>
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className="mt-4 grid grid-cols-2 gap-2.5">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -409,32 +474,6 @@ export default function DrawerPage() {
                 적용하기
               </Button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {menuNoteId && (
-        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-ink/35">
-          <div className="w-full max-w-phone rounded-t-[24px] bg-surface-white p-4">
-            <button
-              type="button"
-              className="w-full rounded-panel px-3 py-3 text-left font-bold text-accent"
-              onClick={() => {
-                void deleteNote(menuNoteId).then(() => {
-                  showToast("스킨노트를 삭제했어요.");
-                  setMenuNoteId(null);
-                });
-              }}
-            >
-              삭제하기
-            </button>
-            <button
-              type="button"
-              className="mt-2 w-full rounded-panel px-3 py-3 text-left font-bold text-ink-muted"
-              onClick={() => setMenuNoteId(null)}
-            >
-              취소
-            </button>
           </div>
         </div>
       )}

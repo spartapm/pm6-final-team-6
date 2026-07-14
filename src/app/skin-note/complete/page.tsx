@@ -4,13 +4,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toPng } from "html-to-image";
 import AppShell from "@/components/layout/AppShell";
-import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Illustration from "@/components/ui/Illustration";
 import PageHeader from "@/components/ui/PageHeader";
+import SelectChip from "@/components/ui/SelectChip";
 import StarRating from "@/components/ui/StarRating";
 import { trackEvent } from "@/lib/analytics";
-import { BRAND, CHANGE_FEELINGS, daysSince, daysSinceAt, formatDateDot } from "@/lib/constants";
+import { BRAND, CHANGE_FEELINGS, daysSince, formatDateDot } from "@/lib/constants";
 import { ILLUSTRATIONS } from "@/lib/illustrations";
 import { finishRoutine, showToast } from "@/lib/store";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
@@ -21,7 +21,6 @@ async function inlineSameOriginImages(root: HTMLElement) {
     images.map(async (img) => {
       const src = img.getAttribute("src") || "";
       if (!src || src.startsWith("data:")) return;
-      // External product images often fail CORS and break html-to-image.
       if (!src.startsWith(window.location.origin) && !src.startsWith("/")) {
         const label = (img.alt || "제품").slice(0, 2);
         const canvas = document.createElement("canvas");
@@ -29,10 +28,10 @@ async function inlineSameOriginImages(root: HTMLElement) {
         canvas.height = 80;
         const ctx = canvas.getContext("2d");
         if (ctx) {
-          ctx.fillStyle = "#FFE8ED";
+          ctx.fillStyle = "#F5F5F5";
           ctx.fillRect(0, 0, 80, 80);
-          ctx.fillStyle = "#FF617D";
-          ctx.font = "bold 22px sans-serif";
+          ctx.fillStyle = "#707786";
+          ctx.font = "bold 18px sans-serif";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           ctx.fillText(label, 40, 42);
@@ -50,7 +49,7 @@ async function inlineSameOriginImages(root: HTMLElement) {
           reader.readAsDataURL(blob);
         });
       } catch {
-        // keep original; capture may still succeed for same-origin
+        // keep original
       }
     })
   );
@@ -61,7 +60,7 @@ async function downloadNoteCard(element: HTMLElement, filename: string) {
   const dataUrl = await toPng(element, {
     cacheBust: true,
     pixelRatio: 2,
-    backgroundColor: "#FFFAFB",
+    backgroundColor: "#F9FBFE",
     skipFonts: true,
   });
 
@@ -89,6 +88,30 @@ async function downloadNoteCard(element: HTMLElement, filename: string) {
   } finally {
     URL.revokeObjectURL(objectUrl);
   }
+}
+
+function Thumb({
+  src,
+  label,
+  className = "",
+}: {
+  src?: string | null;
+  label?: string;
+  className?: string;
+}) {
+  if (src) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return (
+      <img src={src} alt={label ?? ""} className={`object-cover ${className}`} />
+    );
+  }
+  return (
+    <div
+      className={`flex items-center justify-center bg-surface-empty text-[9px] font-bold text-ink-muted ${className}`}
+    >
+      {label ?? "이미지"}
+    </div>
+  );
 }
 
 export default function SkinNoteCompletePage() {
@@ -119,6 +142,38 @@ export default function SkinNoteCompletePage() {
         : [],
     [state.weeklyChanges, activeRoutine]
   );
+
+  const progressSlots = useMemo(() => {
+    const slots: Array<{
+      id: string;
+      label: string;
+      photoUrl?: string;
+      feeling?: (typeof weekly)[number]["feeling"];
+      highlight?: boolean;
+    }> = [{ id: "start", label: "시작 전" }];
+
+    const filled = weekly.slice(0, 3);
+    filled.forEach((w, i) => {
+      slots.push({
+        id: w.id,
+        label: `${i + 1}주차`,
+        photoUrl: w.photoUrl,
+        feeling: w.feeling,
+        highlight: i === filled.length - 1,
+      });
+    });
+    while (slots.length < 4) {
+      const weekNum = slots.length;
+      slots.push({
+        id: `empty-${weekNum}`,
+        label: `${weekNum}주차`,
+      });
+    }
+    if (slots.length > 1) {
+      slots[slots.length - 1] = { ...slots[slots.length - 1], highlight: true };
+    }
+    return slots.slice(0, 4);
+  }, [weekly]);
 
   if (!hydrated || !user || !profile || !activeRoutine || !pending) {
     return (
@@ -180,150 +235,157 @@ export default function SkinNoteCompletePage() {
 
   return (
     <AppShell showNav={false}>
-      <PageHeader
-        title=""
-        onBack={() => router.replace("/routine/end")}
-      />
+      <PageHeader title="" onBack={() => router.replace("/routine/end")} />
 
-      <div className="page-pad -mt-2 space-y-4 pb-8 animate-fade-up">
+      <div className="page-pad -mt-2 space-y-4 pb-10 animate-fade-up">
         <div className="text-center">
           <Illustration
             src={ILLUSTRATIONS.tagsHero2}
             alt=""
-            width={120}
-            height={100}
+            width={110}
+            height={90}
             className="mx-auto"
             priority
           />
-          <h1 className="mt-3 text-xl font-extrabold text-ink">스킨노트가 완성되었어요!</h1>
+          <h1 className="mt-3 text-[20px] font-extrabold text-ink">
+            스킨노트가 완성되었어요!
+          </h1>
           <p className="mt-1 text-sm text-ink-muted">나의 피부 여정을 기록해 보세요 ✦</p>
-        </div>
-
-        <div className="flex items-center justify-between gap-2">
-          <button
-            type="button"
-            className="rounded-chip border border-line bg-surface-white px-3 py-1.5 text-xs font-bold text-accent"
-            onClick={() => {
-              void saveCardImage();
-            }}
-          >
-            스킨노트 저장하기
-          </button>
-          <span className="text-[11px] text-ink-muted">{createdLabel} 생성</span>
         </div>
 
         <div
           ref={cardRef}
-          className="rounded-card border-2 border-accent bg-surface p-4 shadow-card"
+          className="rounded-card border border-line bg-surface-card p-4 shadow-card"
         >
-          <div className="space-y-3 border-b border-dashed border-line pb-3 text-sm">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <button
+              type="button"
+              className="rounded-chip border border-sky bg-surface-card px-3 py-1.5 text-xs font-bold text-sky"
+              onClick={() => {
+                void saveCardImage();
+              }}
+            >
+              스킨노트 저장하기
+            </button>
+            <span className="text-[11px] text-ink-muted">{createdLabel} 생성</span>
+          </div>
+
+          {/* Skin profile */}
+          <div className="space-y-2.5 border-b border-dashed border-line/70 pb-3 text-sm">
             <div className="flex gap-3">
-              <span className="w-16 shrink-0 text-ink-muted">피부 타입</span>
-              <span className="font-bold text-ink">{profile.skinType}</span>
+              <span className="w-[4.5rem] shrink-0 text-ink-muted">피부 타입</span>
+              <span className="font-extrabold text-ink">{profile.skinType}</span>
             </div>
             <div className="flex gap-3">
-              <span className="w-16 shrink-0 text-ink-muted">피부 고민</span>
-              <span className="font-bold text-ink">{profile.concerns.join(" · ")}</span>
+              <span className="w-[4.5rem] shrink-0 text-ink-muted">피부 고민</span>
+              <span className="font-extrabold text-ink">{profile.concerns.join(" · ")}</span>
             </div>
           </div>
 
-          <div className="space-y-3 border-b border-dashed border-line py-3 text-sm">
+          {/* Products / period / order */}
+          <div className="space-y-2.5 border-b border-dashed border-line/70 py-3 text-sm">
             <div className="flex gap-3">
-              <span className="w-16 shrink-0 text-ink-muted">사용 제품</span>
+              <span className="w-[4.5rem] shrink-0 pt-1 text-ink-muted">사용 제품</span>
               <div className="flex flex-1 gap-1.5 overflow-x-auto no-scrollbar">
                 {activeRoutine.steps.map((step) => (
-                  <div
+                  <Thumb
                     key={step.id}
-                    className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[10px] border border-dashed border-line bg-accent-faint text-[9px] font-bold text-accent"
-                  >
-                    {step.product.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={step.product.imageUrl}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      step.category.slice(0, 2)
-                    )}
-                  </div>
+                    src={step.product.imageUrl}
+                    label={step.category.slice(0, 2)}
+                    className="h-11 w-11 shrink-0 rounded-[10px]"
+                  />
                 ))}
               </div>
             </div>
             <div className="flex gap-3">
-              <span className="w-16 shrink-0 text-ink-muted">사용 기간</span>
-              <span className="font-bold text-ink">
+              <span className="w-[4.5rem] shrink-0 text-ink-muted">사용 기간</span>
+              <span className="font-extrabold text-ink">
                 {weeks}주 ({startDate} ~ {endDate})
               </span>
             </div>
             <div className="flex gap-3">
-              <span className="w-16 shrink-0 text-ink-muted">루틴 순서</span>
-              <span className="font-bold text-ink">
+              <span className="w-[4.5rem] shrink-0 text-ink-muted">루틴 순서</span>
+              <span className="font-extrabold leading-snug text-ink">
                 {activeRoutine.steps.map((s) => s.category).join(" > ")}
               </span>
             </div>
           </div>
 
-          <div className="border-b border-dashed border-line py-3 text-sm">
+          {/* Difficulty */}
+          <div className="border-b border-dashed border-line/70 py-3 text-sm">
             <div className="flex gap-3">
-              <span className="w-16 shrink-0 text-ink-muted">루틴 난이도</span>
-              <span className="font-bold text-ink">{pending.difficulty}</span>
+              <span className="w-[4.5rem] shrink-0 text-ink-muted">루틴 난이도</span>
+              <span className="font-extrabold text-ink">{pending.difficulty}</span>
             </div>
           </div>
 
-          <div className="border-b border-dashed border-line py-3">
-            <p className="mb-2 text-sm font-bold text-ink">변화 과정</p>
-            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
-              {(weekly.length > 0
-                ? weekly
-                : [{ id: "empty", feeling: "변화가 있었어요" as const, createdAt: new Date().toISOString() }]
-              ).map((w, index, arr) => {
-                const feeling = CHANGE_FEELINGS.find((f) => f.value === w.feeling);
-                const label = `${daysSinceAt(activeRoutine.startedAt, w.createdAt)}일차`;
+          {/* Progress */}
+          <div className="border-b border-dashed border-line/70 py-3">
+            <p className="mb-2.5 text-sm font-extrabold text-ink">변화 과정</p>
+            <div className="grid grid-cols-4 gap-1.5">
+              {progressSlots.map((slot) => (
+                <div key={slot.id} className="text-center">
+                  <div
+                    className={`mx-auto overflow-hidden rounded-[10px] ${
+                      slot.highlight ? "ring-2 ring-sky" : ""
+                    }`}
+                  >
+                    <Thumb
+                      src={slot.photoUrl}
+                      label="📷"
+                      className="mx-auto h-14 w-full"
+                    />
+                  </div>
+                  <p
+                    className={`mt-1 text-[10px] font-bold ${
+                      slot.highlight ? "text-sky" : "text-ink-muted"
+                    }`}
+                  >
+                    {slot.label}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-2.5 grid grid-cols-4 gap-1.5">
+              {progressSlots.map((slot) => {
+                const feeling = CHANGE_FEELINGS.find((f) => f.value === slot.feeling);
                 return (
-                  <div key={w.id} className="flex items-center gap-1">
-                    <div className="w-16 text-center">
-                      {"photoUrl" in w && w.photoUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={w.photoUrl}
-                          alt=""
-                          className="mx-auto h-14 w-14 rounded-[10px] object-cover"
-                        />
-                      ) : (
-                        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[10px] border border-dashed border-line bg-accent-faint text-xl">
-                          {feeling?.emoji ?? "🙂"}
-                        </div>
-                      )}
-                      <p className="mt-1 text-[10px] text-ink-muted">{label}</p>
-                    </div>
-                    {index < arr.length - 1 && <span className="text-accent">→</span>}
+                  <div
+                    key={`${slot.id}-mood`}
+                    className="mx-auto flex h-9 w-9 items-center justify-center rounded-full bg-accent-faint text-base"
+                  >
+                    {feeling?.emoji ?? "🙂"}
                   </div>
                 );
               })}
             </div>
           </div>
 
+          {/* Tags / rating / reason */}
           <div className="space-y-3 pt-3 text-sm">
             <div className="flex gap-3">
-              <span className="w-16 shrink-0 text-ink-muted">변화 태그</span>
-              <div className="grid w-full grid-cols-3 gap-1.5">
+              <span className="w-[4.5rem] shrink-0 pt-1 text-ink-muted">변화 태그</span>
+              <div className="flex flex-1 flex-wrap gap-1.5">
                 {pending.tags.map((tag) => (
-                  <Badge key={tag} tone="accent" className="justify-center text-[10px]">
+                  <SelectChip
+                    key={tag}
+                    selected={false}
+                    className="pointer-events-none !border-sky !px-2 !py-1 text-[10px] !text-sky"
+                  >
                     {tag}
-                  </Badge>
+                  </SelectChip>
                 ))}
               </div>
             </div>
             {pending.feltChange > 0 && (
               <div className="flex items-center gap-3">
-                <span className="w-16 shrink-0 text-ink-muted">체감 변화</span>
+                <span className="w-[4.5rem] shrink-0 text-ink-muted">체감 변화</span>
                 <StarRating value={pending.feltChange} readOnly size="sm" />
               </div>
             )}
             <div className="flex gap-3">
-              <span className="w-16 shrink-0 text-ink-muted">종료 사유</span>
-              <span className="font-bold text-ink">{pending.reason}</span>
+              <span className="w-[4.5rem] shrink-0 text-ink-muted">종료 사유</span>
+              <span className="font-extrabold text-ink">{pending.reason}</span>
             </div>
           </div>
 
@@ -332,19 +394,21 @@ export default function SkinNoteCompletePage() {
           </p>
         </div>
 
-        <Button
-          fullWidth
-          variant="outline"
-          disabled={saving}
-          onClick={() => complete("private")}
-        >
-          나만 보기
-        </Button>
-        {!isAbandoned && (
-          <Button fullWidth disabled={saving} onClick={() => complete("public")}>
-            공유하고 스킨서랍장 구경하기
+        <div className="space-y-2.5 pt-1">
+          <Button
+            fullWidth
+            variant="outline"
+            disabled={saving}
+            onClick={() => complete("private")}
+          >
+            나만 보기
           </Button>
-        )}
+          {!isAbandoned && (
+            <Button fullWidth disabled={saving} onClick={() => complete("public")}>
+              공유하고 스킨 서랍장 구경하기
+            </Button>
+          )}
+        </div>
       </div>
     </AppShell>
   );

@@ -8,6 +8,7 @@ import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Illustration from "@/components/ui/Illustration";
 import { SectionHeader } from "@/components/ui/PageHeader";
+import SelectChip from "@/components/ui/SelectChip";
 import StarRating from "@/components/ui/StarRating";
 import { trackEvent } from "@/lib/analytics";
 import { BRAND, CHANGE_FEELINGS, daysSince, formatDateDot } from "@/lib/constants";
@@ -20,7 +21,7 @@ import { useAppDerivations, useHydrated } from "@/lib/useAppState";
 export default function MyPage() {
   const router = useRouter();
   const hydrated = useHydrated();
-  const { state, user, profile, activeRoutine, myNotes } = useAppDerivations();
+  const { state, user, activeRoutine, myNotes } = useAppDerivations();
   const albumRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const [avatarSheet, setAvatarSheet] = useState(false);
@@ -59,15 +60,52 @@ export default function MyPage() {
     }
   };
 
+  const interestLinks = [
+    {
+      label: "최근 본 스킨노트",
+      onClick: () => {
+        if (state.viewedNoteIds.length === 0) {
+          showToast("최근 본 스킨노트가 없어요.");
+          return;
+        }
+        router.push(`/notes/${state.viewedNoteIds[state.viewedNoteIds.length - 1]}`);
+      },
+    },
+    {
+      label: "저장한 스킨노트",
+      onClick: () => router.push("/drawer"),
+    },
+    {
+      label: "좋아요한 스킨노트",
+      onClick: () => {
+        if (state.helpedNoteIds.length === 0) {
+          showToast("좋아요한 스킨노트가 없어요.");
+          return;
+        }
+        router.push(`/notes/${state.helpedNoteIds[0]}`);
+      },
+    },
+    {
+      label: "신고 내역",
+      onClick: () => {
+        showToast(
+          state.reportedNoteIds.length
+            ? `신고한 노트 ${state.reportedNoteIds.length}건이 있어요.`
+            : "신고 내역이 없어요."
+        );
+      },
+    },
+  ];
+
   return (
     <AppShell>
       <div className="page-pad space-y-5 pt-5 pb-6 animate-fade-up">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-extrabold text-ink">마이페이지</h1>
+          <h1 className="text-[22px] font-extrabold text-ink">마이페이지</h1>
           <button
             type="button"
-            className="flex h-10 w-10 items-center justify-center rounded-full text-ink-soft hover:bg-accent-faint"
-            onClick={() => showToast("현재 준비중인 기능입니다.")}
+            className="flex h-10 w-10 items-center justify-center rounded-full text-ink-soft hover:bg-sky-faint"
+            onClick={() => router.push("/settings")}
             aria-label="설정"
           >
             <svg width="20" height="19" viewBox="0 0 20 19" fill="none" aria-hidden>
@@ -82,47 +120,48 @@ export default function MyPage() {
           </button>
         </div>
 
-        <Card className="flex items-center gap-4">
-          <button
-            type="button"
-            className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-panel border border-dashed border-line bg-accent-faint"
-            onClick={() => setAvatarSheet(true)}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={user.avatarUrl || defaultAvatar(user.id)}
-              alt=""
-              className="h-full w-full object-cover"
+        <Card className="!p-4">
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              className="flex h-[72px] w-[72px] items-center justify-center overflow-hidden rounded-[16px] border border-line bg-surface-empty"
+              onClick={() => setAvatarSheet(true)}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={user.avatarUrl || defaultAvatar(user.id)}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            </button>
+            <input
+              ref={albumRef}
+              type="file"
+              accept="image/jpeg,image/png"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                await handleAvatarFile(file);
+              }}
             />
-          </button>
-          <input
-            ref={albumRef}
-            type="file"
-            accept="image/jpeg,image/png"
-            className="hidden"
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              e.target.value = "";
-              await handleAvatarFile(file);
-            }}
-          />
-          <input
-            ref={cameraRef}
-            type="file"
-            accept="image/jpeg,image/png"
-            capture="environment"
-            className="hidden"
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              e.target.value = "";
-              await handleAvatarFile(file);
-            }}
-          />
-          <div>
+            <input
+              ref={cameraRef}
+              type="file"
+              accept="image/jpeg,image/png"
+              capture="environment"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                await handleAvatarFile(file);
+              }}
+            />
             <p className="text-lg font-extrabold text-ink">{user.nickname}</p>
-            <p className="mt-1 text-xs text-ink-muted">• 사진 형식은 jpg, png만 가능</p>
-            <p className="text-xs text-ink-muted">• 용량은 10MB 이하로 제한</p>
           </div>
+          <p className="mt-3 text-[11px] leading-relaxed text-ink-muted">
+            *업로드 가능한 파일 형식은 jpg, png이며 최대 용량은 10MB 입니다.
+          </p>
         </Card>
 
         <section>
@@ -130,7 +169,7 @@ export default function MyPage() {
           {activeRoutine ? (
             <button
               type="button"
-              className="w-full rounded-card border border-line bg-surface-white p-4 text-left shadow-card"
+              className="w-full rounded-card border border-line bg-surface-card p-4 text-left shadow-card"
               onClick={() => {
                 trackEvent("mypage_routine_click", { routine_id: activeRoutine.id });
                 router.push("/care-log");
@@ -145,16 +184,16 @@ export default function MyPage() {
                     {activeRoutine.steps.map((s) => s.category).join(" · ")}
                   </p>
                 </div>
-                <span className="text-accent">›</span>
+                <span className="text-sky">›</span>
               </div>
             </button>
           ) : (
-            <Card className="text-center">
-              <p className="text-sm font-bold text-ink-soft">진행 중인 루틴이 없어요</p>
+            <Card className="text-center !py-6">
+              <p className="text-sm font-extrabold text-ink">진행 중인 루틴이 없어요.</p>
               <Button
-                className="mt-3"
+                className="mt-4"
                 size="md"
-                onClick={() => router.push("/skin-profile")}
+                onClick={() => router.push(user ? "/skin-profile" : "/login")}
               >
                 루틴 등록하기
               </Button>
@@ -163,9 +202,13 @@ export default function MyPage() {
         </section>
 
         <section>
-          <SectionHeader title="스킨노트 모아보기" />
+          <SectionHeader
+            title="스킨노트 모아보기"
+            actionLabel="더보기 >"
+            actionHref="/drawer"
+          />
           {completedNotes.length === 0 ? (
-            <Card className="text-center">
+            <Card className="text-center !py-6">
               <Illustration
                 src={defaultAvatar(user.id)}
                 alt=""
@@ -176,8 +219,8 @@ export default function MyPage() {
               <p className="mt-2 text-sm font-bold text-ink-soft">아직 완성된 스킨노트가 없어요</p>
             </Card>
           ) : (
-            <div className="flex gap-3 overflow-x-auto no-scrollbar">
-              {completedNotes.slice(0, 3).map((note) => (
+            <div className="flex gap-2.5 overflow-x-auto no-scrollbar">
+              {completedNotes.slice(0, 6).map((note) => (
                 <button
                   key={note.id}
                   type="button"
@@ -185,7 +228,7 @@ export default function MyPage() {
                     trackEvent("mypage_skinnote_click", { card_id: note.id });
                     setPreviewNote(note);
                   }}
-                  className="w-32 shrink-0 rounded-panel border border-line bg-surface-white p-3 text-center"
+                  className="w-[108px] shrink-0 rounded-[16px] border border-line bg-surface-card p-2.5 text-center shadow-card"
                 >
                   {note.isAbandoned ? (
                     <Badge tone="outline" className="mb-2">
@@ -194,19 +237,38 @@ export default function MyPage() {
                   ) : (
                     <Badge className="mb-2">완료</Badge>
                   )}
-                  <Illustration
-                    src={note.authorAvatar || defaultAvatar(note.authorId)}
-                    alt=""
-                    width={56}
-                    height={56}
-                    className="mx-auto"
-                  />
-                  <p className="mt-2 text-xs font-bold text-ink">{note.concerns[0]} 루틴</p>
-                  <p className="mt-1 text-[10px] text-ink-muted">{note.durationDays}일</p>
+                  <div className="mx-auto flex h-[72px] w-[72px] items-center justify-center overflow-hidden rounded-[12px] bg-sky-faint">
+                    <Illustration
+                      src={note.authorAvatar || defaultAvatar(note.authorId)}
+                      alt=""
+                      width={56}
+                      height={56}
+                    />
+                  </div>
+                  <p className="mt-2 truncate text-[12px] font-bold text-ink">
+                    {note.authorNickname || "닉네임"}
+                  </p>
                 </button>
               ))}
             </div>
           )}
+        </section>
+
+        <section>
+          <SectionHeader title="나의 관심" />
+          <div className="divide-y divide-line/40">
+            {interestLinks.map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                onClick={item.onClick}
+                className="flex w-full items-center justify-between py-3.5 text-left"
+              >
+                <span className="text-[15px] font-bold text-ink">{item.label}</span>
+                <span className="text-ink-muted">›</span>
+              </button>
+            ))}
+          </div>
         </section>
 
         <Button
@@ -228,21 +290,21 @@ export default function MyPage() {
           onClick={() => setAvatarSheet(false)}
         >
           <div
-            className="w-full max-w-phone rounded-t-[24px] bg-surface-white p-4"
+            className="w-full max-w-phone rounded-t-[24px] border border-line bg-surface-card p-4"
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="mb-3 text-center text-lg font-extrabold text-ink">프로필 사진 수정</h3>
             <div className="space-y-1">
               <button
                 type="button"
-                className="w-full rounded-panel px-3 py-3.5 text-left text-sm font-bold text-ink"
+                className="w-full rounded-[14px] px-3 py-3.5 text-left text-sm font-bold text-ink"
                 onClick={() => albumRef.current?.click()}
               >
                 사진 앨범에서 선택
               </button>
               <button
                 type="button"
-                className="w-full rounded-panel px-3 py-3.5 text-left text-sm font-bold text-ink"
+                className="w-full rounded-[14px] px-3 py-3.5 text-left text-sm font-bold text-ink"
                 onClick={() => cameraRef.current?.click()}
               >
                 직접 촬영
@@ -250,7 +312,7 @@ export default function MyPage() {
               {hasCustomAvatar && (
                 <button
                   type="button"
-                  className="w-full rounded-panel px-3 py-3.5 text-left text-sm font-bold text-accent"
+                  className="w-full rounded-[14px] px-3 py-3.5 text-left text-sm font-bold text-accent"
                   onClick={async () => {
                     await clearAvatar();
                     showToast("프로필 사진을 삭제했어요.");
@@ -262,7 +324,7 @@ export default function MyPage() {
               )}
               <button
                 type="button"
-                className="w-full rounded-panel px-3 py-3.5 text-left text-sm font-bold text-ink-muted"
+                className="w-full rounded-[14px] px-3 py-3.5 text-left text-sm font-bold text-ink-muted"
                 onClick={() => setAvatarSheet(false)}
               >
                 취소
@@ -278,33 +340,41 @@ export default function MyPage() {
           onClick={() => setPreviewNote(null)}
         >
           <div
-            className="max-h-[85svh] w-full max-w-phone overflow-y-auto rounded-card border-2 border-accent bg-surface p-4 shadow-card"
+            className="max-h-[85svh] w-full max-w-phone overflow-y-auto rounded-card border border-line bg-surface-card p-4 shadow-card"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-3 flex items-center justify-between">
-              <Badge>{previewNote.isAbandoned ? "중도 종료" : "완료"}</Badge>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                className="rounded-chip border border-sky bg-surface-card px-3 py-1.5 text-xs font-bold text-sky"
+                onClick={() => showToast("이미지 저장은 스킨노트 완성 화면에서 가능해요.")}
+              >
+                스킨노트 저장하기
+              </button>
               <span className="text-[11px] text-ink-muted">
                 {formatDateDot(previewNote.createdAt)} 생성
               </span>
             </div>
-            <div className="space-y-3 border-b border-dashed border-line pb-3 text-sm">
+            <div className="space-y-2.5 border-b border-dashed border-line/70 pb-3 text-sm">
               <div className="flex gap-3">
-                <span className="w-16 shrink-0 text-ink-muted">피부 타입</span>
-                <span className="font-bold text-ink">{previewNote.skinType}</span>
+                <span className="w-[4.5rem] shrink-0 text-ink-muted">피부 타입</span>
+                <span className="font-extrabold text-ink">{previewNote.skinType}</span>
               </div>
               <div className="flex gap-3">
-                <span className="w-16 shrink-0 text-ink-muted">피부 고민</span>
-                <span className="font-bold text-ink">{previewNote.concerns.join(" · ")}</span>
+                <span className="w-[4.5rem] shrink-0 text-ink-muted">피부 고민</span>
+                <span className="font-extrabold text-ink">
+                  {previewNote.concerns.join(" · ")}
+                </span>
               </div>
             </div>
-            <div className="space-y-3 border-b border-dashed border-line py-3 text-sm">
+            <div className="space-y-2.5 border-b border-dashed border-line/70 py-3 text-sm">
               <div className="flex gap-3">
-                <span className="w-16 shrink-0 text-ink-muted">사용 제품</span>
+                <span className="w-[4.5rem] shrink-0 pt-1 text-ink-muted">사용 제품</span>
                 <div className="flex flex-1 gap-1.5 overflow-x-auto no-scrollbar">
                   {previewNote.products.map((product) => (
                     <div
                       key={product.id}
-                      className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[10px] border border-dashed border-line bg-accent-faint text-[9px] font-bold text-accent"
+                      className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-surface-empty text-[9px] font-bold text-ink-muted"
                     >
                       {product.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -321,45 +391,42 @@ export default function MyPage() {
                 </div>
               </div>
               <div className="flex gap-3">
-                <span className="w-16 shrink-0 text-ink-muted">사용 기간</span>
-                <span className="font-bold text-ink">{previewNote.durationDays}일</span>
+                <span className="w-[4.5rem] shrink-0 text-ink-muted">사용 기간</span>
+                <span className="font-extrabold text-ink">{previewNote.durationDays}일</span>
               </div>
               <div className="flex gap-3">
-                <span className="w-16 shrink-0 text-ink-muted">루틴 순서</span>
-                <span className="font-bold text-ink">
+                <span className="w-[4.5rem] shrink-0 text-ink-muted">루틴 순서</span>
+                <span className="font-extrabold text-ink">
                   {previewNote.products.map((p) => p.category ?? p.name).join(" > ")}
                 </span>
               </div>
             </div>
-            <div className="border-b border-dashed border-line py-3 text-sm">
+            <div className="border-b border-dashed border-line/70 py-3 text-sm">
               <div className="flex gap-3">
-                <span className="w-16 shrink-0 text-ink-muted">루틴 난이도</span>
-                <span className="font-bold text-ink">{previewNote.difficulty}</span>
+                <span className="w-[4.5rem] shrink-0 text-ink-muted">루틴 난이도</span>
+                <span className="font-extrabold text-ink">{previewNote.difficulty}</span>
               </div>
             </div>
-            <div className="border-b border-dashed border-line py-3">
-              <p className="mb-2 text-sm font-bold text-ink">변화 과정</p>
-              <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
-                {previewNote.changeTimeline.map((item, index, arr) => {
+            <div className="border-b border-dashed border-line/70 py-3">
+              <p className="mb-2 text-sm font-extrabold text-ink">변화 과정</p>
+              <div className="grid grid-cols-4 gap-1.5">
+                {previewNote.changeTimeline.slice(0, 4).map((item, index) => {
                   const feeling = CHANGE_FEELINGS.find((f) => f.value === item.feeling);
                   return (
-                    <div key={`${item.label}-${index}`} className="flex items-center gap-1">
-                      <div className="w-16 text-center">
-                        {item.photoUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={item.photoUrl}
-                            alt=""
-                            className="mx-auto h-14 w-14 rounded-[10px] object-cover"
-                          />
-                        ) : (
-                          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[10px] border border-dashed border-line bg-accent-faint text-xl">
-                            {feeling?.emoji ?? "🙂"}
-                          </div>
-                        )}
-                        <p className="mt-1 text-[10px] text-ink-muted">{item.label}</p>
-                      </div>
-                      {index < arr.length - 1 && <span className="text-accent">→</span>}
+                    <div key={`${item.label}-${index}`} className="text-center">
+                      {item.photoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={item.photoUrl}
+                          alt=""
+                          className="mx-auto h-14 w-full rounded-[10px] object-cover"
+                        />
+                      ) : (
+                        <div className="mx-auto flex h-14 w-full items-center justify-center rounded-[10px] bg-surface-empty text-xl">
+                          {feeling?.emoji ?? "🙂"}
+                        </div>
+                      )}
+                      <p className="mt-1 text-[10px] text-ink-muted">{item.label}</p>
                     </div>
                   );
                 })}
@@ -367,24 +434,28 @@ export default function MyPage() {
             </div>
             <div className="space-y-3 pt-3 text-sm">
               <div className="flex gap-3">
-                <span className="w-16 shrink-0 text-ink-muted">변화 태그</span>
+                <span className="w-[4.5rem] shrink-0 pt-1 text-ink-muted">변화 태그</span>
                 <div className="flex flex-wrap gap-1.5">
                   {previewNote.tags.map((tag) => (
-                    <Badge key={tag} tone="accent" className="text-[10px]">
+                    <SelectChip
+                      key={tag}
+                      selected={false}
+                      className="pointer-events-none !px-2 !py-1 text-[10px] !text-sky"
+                    >
                       {tag}
-                    </Badge>
+                    </SelectChip>
                   ))}
                 </div>
               </div>
               {previewNote.feltChange > 0 && (
                 <div className="flex items-center gap-3">
-                  <span className="w-16 shrink-0 text-ink-muted">체감 변화</span>
+                  <span className="w-[4.5rem] shrink-0 text-ink-muted">체감 변화</span>
                   <StarRating value={previewNote.feltChange} readOnly size="sm" />
                 </div>
               )}
               <div className="flex gap-3">
-                <span className="w-16 shrink-0 text-ink-muted">종료 사유</span>
-                <span className="font-bold text-ink">{previewNote.endReason}</span>
+                <span className="w-[4.5rem] shrink-0 text-ink-muted">종료 사유</span>
+                <span className="font-extrabold text-ink">{previewNote.endReason}</span>
               </div>
             </div>
             <p className="mt-4 text-center text-[11px] text-ink-muted">

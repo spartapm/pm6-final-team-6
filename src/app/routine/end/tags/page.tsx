@@ -65,36 +65,42 @@ export default function ChangeTagsPage() {
         }}
       />
 
-      <div className="page-pad mt-2 space-y-5 pb-8 animate-fade-up">
+      <div className="page-pad mt-2 space-y-4 pb-10 animate-fade-up">
         <Illustration
           src={ILLUSTRATIONS.tagsHero1}
           alt=""
-          width={120}
-          height={100}
+          width={110}
+          height={90}
           className="mx-auto"
           priority
         />
 
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-bold text-ink">해당되는 태그를 선택해주세요</p>
-          <Badge tone="soft">최대 5개</Badge>
-        </div>
-        <p className="text-sm font-extrabold text-accent">{tags.length}/5</p>
+        <Card className="!p-4">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <p className="text-sm font-bold text-ink">
+              해당되는 태그를 선택해주세요{" "}
+              <span className="font-extrabold text-sky">
+                ({tags.length} /5)
+              </span>
+            </p>
+            <Badge tone="soft">최대 5개</Badge>
+          </div>
 
-        <div className="grid grid-cols-3 gap-2">
-          {CHANGE_TAGS.map((tag) => (
-            <SelectChip
-              key={tag}
-              selected={tags.includes(tag)}
-              className="justify-center text-[11px]"
-              onClick={() => toggleTag(tag)}
-            >
-              {tag}
-            </SelectChip>
-          ))}
-        </div>
+          <div className="flex flex-wrap gap-2">
+            {CHANGE_TAGS.map((tag) => (
+              <SelectChip
+                key={tag}
+                selected={tags.includes(tag)}
+                className="justify-center px-2.5 text-[11px]"
+                onClick={() => toggleTag(tag)}
+              >
+                {tag}
+              </SelectChip>
+            ))}
+          </div>
+        </Card>
 
-        <Card className="flex items-center gap-3 !p-3">
+        <Card className="flex items-center gap-3 !p-3.5">
           <Illustration
             src={ILLUSTRATIONS.tagsHint}
             alt=""

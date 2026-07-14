@@ -37,13 +37,13 @@ export function TextInput({
     <div>
       <input
         className={[
-          "h-12 w-full rounded-field border bg-surface-white px-4 text-[15px] text-ink outline-none transition placeholder:text-ink-muted/80",
-          error ? "border-accent" : "border-line focus:border-accent",
+          "h-12 w-full rounded-field border bg-surface-card px-4 text-[15px] text-ink outline-none transition placeholder:text-ink-muted/80",
+          error ? "border-[#ff0000]" : "border-line focus:border-sky",
           className,
         ].join(" ")}
         {...props}
       />
-      {error && <p className="mt-1.5 text-xs font-medium text-accent">{error}</p>}
+      {error && <p className="mt-1.5 text-[10px] font-medium text-[#ff0000]">{error}</p>}
     </div>
   );
 }
@@ -57,13 +57,13 @@ export function TextArea({
     <div>
       <textarea
         className={[
-          "min-h-[96px] w-full rounded-field border bg-surface-white px-4 py-3 text-[15px] text-ink outline-none transition placeholder:text-ink-muted/80",
-          error ? "border-accent" : "border-line focus:border-accent",
+          "min-h-[96px] w-full rounded-field border bg-surface-card px-4 py-3 text-[15px] text-ink outline-none transition placeholder:text-ink-muted/80",
+          error ? "border-[#ff0000]" : "border-line focus:border-sky",
           className,
         ].join(" ")}
         {...props}
       />
-      {error && <p className="mt-1.5 text-xs font-medium text-accent">{error}</p>}
+      {error && <p className="mt-1.5 text-[10px] font-medium text-[#ff0000]">{error}</p>}
     </div>
   );
 }
@@ -81,15 +81,15 @@ export function SelectInput({
     <div>
       <select
         className={[
-          "h-12 w-full rounded-field border bg-surface-white px-4 text-[15px] text-ink outline-none transition",
-          error ? "border-accent" : "border-line focus:border-accent",
+          "h-12 w-full rounded-field border bg-surface-card px-4 text-[15px] text-ink outline-none transition",
+          error ? "border-[#ff0000]" : "border-line focus:border-sky",
           className,
         ].join(" ")}
         {...props}
       >
         {children}
       </select>
-      {error && <p className="mt-1.5 text-xs font-medium text-accent">{error}</p>}
+      {error && <p className="mt-1.5 text-[10px] font-medium text-[#ff0000]">{error}</p>}
     </div>
   );
 }

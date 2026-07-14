@@ -13,11 +13,17 @@ import RadioRow from "@/components/ui/RadioRow";
 import SelectChip from "@/components/ui/SelectChip";
 import StarRating from "@/components/ui/StarRating";
 import { trackEvent } from "@/lib/analytics";
-import { CHANGE_TAGS, DIFFICULTIES, END_REASONS, daysSince } from "@/lib/constants";
+import { DIFFICULTIES, END_REASONS, daysSince } from "@/lib/constants";
 import { ILLUSTRATIONS, difficultyIllustration } from "@/lib/illustrations";
-import { setPendingEnd, showToast } from "@/lib/store";
+import { setPendingEnd } from "@/lib/store";
 import type { Difficulty, EndReason } from "@/lib/types";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
+
+const REASON_EMOJI: Record<EndReason, string> = {
+  "변화가 느껴져서 마칠래요": "✨",
+  "변화는 없지만 기록을 마칠래요": "📝",
+  "지속하기 어려워서 그만할래요": "😮‍💨",
+};
 
 export default function RoutineEndPage() {
   const router = useRouter();
@@ -48,9 +54,6 @@ export default function RoutineEndPage() {
 
   const dirty = Boolean(reason || difficulty || tags.length || feltChange > 0);
   const canFinish = Boolean(reason && difficulty && tags.length > 0);
-  const previewTags = CHANGE_TAGS.filter(
-    (t) => !["#큰 변화 없음", "#아직 잘 모르겠음", "#좀 더 지켜봐야 함"].includes(t)
-  ).slice(0, 6);
 
   if (!hydrated || !activeRoutine) {
     return (
@@ -59,6 +62,16 @@ export default function RoutineEndPage() {
       </AppShell>
     );
   }
+
+  const goTags = () => {
+    setPendingEnd({
+      reason: reason ?? undefined,
+      difficulty: difficulty ?? undefined,
+      tags,
+      feltChange,
+    });
+    router.push("/routine/end/tags");
+  };
 
   return (
     <AppShell showNav={false}>
@@ -71,151 +84,131 @@ export default function RoutineEndPage() {
         }}
       />
 
-      <div className="page-pad mt-2 space-y-5 pb-8 animate-fade-up">
+      <div className="page-pad mt-2 space-y-5 pb-10 animate-fade-up">
         <div className="flex items-center gap-3">
-          <Illustration src={ILLUSTRATIONS.endHero} alt="" width={88} height={88} priority />
-          <h2 className="text-xl font-extrabold leading-snug text-ink">
+          <Illustration src={ILLUSTRATIONS.endHero} alt="" width={92} height={92} priority />
+          <h2 className="text-[22px] font-extrabold leading-snug text-ink">
             이번 루틴,
             <br />
             어떠셨나요?
           </h2>
         </div>
 
-        <div>
+        {/* End reason */}
+        <section>
           <div className="mb-1 flex items-center gap-2">
             <h3 className="text-sm font-extrabold text-ink">종료 사유</h3>
             <Badge>필수</Badge>
           </div>
-          <p className="mb-2 text-xs text-ink-muted">해당하는 이유를 선택해 주세요.</p>
-          <div className="space-y-2">
+          <p className="mb-2.5 text-xs text-ink-muted">해당하는 이유를 선택해 주세요.</p>
+          <Card className="!divide-y !divide-dashed !divide-line/50 !p-2 !px-3">
             {END_REASONS.map((item) => (
               <RadioRow
                 key={item}
                 selected={reason === item}
                 onClick={() => setReason(item)}
+                left={<span className="text-base">{REASON_EMOJI[item]}</span>}
               >
                 {item}
               </RadioRow>
             ))}
-          </div>
-        </div>
+          </Card>
+        </section>
 
-        <div>
-          <div className="mb-2 flex items-center gap-2">
+        {/* Difficulty */}
+        <section>
+          <div className="mb-2.5 flex items-center gap-2">
             <h3 className="text-sm font-extrabold text-ink">
               이번 루틴은 꾸준히 하기 어땠나요?
             </h3>
             <Badge>필수</Badge>
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            {DIFFICULTIES.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setDifficulty(item)}
-                className={`rounded-panel border p-3 text-center ${
-                  difficulty === item
-                    ? "border-accent bg-accent-faint/50"
-                    : "border-line bg-surface-white"
-                }`}
-              >
-                <Illustration
-                  src={difficultyIllustration(item)}
-                  alt={item}
-                  width={48}
-                  height={48}
-                  className="mx-auto"
-                />
-                <p className="mt-2 text-xs font-bold text-ink">{item}</p>
-              </button>
-            ))}
+          <div className="grid grid-cols-3 gap-2.5">
+            {DIFFICULTIES.map((item) => {
+              const selected = difficulty === item;
+              return (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setDifficulty(item)}
+                  className={`rounded-[16px] border p-3 text-center transition ${
+                    selected
+                      ? "border-sky bg-sky-faint shadow-card"
+                      : "border-line bg-surface-card"
+                  }`}
+                >
+                  <Illustration
+                    src={difficultyIllustration(item)}
+                    alt={item}
+                    width={52}
+                    height={52}
+                    className="mx-auto"
+                  />
+                  <p className="mt-2 text-[12px] font-extrabold text-ink">{item}</p>
+                </button>
+              );
+            })}
           </div>
-        </div>
+        </section>
 
-        <div>
-          <div className="mb-2 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-extrabold text-ink">어떤 변화가 있었나요?</h3>
-              <Badge>필수</Badge>
-            </div>
-            <button
-              type="button"
-              className="text-sm font-bold text-accent"
-              onClick={() => {
-                setPendingEnd({
-                  reason: reason ?? undefined,
-                  difficulty: difficulty ?? undefined,
-                  tags,
-                  feltChange,
-                });
-                router.push("/routine/end/tags");
-              }}
+        {/* Change tags preview */}
+        <section>
+          <div className="mb-2.5 flex items-center gap-2">
+            <h3 className="text-sm font-extrabold text-ink">어떤 변화가 있었나요?</h3>
+            <Badge>필수</Badge>
+          </div>
+          <button
+            type="button"
+            onClick={goTags}
+            className="flex w-full items-center gap-2 rounded-card border border-line bg-surface-card px-3 py-3 text-left shadow-card"
+          >
+            <span
+              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] ${
+                tags.length > 0
+                  ? "border-sky bg-sky text-white"
+                  : "border-sky bg-surface-card text-transparent"
+              }`}
             >
-              전체 보기 ›
-            </button>
-          </div>
-          <Card className="!p-3">
-            {tags.length === 0 ? (
-              <p className="text-sm text-ink-muted">변화 태그를 선택해주세요</p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {tags.map((tag) => (
-                  <Badge key={tag} tone="accent">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            )}
-            <div className="mt-3 flex flex-wrap gap-2">
-              {previewTags.map((tag) => {
-                const selected = tags.includes(tag);
-                return (
-                  <SelectChip
-                    key={tag}
-                    selected={selected}
-                    className="text-xs"
-                    onClick={() => {
-                      if (selected) setTags((prev) => prev.filter((t) => t !== tag));
-                      else if (tags.length >= 5)
-                        showToast("태그는 최대 5개까지 선택할 수 있어요.");
-                      else
-                        setTags((prev) => [
-                          ...prev.filter(
-                            (t) =>
-                              !["#큰 변화 없음", "#아직 잘 모르겠음", "#좀 더 지켜봐야 함"].includes(
-                                t
-                              )
-                          ),
-                          tag,
-                        ]);
-                    }}
-                  >
-                    {tag}
-                  </SelectChip>
-                );
-              })}
+              ✓
+            </span>
+            <div className="min-w-0 flex-1 overflow-x-auto no-scrollbar">
+              {tags.length === 0 ? (
+                <p className="text-sm text-ink-muted">변화 태그를 선택해주세요</p>
+              ) : (
+                <div className="flex w-max gap-1.5">
+                  {tags.map((tag) => (
+                    <SelectChip key={tag} selected className="pointer-events-none text-[11px]">
+                      {tag}
+                    </SelectChip>
+                  ))}
+                </div>
+              )}
             </div>
-          </Card>
-        </div>
+            <span className="shrink-0 text-sky" aria-hidden>
+              ›
+            </span>
+          </button>
+        </section>
 
-        <div>
+        {/* Felt change */}
+        <section>
           <div className="mb-1 flex items-center gap-2">
             <h3 className="text-sm font-extrabold text-ink">체감 변화</h3>
-            <Badge tone="muted">선택</Badge>
+            <Badge tone="soft">선택</Badge>
           </div>
-          <p className="mb-2 text-xs text-ink-muted">
+          <p className="mb-2.5 text-xs text-ink-muted">
             이번 루틴을 통해 느낀 변화를 선택해 주세요.
           </p>
-          <Card>
+          <Card className="!p-4">
             <StarRating value={feltChange} onChange={setFeltChange} size="lg" />
             <div className="mt-2 flex justify-between text-[11px] text-ink-muted">
               <span>전혀 없어요</span>
               <span>매우 많이 느껴요</span>
             </div>
           </Card>
-        </div>
+        </section>
 
-        <div>
+        <div className="pt-1">
           <Button
             fullWidth
             disabled={!canFinish || saving}
@@ -234,7 +227,7 @@ export default function RoutineEndPage() {
           >
             이번 루틴 마치기
           </Button>
-          <p className="mt-2 text-center text-xs text-ink-muted">
+          <p className="mt-2.5 text-center text-xs text-ink-muted">
             * 종료 사유 · 난이도 · 변화 태그 선택 시 활성화됩니다
           </p>
         </div>

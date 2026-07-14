@@ -1,15 +1,20 @@
 import { type ButtonHTMLAttributes, type ReactNode } from "react";
 
-type Variant = "primary" | "secondary" | "ghost" | "outline";
+type Variant = "primary" | "secondary" | "ghost" | "outline" | "sky";
 type Size = "md" | "lg" | "sm";
 
 const variants: Record<Variant, string> = {
+  /** 활성화 버튼 #7BA5FD */
   primary:
-    "bg-accent text-white shadow-float enabled:hover:brightness-[0.98] enabled:active:scale-[0.99]",
-  secondary: "bg-accent-faint text-accent enabled:hover:bg-accent-soft/30",
-  ghost: "bg-transparent text-ink-soft enabled:hover:bg-accent-faint",
+    "bg-sky text-white border border-sky shadow-float enabled:hover:brightness-[0.98] enabled:active:scale-[0.99]",
+  /** 작은 임팩트 버튼 #FAEEF4 / 글씨 #FB89A3 */
+  secondary: "bg-accent-faint text-accent border border-transparent enabled:hover:brightness-[0.98]",
+  ghost: "bg-transparent text-ink-soft enabled:hover:bg-sky-faint",
+  /** 기본 버튼 채우기 #F9FBFE · 외곽선 #7BA5FD */
   outline:
-    "bg-surface-white text-accent border border-line enabled:hover:bg-accent-faint",
+    "bg-surface-card text-ink border border-sky enabled:hover:bg-sky-faint",
+  /** 오늘 루틴 기록하기 그라데이션 */
+  sky: "btn-sky enabled:active:scale-[0.99]",
 };
 
 const sizes: Record<Size, string> = {
@@ -34,7 +39,7 @@ export default function Button({
   return (
     <button
       className={[
-        "inline-flex items-center justify-center gap-2 rounded-chip font-bold transition disabled:bg-accent-disabled disabled:text-ink-muted disabled:border-transparent disabled:shadow-none",
+        "inline-flex items-center justify-center gap-2 rounded-chip font-bold transition disabled:bg-btn-disabled disabled:text-ink-muted disabled:border-transparent disabled:shadow-none disabled:brightness-100",
         variants[variant],
         sizes[size],
         fullWidth ? "w-full" : "",

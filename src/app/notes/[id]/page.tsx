@@ -3,12 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
-import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Illustration from "@/components/ui/Illustration";
 import Modal from "@/components/ui/Modal";
 import PageHeader from "@/components/ui/PageHeader";
+import SelectChip from "@/components/ui/SelectChip";
 import StarRating from "@/components/ui/StarRating";
 import { TextInput } from "@/components/ui/Field";
 import { trackEvent, trackScreenView } from "@/lib/analytics";
@@ -75,7 +75,7 @@ export default function NoteDetailPage() {
 
   if (!hydrated || !note) {
     return (
-      <AppShell showNav={false}>
+      <AppShell>
         <div className="page-pad py-10 text-center text-ink-muted">
           {hydrated ? "스킨노트를 찾을 수 없어요" : "불러오는 중..."}
         </div>
@@ -85,8 +85,13 @@ export default function NoteDetailPage() {
 
   if (!allowed) {
     return (
-      <AppShell showNav={false}>
-        <PageHeader title="스킨노트 상세" backHref="/drawer" />
+      <AppShell>
+        <PageHeader
+          title="스킨노트 상세"
+          subtitle="나의 루틴을 나누고 함께 성장해요!"
+          center
+          backHref="/drawer"
+        />
         <Modal
           open={quotaModal}
           title="오늘 열람 가능 횟수를 모두 사용했어요"
@@ -113,122 +118,153 @@ export default function NoteDetailPage() {
 
   return (
     <AppShell>
-      <PageHeader title="스킨노트 상세" backHref="/drawer" />
+      <PageHeader
+        title="스킨노트 상세"
+        subtitle="나의 루틴을 나누고 함께 성장해요!"
+        center
+        backHref="/drawer"
+      />
 
-      <div className="page-pad mt-3 space-y-4 pb-8 animate-fade-up">
-        <Card>
-          <div className="flex items-start gap-3">
-            <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-line bg-accent-faint">
+      <div className="page-pad mt-3 space-y-4 pb-28 animate-fade-up">
+        <Card className="!p-4">
+          <div className="flex items-start gap-2.5">
+            <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-dashed border-line bg-surface-empty">
               <Illustration
                 src={note.authorAvatar || defaultAvatar(note.authorId)}
                 alt=""
-                width={48}
-                height={48}
+                width={44}
+                height={44}
                 className="rounded-full object-cover"
               />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-extrabold text-ink">{note.authorNickname}</p>
-              <p className="mt-1 text-xs text-ink-muted">
-                {note.skinType} · {note.concerns[0]} · {note.ageGroup} ·{" "}
-                {relativeTime(note.createdAt)}
-              </p>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-extrabold text-ink">{note.authorNickname}</p>
+                  <p className="mt-0.5 text-xs text-ink-muted">
+                    {note.skinType} · {note.concerns[0]} · {note.ageGroup}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <span className="text-[11px] text-ink-muted">
+                    {relativeTime(note.createdAt)}
+                  </span>
+                  {isMine ? (
+                    <button
+                      type="button"
+                      className="rounded-chip border border-line bg-surface-card px-2.5 py-1 text-[11px] font-bold text-ink-soft"
+                      onClick={() => setSheet("note")}
+                    >
+                      삭제하기
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="text-ink-muted"
+                      onClick={() => setSheet("note")}
+                      aria-label="더보기"
+                    >
+                      ⋮
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
-            {isMine && (
-              <button type="button" className="text-ink-muted" onClick={() => setSheet("note")}>
-                ⋮
-              </button>
-            )}
           </div>
 
-          <div className="mt-4">
-            <Badge tone="outline">스킨노트</Badge>
-            <h2 className="mt-2 text-xl font-extrabold text-ink">{note.title}</h2>
+          <div className="mt-3">
+            <p className="text-[12px] font-bold text-sky">✦ 스킨노트</p>
+            <h2 className="mt-1 text-[18px] font-extrabold text-ink">{note.title}</h2>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {note.tags.map((tag) => (
-                <Badge key={tag} tone="accent">
+                <SelectChip
+                  key={tag}
+                  selected={false}
+                  className="pointer-events-none !px-2 !py-1 text-[10px]"
+                >
                   {tag}
-                </Badge>
+                </SelectChip>
               ))}
             </div>
           </div>
 
           <div className="mt-4">
-            <p className="mb-2 text-sm font-bold text-ink">사용 제품</p>
             <div className="flex gap-2 overflow-x-auto no-scrollbar touch-pan-x">
               {note.products.map((product) => (
-                <div
-                  key={product.id}
-                  className="w-24 shrink-0 rounded-panel border border-line p-2 text-center"
-                >
-                  <div className="mx-auto mb-1 flex h-14 w-14 items-center justify-center overflow-hidden rounded-panel border border-dashed border-line bg-accent-faint text-[10px] font-bold text-accent">
+                <div key={product.id} className="w-[72px] shrink-0 text-center">
+                  <div className="mx-auto mb-1 flex h-14 w-14 items-center justify-center overflow-hidden rounded-[10px] border border-dashed border-line bg-surface-empty text-[10px] font-bold text-ink-muted">
                     {product.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={product.imageUrl} alt="" className="h-full w-full object-cover" />
+                      <img
+                        src={product.imageUrl}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
                     ) : (
-                      (product.category ?? product.name).slice(0, 2)
+                      "이미지"
                     )}
                   </div>
-                  <p className="line-clamp-2 text-[11px] text-ink">{product.name}</p>
+                  <p className="line-clamp-2 text-[10px] font-bold text-ink">{product.name}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="mt-4">
-            <p className="mb-2 text-sm font-bold text-ink">변화 과정</p>
-            <div className="flex gap-2 overflow-x-auto no-scrollbar touch-pan-x">
-              {note.changeTimeline.map((item, index) => {
-                const feeling = CHANGE_FEELINGS.find((f) => f.value === item.feeling);
-                return (
-                  <button
-                    key={`${item.label}-${index}`}
-                    type="button"
-                    className="w-28 shrink-0 rounded-panel border border-line p-2 text-center"
-                    onClick={() => item.photoUrl && setPreview(item.photoUrl)}
-                  >
-                    {item.photoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={item.photoUrl}
-                        alt=""
-                        className="mb-1 h-20 w-full rounded-lg object-cover"
-                      />
-                    ) : (
-                      <div className="mb-1 flex h-20 items-center justify-center rounded-lg bg-accent-faint text-2xl">
-                        {feeling?.emoji ?? "🙂"}
-                      </div>
-                    )}
-                    <p className="text-[11px] font-bold text-ink">{item.label}</p>
-                    <p className="text-[10px] text-ink-muted">{feeling?.value}</p>
-                  </button>
-                );
-              })}
+          {note.changeTimeline.length > 0 && (
+            <div className="mt-4">
+              <p className="mb-2 text-sm font-extrabold text-ink">변화 과정</p>
+              <div className="flex gap-2 overflow-x-auto no-scrollbar touch-pan-x">
+                {note.changeTimeline.map((item, index) => {
+                  const feeling = CHANGE_FEELINGS.find((f) => f.value === item.feeling);
+                  return (
+                    <button
+                      key={`${item.label}-${index}`}
+                      type="button"
+                      className="w-[76px] shrink-0 text-center"
+                      onClick={() => item.photoUrl && setPreview(item.photoUrl)}
+                    >
+                      {item.photoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={item.photoUrl}
+                          alt=""
+                          className="mb-1 h-[72px] w-full rounded-[10px] object-cover"
+                        />
+                      ) : (
+                        <div className="mb-1 flex h-[72px] items-center justify-center rounded-[10px] bg-surface-empty text-xl">
+                          {feeling?.emoji ?? "🙂"}
+                        </div>
+                      )}
+                      <p className="text-[11px] font-bold text-ink">{item.label}</p>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="mt-4 grid grid-cols-2 gap-2 rounded-panel bg-surface p-3 text-center text-xs">
-            <div>
+          <div className="mt-4 grid grid-cols-2 gap-2 rounded-[12px] border border-line px-3 py-2.5 text-center text-[11px]">
+            <div className="border-r border-dashed border-line/60">
               <p className="text-ink-muted">사용 기간</p>
-              <p className="mt-1 font-extrabold text-ink">{note.durationDays}일</p>
+              <p className="mt-0.5 font-extrabold text-ink">{note.durationDays}일</p>
             </div>
             <div>
               <p className="text-ink-muted">체감 변화</p>
               {note.feltChange > 0 ? (
-                <div className="mt-1 flex items-center justify-center gap-1">
+                <div className="mt-0.5 flex items-center justify-center gap-1">
                   <StarRating value={note.feltChange} readOnly size="sm" />
                   <span className="font-extrabold text-ink">{note.feltChange}</span>
                 </div>
               ) : (
-                <p className="mt-1 font-extrabold text-ink-muted">-</p>
+                <p className="mt-0.5 font-extrabold text-ink-muted">-</p>
               )}
             </div>
           </div>
 
-          <div className="mt-4 flex gap-4 text-sm font-bold">
+          <div className="mt-4 flex gap-4 text-sm font-bold text-ink-muted">
             <button
               type="button"
-              className={saved ? "text-accent" : "text-ink-soft"}
+              className={saved ? "text-sky" : ""}
               onClick={() =>
                 requireLogin(() => {
                   const nextAction = saved ? "remove" : "add";
@@ -242,7 +278,7 @@ export default function NoteDetailPage() {
             </button>
             <button
               type="button"
-              className={helped ? "text-accent" : "text-ink-soft"}
+              className={helped ? "text-sky" : ""}
               onClick={() =>
                 requireLogin(() => {
                   const nextAction = helped ? "remove" : "add";
@@ -256,7 +292,6 @@ export default function NoteDetailPage() {
             </button>
             <button
               type="button"
-              className="text-ink-soft"
               onClick={() => document.getElementById("comment-input")?.focus()}
             >
               댓글 {note.commentCount}
@@ -264,23 +299,24 @@ export default function NoteDetailPage() {
           </div>
         </Card>
 
-        <div>
+        {/* Comments */}
+        <section>
           <div className="mb-3 flex items-center justify-between">
             <h3 className="font-extrabold text-ink">댓글 {comments.length}</h3>
             <div className="relative">
               <button
                 type="button"
-                className="text-xs font-bold text-accent"
+                className="text-xs font-bold text-ink-muted"
                 onClick={() => setSortOpen((v) => !v)}
               >
                 {sort === "latest" ? "최신순" : "좋아요순"} ▾
               </button>
               {sortOpen && (
-                <div className="absolute right-0 top-7 z-20 min-w-[100px] overflow-hidden rounded-panel border border-line bg-surface-white shadow-card">
+                <div className="absolute right-0 top-7 z-20 min-w-[100px] overflow-hidden rounded-[12px] border border-line bg-surface-card shadow-card">
                   <button
                     type="button"
                     className={`block w-full px-3 py-2 text-left text-xs font-bold ${
-                      sort === "latest" ? "bg-accent-faint text-accent" : "text-ink"
+                      sort === "latest" ? "bg-sky-faint text-sky" : "text-ink"
                     }`}
                     onClick={() => {
                       setSort("latest");
@@ -292,7 +328,7 @@ export default function NoteDetailPage() {
                   <button
                     type="button"
                     className={`block w-full px-3 py-2 text-left text-xs font-bold ${
-                      sort === "likes" ? "bg-accent-faint text-accent" : "text-ink"
+                      sort === "likes" ? "bg-sky-faint text-sky" : "text-ink"
                     }`}
                     onClick={() => {
                       setSort("likes");
@@ -305,97 +341,121 @@ export default function NoteDetailPage() {
               )}
             </div>
           </div>
+
           <div className="space-y-3">
             {comments.map((item) => {
               const liked = state.likedCommentIds.includes(item.id);
               const isMyComment = item.authorId === state.currentUserId;
+              const isAuthor = item.authorId === note.authorId;
               return (
-                <Card key={item.id} className="!p-3">
-                  <div className="flex items-start gap-2">
-                    <Illustration
-                      src={item.authorAvatar || defaultAvatar(item.authorId || item.authorNickname)}
-                      alt=""
-                      width={32}
-                      height={32}
-                      className="shrink-0 rounded-full"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-bold text-ink">{item.authorNickname}</p>
-                        {isMyComment && (
-                          <button
-                            type="button"
-                            className="text-ink-muted"
-                            onClick={() => {
-                              setTargetCommentId(item.id);
-                              setSheet("comment");
-                            }}
-                          >
-                            ⋮
-                          </button>
-                        )}
-                      </div>
-                      <p className="mt-1 text-sm text-ink-soft">{item.content}</p>
-                      <div className="mt-1 flex items-center gap-3 text-[11px] text-ink-muted">
-                        <span>{relativeTime(item.createdAt)}</span>
+                <div key={item.id} className="flex items-start gap-2.5">
+                  <Illustration
+                    src={item.authorAvatar || defaultAvatar(item.authorId || item.authorNickname)}
+                    alt=""
+                    width={32}
+                    height={32}
+                    className="mt-0.5 shrink-0 rounded-full"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-extrabold text-ink">{item.authorNickname}</p>
+                      {isAuthor && (
+                        <span className="rounded-chip bg-sky-faint px-1.5 py-0.5 text-[10px] font-bold text-sky">
+                          작성자
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-sm leading-relaxed text-ink-soft">{item.content}</p>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-ink-muted">
+                      <span>{relativeTime(item.createdAt)}</span>
+                      {!isMyComment && (
                         <button
                           type="button"
-                          className={liked ? "font-bold text-accent" : ""}
-                          onClick={() => requireLogin(() => { void toggleCommentLike(item.id); })}
+                          onClick={() => {
+                            setTargetCommentId(item.id);
+                            setSheet("comment");
+                          }}
                         >
-                          좋아요 {item.likeCount}
+                          신고하기
                         </button>
-                      </div>
+                      )}
+                      {isMyComment && (
+                        <button
+                          type="button"
+                          className="text-accent"
+                          onClick={() => {
+                            setTargetCommentId(item.id);
+                            setSheet("comment");
+                          }}
+                        >
+                          삭제하기
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className={`ml-auto ${liked ? "font-bold text-accent" : ""}`}
+                        onClick={() =>
+                          requireLogin(() => {
+                            void toggleCommentLike(item.id);
+                          })
+                        }
+                      >
+                        ♡ {item.likeCount}
+                      </button>
                     </div>
                   </div>
-                </Card>
+                </div>
               );
             })}
           </div>
-        </div>
+        </section>
+      </div>
 
-        <div className="border-t border-line/50 bg-surface-white p-3">
-          <div className="flex gap-2">
-            <TextInput
-              id="comment-input"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="따뜻한 댓글을 남겨주세요."
-              onFocus={() => {
-                if (!state.isLoggedIn) setLoginModal(true);
-              }}
-            />
-            <Button
-              size="md"
-              disabled={!comment.trim()}
-              onClick={() =>
-                requireLogin(() => {
-                  void addComment(note.id, comment.trim()).then(() => {
-                    trackEvent("comment_write", {
-                      card_id: note.id,
-                      has_image: false,
-                      is_reply: false,
-                    });
-                    setComment("");
+      {/* Sticky comment input */}
+      <div className="absolute inset-x-0 bottom-[calc(var(--nav-height)+var(--safe-bottom))] z-30 border-t border-line/40 bg-surface-card px-3 py-2.5">
+        <div className="mx-auto flex max-w-phone items-center gap-2">
+          <TextInput
+            id="comment-input"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="따뜻한 댓글을 남겨주세요."
+            className="!h-11"
+            onFocus={() => {
+              if (!state.isLoggedIn) setLoginModal(true);
+            }}
+          />
+          <Button
+            size="md"
+            className="!h-11 shrink-0 !px-3"
+            disabled={!comment.trim()}
+            onClick={() =>
+              requireLogin(() => {
+                void addComment(note.id, comment.trim()).then(() => {
+                  trackEvent("comment_write", {
+                    card_id: note.id,
+                    has_image: false,
+                    is_reply: false,
                   });
-                })
-              }
-            >
-              등록
-            </Button>
-          </div>
+                  setComment("");
+                });
+              })
+            }
+            aria-label="댓글 등록"
+          >
+            ✈
+          </Button>
         </div>
       </div>
 
       {sheet && (
         <div className="fixed inset-0 z-[70] flex items-end justify-center bg-ink/35">
-          <div className="w-full max-w-phone rounded-t-[24px] bg-surface-white p-4">
+          <div className="w-full max-w-phone rounded-t-[24px] border border-line bg-surface-card p-4">
             {sheet === "note" && (
               <div className="space-y-2">
                 {isMine ? (
                   <button
                     type="button"
-                    className="w-full rounded-panel px-3 py-3 text-left font-bold text-accent"
+                    className="w-full rounded-[14px] px-3 py-3 text-left font-bold text-accent"
                     onClick={() => {
                       void deleteNote(note.id).then(() => {
                         showToast("스킨노트를 삭제했어요.");
@@ -409,7 +469,7 @@ export default function NoteDetailPage() {
                   <>
                     <button
                       type="button"
-                      className="w-full rounded-panel px-3 py-3 text-left font-bold text-ink"
+                      className="w-full rounded-[14px] px-3 py-3 text-left font-bold text-ink"
                       onClick={() => {
                         void reportNote(note.id);
                         setSheet(null);
@@ -419,7 +479,7 @@ export default function NoteDetailPage() {
                     </button>
                     <button
                       type="button"
-                      className="w-full rounded-panel px-3 py-3 text-left font-bold text-ink"
+                      className="w-full rounded-[14px] px-3 py-3 text-left font-bold text-ink"
                       onClick={() => {
                         void hideNote(note.id).then(() => {
                           showToast("게시글을 숨겼어요.");
@@ -433,7 +493,7 @@ export default function NoteDetailPage() {
                 )}
                 <button
                   type="button"
-                  className="w-full rounded-panel px-3 py-3 text-left font-bold text-ink-muted"
+                  className="w-full rounded-[14px] px-3 py-3 text-left font-bold text-ink-muted"
                   onClick={() => setSheet(null)}
                 >
                   취소
@@ -446,7 +506,7 @@ export default function NoteDetailPage() {
                 state.currentUserId ? (
                   <button
                     type="button"
-                    className="w-full rounded-panel px-3 py-3 text-left font-bold text-accent"
+                    className="w-full rounded-[14px] px-3 py-3 text-left font-bold text-accent"
                     onClick={() => {
                       if (targetCommentId) void deleteComment(targetCommentId);
                       setSheet(null);
@@ -457,7 +517,7 @@ export default function NoteDetailPage() {
                 ) : (
                   <button
                     type="button"
-                    className="w-full rounded-panel px-3 py-3 text-left font-bold text-ink"
+                    className="w-full rounded-[14px] px-3 py-3 text-left font-bold text-ink"
                     onClick={() => {
                       showToast("신고가 접수되었어요.");
                       setSheet(null);
@@ -468,7 +528,7 @@ export default function NoteDetailPage() {
                 )}
                 <button
                   type="button"
-                  className="w-full rounded-panel px-3 py-3 text-left font-bold text-ink-muted"
+                  className="w-full rounded-[14px] px-3 py-3 text-left font-bold text-ink-muted"
                   onClick={() => setSheet(null)}
                 >
                   취소

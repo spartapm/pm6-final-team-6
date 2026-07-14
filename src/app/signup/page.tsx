@@ -8,7 +8,7 @@ import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import PageHeader from "@/components/ui/PageHeader";
 import SelectChip from "@/components/ui/SelectChip";
-import { FieldLabel, SelectInput, TextInput } from "@/components/ui/Field";
+import { SelectInput, TextInput } from "@/components/ui/Field";
 import { mapAgeRange, mapGender, trackEvent } from "@/lib/analytics";
 import { AGE_GROUPS, isValidEmail, isValidPassword } from "@/lib/constants";
 import { signup } from "@/lib/store";
@@ -58,125 +58,112 @@ export default function SignupPage() {
         center
       />
 
-      <div className="page-pad mt-5 space-y-4 pb-8 animate-fade-up">
-        <div>
-          <FieldLabel required>닉네임</FieldLabel>
-          <TextInput
-            value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
-            placeholder="닉네임 입력"
-            error={submitted ? errors.nickname : undefined}
-          />
-        </div>
-        <div>
-          <FieldLabel required>이메일</FieldLabel>
-          <TextInput
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="이메일 입력"
-            error={submitted ? errors.email : undefined}
-          />
-        </div>
-        <div>
-          <FieldLabel required>비밀번호</FieldLabel>
-          <TextInput
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="비밀번호 입력 (8자 이상, 영문+숫자)"
-            error={submitted ? errors.password : undefined}
-          />
-        </div>
-        <div>
-          <FieldLabel required>비밀번호 확인</FieldLabel>
-          <TextInput
-            type="password"
-            value={passwordConfirm}
-            onChange={(e) => setPasswordConfirm(e.target.value)}
-            placeholder="비밀번호 확인"
-            error={submitted ? errors.passwordConfirm : undefined}
-          />
-        </div>
-        <div>
-          <FieldLabel required>연령대</FieldLabel>
-          <SelectInput
-            value={ageGroup}
-            onChange={(e) => setAgeGroup(e.target.value as AgeGroup | "")}
-            error={submitted ? errors.ageGroup : undefined}
-          >
-            <option value="">연령대 선택</option>
-            {AGE_GROUPS.map((age) => (
-              <option key={age} value={age}>
-                {age}
-              </option>
-            ))}
-          </SelectInput>
-        </div>
-        <div>
-          <FieldLabel>성별</FieldLabel>
-          <div className="grid grid-cols-2 gap-2">
-            {(["여성", "남성"] as const).map((g) => (
-              <SelectChip
-                key={g}
-                selected={gender === g}
-                onClick={() => setGender((prev) => (prev === g ? null : g))}
-              >
-                {g}
-              </SelectChip>
-            ))}
-          </div>
+      <div className="page-pad mt-5 space-y-3 pb-8 animate-fade-up">
+        <TextInput
+          value={nickname}
+          onChange={(e) => setNickname(e.target.value)}
+          placeholder="닉네임 입력"
+          error={submitted ? errors.nickname : undefined}
+        />
+        <TextInput
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="아이디 입력"
+          error={submitted ? errors.email : undefined}
+        />
+        <TextInput
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="비밀번호 입력 (8자 이상, 영문+숫자)"
+          error={submitted ? errors.password : undefined}
+        />
+        <TextInput
+          type="password"
+          value={passwordConfirm}
+          onChange={(e) => setPasswordConfirm(e.target.value)}
+          placeholder="비밀번호 확인"
+          error={submitted ? errors.passwordConfirm : undefined}
+        />
+        <SelectInput
+          value={ageGroup}
+          onChange={(e) => setAgeGroup(e.target.value as AgeGroup | "")}
+          error={submitted ? errors.ageGroup : undefined}
+        >
+          <option value="">연령대 선택</option>
+          {AGE_GROUPS.map((age) => (
+            <option key={age} value={age}>
+              {age}
+            </option>
+          ))}
+        </SelectInput>
+
+        <div className="grid grid-cols-2 gap-2.5 pt-1">
+          {(["여성", "남성"] as const).map((g) => (
+            <SelectChip
+              key={g}
+              selected={gender === g}
+              onClick={() => setGender((prev) => (prev === g ? null : g))}
+              className="!rounded-field py-3"
+            >
+              {g}
+            </SelectChip>
+          ))}
         </div>
 
-        <div className="space-y-3 rounded-card border border-line bg-surface-white p-4">
-          <label className="flex items-start justify-between gap-3 text-sm text-ink">
-            <span className="flex items-start gap-2">
+        <div className="space-y-3 pt-2">
+          <label className="flex items-center justify-between gap-3 text-sm text-ink">
+            <span className="flex items-center gap-2">
               <input
                 type="checkbox"
                 checked={terms}
                 onChange={(e) => setTerms(e.target.checked)}
-                className="mt-0.5 h-4 w-4 accent-accent"
+                className="h-4 w-4 accent-sky"
               />
               [필수] 이용약관 동의
             </span>
             <button
               type="button"
-              className="shrink-0 font-bold text-accent"
+              className="shrink-0 text-xs font-bold text-ink-muted"
               onClick={() => setDocModal("terms")}
             >
-              보기
+              보기 &gt;
             </button>
           </label>
           {submitted && errors.terms && (
-            <p className="text-xs font-medium text-accent">{errors.terms}</p>
+            <p className="text-[10px] font-medium text-[#ff0000]">{errors.terms}</p>
           )}
-          <label className="flex items-start justify-between gap-3 text-sm text-ink">
-            <span className="flex items-start gap-2">
+          <label className="flex items-center justify-between gap-3 text-sm text-ink">
+            <span className="flex items-center gap-2">
               <input
                 type="checkbox"
                 checked={privacy}
                 onChange={(e) => setPrivacy(e.target.checked)}
-                className="mt-0.5 h-4 w-4 accent-accent"
+                className="h-4 w-4 accent-sky"
               />
               [필수] 개인정보 처리방침 동의
             </span>
             <button
               type="button"
-              className="shrink-0 font-bold text-accent"
+              className="shrink-0 text-xs font-bold text-ink-muted"
               onClick={() => setDocModal("privacy")}
             >
-              보기
+              보기 &gt;
             </button>
           </label>
           {submitted && errors.privacy && (
-            <p className="text-xs font-medium text-accent">{errors.privacy}</p>
+            <p className="text-[10px] font-medium text-[#ff0000]">{errors.privacy}</p>
           )}
         </div>
 
-        {formError && <p className="text-sm font-medium text-accent">{formError}</p>}
+        {formError && (
+          <p className="text-[10px] font-medium text-[#ff0000]">{formError}</p>
+        )}
 
         <Button
           fullWidth
           disabled={saving}
+          className="mt-2"
           onClick={async () => {
             setSubmitted(true);
             setFormError("");
@@ -214,7 +201,7 @@ export default function SignupPage() {
 
         <p className="text-center text-sm text-ink-muted">
           이미 계정이 있으신가요?{" "}
-          <Link href="/login" className="font-bold text-accent">
+          <Link href="/login" className="font-extrabold text-ink underline">
             로그인
           </Link>
         </p>
@@ -225,12 +212,17 @@ export default function SignupPage() {
         title={docModal === "terms" ? "이용약관" : "개인정보 처리방침"}
         description={
           docModal === "terms"
-            ? "ANA 서비스 이용과 관련된 기본 약관입니다. MVP에서는 요약 안내만 제공합니다."
-            : "수집 항목, 이용 목적, 보관 기간에 대한 안내입니다. MVP에서는 요약 안내만 제공합니다."
+            ? "ANA 서비스 이용과 관련된 기본 약관입니다. 전문은 설정 > 이용약관에서 확인할 수 있어요."
+            : "수집 항목, 이용 목적, 보관 기간에 대한 안내입니다. 전문은 설정 > 이용약관에서 확인할 수 있어요."
         }
-        confirmLabel="확인"
-        hideCancel
-        onConfirm={() => setDocModal(null)}
+        confirmLabel="전문 보기"
+        cancelLabel="닫기"
+        onCancel={() => setDocModal(null)}
+        onConfirm={() => {
+          const tab = docModal === "privacy" ? "privacy" : "terms";
+          setDocModal(null);
+          router.push(`/settings/terms?tab=${tab}`);
+        }}
       />
     </AppShell>
   );

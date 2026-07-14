@@ -65,27 +65,28 @@ export default function SkinProfilePage() {
         }}
       />
 
-      <div className="page-pad mt-5 space-y-5 pb-8 animate-fade-up">
-        <div>
+      <div className="page-pad mt-4 space-y-4 pb-10 animate-fade-up">
+        <section>
           <FieldLabel>프로필</FieldLabel>
-          <Card className="flex min-w-0 items-center gap-3">
-            <Illustration
-              src={user.avatarUrl || defaultAvatar(user.id)}
-              alt=""
-              width={44}
-              height={44}
-              className="shrink-0 rounded-full"
-            />
-            <span className="min-w-0 truncate font-extrabold text-ink">{user.nickname}</span>
+          <Card className="flex min-w-0 items-center gap-3 !p-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-sky-faint">
+              <Illustration
+                src={user.avatarUrl || defaultAvatar(user.id)}
+                alt=""
+                width={44}
+                height={44}
+                className="h-full w-full object-cover"
+              />
+            </div>
+            <span className="min-w-0 truncate text-[15px] font-extrabold text-ink">
+              {user.nickname}
+            </span>
           </Card>
-          <p className="mt-1 text-[11px] text-ink-muted">
-            프로필 사진은 마이페이지에서 변경할 수 있어요.
-          </p>
-        </div>
+        </section>
 
-        <div>
+        <section>
           <FieldLabel required>피부 타입</FieldLabel>
-          <Card>
+          <Card className="!p-4">
             <div className="grid grid-cols-4 gap-2">
               {SKIN_TYPES.map((type) => (
                 <SelectChip
@@ -99,14 +100,14 @@ export default function SkinProfilePage() {
               ))}
             </div>
           </Card>
-        </div>
+        </section>
 
-        <div>
+        <section>
           <FieldLabel required hint="복수 선택">
             피부 고민
           </FieldLabel>
-          <Card>
-            <div className="grid grid-cols-2 gap-2">
+          <Card className="!p-4">
+            <div className="flex flex-wrap gap-2">
               {SKIN_CONCERNS.map((concern) => {
                 const selected = concerns.includes(concern);
                 return (
@@ -124,36 +125,38 @@ export default function SkinProfilePage() {
                       }
                       setConcerns((prev) => [...prev, concern]);
                     }}
-                    className="text-[13px]"
+                    className="px-3 text-[13px]"
                   >
                     {concern}
                   </SelectChip>
                 );
               })}
             </div>
-            <p className="mt-3 text-xs text-ink-muted">* 최대 3개 이하로 선택해주세요</p>
+            <p className="mt-3 text-xs text-ink-muted">* 최대 3개 이하 선택해주세요</p>
           </Card>
-        </div>
+        </section>
 
-        <div>
+        <section>
           <FieldLabel required>민감도</FieldLabel>
-          <Card>
+          <Card className="!p-4">
             <div className="grid grid-cols-3 gap-2">
               {SENSITIVITIES.map((item) => (
                 <SelectChip
                   key={item}
                   selected={sensitivity === item}
                   onClick={() => setSensitivity(item)}
+                  className="py-3"
                 >
                   {item}
                 </SelectChip>
               ))}
             </div>
           </Card>
-        </div>
+        </section>
 
-        <div className="pt-2">
+        <div className="pt-3">
           <Button
+            variant="sky"
             fullWidth
             disabled={!canSave}
             onClick={async () => {
@@ -169,7 +172,7 @@ export default function SkinProfilePage() {
           >
             저장하기
           </Button>
-          <p className="mt-2 text-center text-xs text-ink-muted">
+          <p className="mt-2.5 text-center text-xs text-ink-muted">
             * 피부 타입 · 고민 · 민감도 모두 선택 시 활성화
           </p>
         </div>

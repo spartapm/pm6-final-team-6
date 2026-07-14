@@ -10,6 +10,54 @@ import { SectionHeader } from "@/components/ui/PageHeader";
 import { WEEKDAY_LABELS, getWeekDays, todayKey } from "@/lib/constants";
 import { ILLUSTRATIONS, defaultAvatar, weekDayIllustration } from "@/lib/illustrations";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
+import type { SkinNote } from "@/lib/types";
+
+function SkyCta({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <Button
+      variant="sky"
+      fullWidth
+      onClick={onClick}
+      className="justify-between px-5 text-[15px] font-extrabold text-ink"
+    >
+      <span>{label}</span>
+      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FEFEFE] text-sky shadow-sm">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+          <path
+            d="M5 3l4 4-4 4"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </span>
+    </Button>
+  );
+}
+
+function HonorCard({ label, note }: { label: string; note: SkinNote | null }) {
+  return (
+    <div className="rounded-[18px] border border-line bg-surface-card p-2.5 text-center shadow-card">
+      <p className="text-[11px] font-extrabold text-accent">{label}</p>
+      <div className="mx-auto my-2.5 flex aspect-square w-full max-w-[84px] items-center justify-center overflow-hidden rounded-[14px] bg-accent-faint">
+        {note ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={note.authorAvatar || defaultAvatar(note.authorId)}
+            alt=""
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <Illustration src={ILLUSTRATIONS.avatar1} alt="" width={64} height={64} />
+        )}
+      </div>
+      <p className="truncate text-[12px] font-bold text-ink">
+        {note?.authorNickname ?? "닉네임"}
+      </p>
+    </div>
+  );
+}
 
 export default function HomePage() {
   const hydrated = useHydrated();
@@ -31,27 +79,9 @@ export default function HomePage() {
   const today = todayKey();
 
   const honorCards = [
-    {
-      key: "save",
-      label: "저장 best",
-      note: honor.bySave,
-      emptyTitle: "저장 카드 없음",
-      emptySub: "기록 후 공개",
-    },
-    {
-      key: "comment",
-      label: "댓글 best",
-      note: honor.byComment,
-      emptyTitle: "댓글 카드 없음",
-      emptySub: "기록 후 공개",
-    },
-    {
-      key: "help",
-      label: "도움돼요 best",
-      note: honor.byHelp,
-      emptyTitle: "도움돼요 카드 없음",
-      emptySub: "기록 후 공개",
-    },
+    { key: "save", label: "저장 best", note: honor.bySave },
+    { key: "comment", label: "댓글 best", note: honor.byComment },
+    { key: "like", label: "좋아요 best", note: honor.byHelp },
   ];
 
   const handleRoutineCta = () => {
@@ -70,144 +100,113 @@ export default function HomePage() {
     router.push("/care-log");
   };
 
+  const helperText = !loggedIn
+    ? null
+    : !hasProfile || !hasRoutine
+      ? "아직 피부 프로필과 루틴이 등록되지 않았어요. 먼저 피부 정보를 입력하고 루틴을 시작해보세요."
+      : "내 피부 상태와 루틴을 기록하고 변화를 확인해보세요!";
+
   return (
     <AppShell>
-      <div className="page-pad space-y-5 pt-6 animate-fade-up">
-        <section className="flex items-start justify-between gap-3">
-          <div className="pt-2">
-            <p className="text-[22px] font-extrabold leading-snug text-ink">
-              안녕하세요
-              <br />
-              오늘도 <span className="text-accent">피부 기록</span>
-              <br />
+      <div className="page-pad space-y-5 pt-5 animate-fade-up">
+        <section className="relative flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1 pt-2">
+            <p className="text-[15px] font-semibold text-ink-soft">안녕하세요</p>
+            <h1 className="mt-1 text-[22px] font-extrabold leading-snug tracking-tight text-ink">
+              오늘도 <span className="text-accent">피부</span>{" "}
+              <span className="text-accent">기록</span>
               해볼까요?
-            </p>
+            </h1>
           </div>
           <Illustration
             src={ILLUSTRATIONS.homeHero}
             alt="ANA 캐릭터"
-            width={120}
-            height={105}
+            width={110}
+            height={100}
             className="shrink-0 animate-soft-pop"
             priority
           />
         </section>
 
-        <Card className="relative overflow-hidden">
-          {!loggedIn && (
-            <div className="pointer-events-none absolute inset-0 z-[1] bg-surface-white/40 backdrop-blur-[2px]" />
-          )}
-          <h2 className="text-base font-extrabold text-ink">내 피부 프로필</h2>
+        <Card className="relative overflow-hidden !p-5">
           {loggedIn ? (
             <>
-              <div className="mt-3 space-y-2">
+              <h2 className="text-base font-extrabold text-ink">내 피부 프로필</h2>
+              <div className="mt-3 space-y-2.5">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm text-ink-soft">피부 타입:</span>
+                  <span className="w-[4.5rem] text-[13px] font-semibold text-ink-soft">
+                    피부 타입
+                  </span>
                   {hasProfile ? (
                     <Badge>{profile!.skinType}</Badge>
                   ) : (
                     <Badge tone="muted">미등록</Badge>
                   )}
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm text-ink-soft">주요 고민:</span>
-                  {hasProfile ? (
-                    profile!.concerns.map((c) => <Badge key={c}>{c}</Badge>)
-                  ) : (
-                    <Badge tone="muted">미등록</Badge>
-                  )}
+                <div className="flex flex-wrap items-start gap-2">
+                  <span className="w-[4.5rem] pt-0.5 text-[13px] font-semibold text-ink-soft">
+                    주요 고민
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {hasProfile ? (
+                      profile!.concerns.map((c) => <Badge key={c}>{c}</Badge>)
+                    ) : (
+                      <Badge tone="muted">미등록</Badge>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div className="mt-4">
-                <Button
-                  variant="outline"
-                  fullWidth
-                  onClick={handleRoutineCta}
-                  className="justify-between px-4"
-                >
-                  <span>
-                    {hasRoutine
-                      ? "오늘 루틴 기록하기"
-                      : hasProfile
-                        ? "오늘 루틴 등록하기"
-                        : "피부 프로필 등록하기"}
-                  </span>
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-white">
-                    →
-                  </span>
-                </Button>
-                <p className="mt-2 text-center text-xs text-ink-muted">
-                  {hasProfile
-                    ? "내 피부 상태와 루틴을 기록하고 변화를 확인해보세요!"
-                    : "아직 피부 정보가 없어요. 정보를 입력하면 맞춤 루틴을 추천받을 수 있어요"}
-                </p>
+              <div className="mt-5">
+                <SkyCta label="오늘 루틴 기록하기" onClick={handleRoutineCta} />
+                {helperText && (
+                  <p className="mt-3 text-center text-[12px] leading-relaxed text-ink-muted">
+                    {helperText}
+                  </p>
+                )}
               </div>
             </>
           ) : (
-            <div className="relative z-[2] mt-4">
-              <Button
-                variant="outline"
-                fullWidth
-                onClick={() => router.push("/login?next=/")}
-                className="justify-between px-4"
-              >
-                <span>루틴 등록하러 로그인</span>
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-white">
-                  →
-                </span>
-              </Button>
-              <p className="mt-2 text-center text-xs text-ink-muted">
-                로그인하고 내 피부 프로필과 루틴을 시작해보세요
-              </p>
-            </div>
+            <>
+              <div className="pointer-events-none select-none blur-[2.5px] opacity-45">
+                <h2 className="text-base font-extrabold text-ink">내 피부 프로필</h2>
+                <div className="mt-3 space-y-2.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="w-[4.5rem] text-[13px] font-semibold text-ink-soft">
+                      피부 타입
+                    </span>
+                    <Badge tone="muted">미등록</Badge>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="w-[4.5rem] text-[13px] font-semibold text-ink-soft">
+                      주요 고민
+                    </span>
+                    <Badge tone="muted">미등록</Badge>
+                  </div>
+                </div>
+              </div>
+              <div className="relative z-[1] mt-4">
+                <SkyCta
+                  label="루틴 등록하러 로그인"
+                  onClick={() => router.push("/login?next=/")}
+                />
+              </div>
+            </>
           )}
         </Card>
 
         <section>
           <SectionHeader title="명예의 스킨노트" actionLabel="더보기 >" actionHref="/drawer" />
-          <div className="grid grid-cols-3 gap-2">
-            {honorCards.map((card) => {
-              const note = card.note;
-              if (!note) {
-                return (
-                  <div
-                    key={card.key}
-                    className="pointer-events-none rounded-panel border border-dashed border-line bg-accent-faint/40 p-3 text-center"
-                  >
-                    <p className="text-[11px] font-bold text-accent">{card.label}</p>
-                    <div className="mx-auto my-3 flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-dashed border-line bg-accent-faint/40">
-                      <Illustration src={ILLUSTRATIONS.avatar1} alt="" width={44} height={44} />
-                    </div>
-                    <p className="text-xs font-bold text-ink-soft">{card.emptyTitle}</p>
-                    <p className="mt-1 text-[10px] text-ink-muted">{card.emptySub}</p>
-                  </div>
-                );
-              }
-              return (
-                <div
-                  key={card.key}
-                  className="pointer-events-none rounded-panel border border-line bg-surface-white p-3 text-center"
-                >
-                  <p className="text-[11px] font-bold text-ink-soft">{card.label}</p>
-                  <div className="mx-auto my-2 flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-line bg-accent-faint">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={note.authorAvatar || defaultAvatar(note.authorId)}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                  <p className="truncate text-xs font-bold text-ink">{note.authorNickname}</p>
-                </div>
-              );
-            })}
+          <div className="grid grid-cols-3 gap-2.5">
+            {honorCards.map((card) => (
+              <HonorCard key={card.key} label={card.label} note={card.note} />
+            ))}
           </div>
         </section>
 
         <section>
           <SectionHeader title="이번주 참여 기록" />
           {hasRoutine ? (
-            <Card className="overflow-hidden">
+            <Card className="overflow-hidden !px-3 !py-4">
               <div className="grid grid-cols-7 gap-x-1">
                 {weekDays.map((day, i) => {
                   const key = todayKey(day);
@@ -232,10 +231,10 @@ export default function HomePage() {
                       <div
                         className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full ${
                           isToday && !beforeStart
-                            ? "border-2 border-accent animate-pulse-ring"
+                            ? "border-2 border-dashed border-accent bg-[#FFF5F7] animate-pulse-ring"
                             : icon
-                              ? "bg-accent-faint/30"
-                              : "border border-dashed border-line bg-transparent"
+                              ? "bg-accent-faint/40"
+                              : "border border-accent/35 bg-white"
                         }`}
                       >
                         {icon ? (
@@ -254,18 +253,19 @@ export default function HomePage() {
               </div>
             </Card>
           ) : (
-            <Card className="relative overflow-hidden">
-              <Badge tone="soft">이번주 기록 없음</Badge>
-              <div className="mt-3 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-extrabold text-ink">아직 루틴을 시작하지 않았어요</p>
-                  <p className="mt-1 text-xs text-ink-muted">내일 이야기 해보기</p>
-                </div>
+            <Card className="relative overflow-hidden !p-5 min-h-[132px]">
+              <Badge>이번주 기록 없음</Badge>
+              <p className="mt-3 max-w-[190px] text-[15px] font-extrabold leading-snug text-ink">
+                아직 루틴을 시작하지
+                <br />
+                않았어요
+              </p>
+              <div className="pointer-events-none absolute bottom-2 right-2">
                 <Illustration
-                  src={ILLUSTRATIONS.weekMissedPast}
+                  src={ILLUSTRATIONS.recommendEmpty}
                   alt=""
-                  width={64}
-                  height={64}
+                  width={92}
+                  height={92}
                 />
               </div>
             </Card>

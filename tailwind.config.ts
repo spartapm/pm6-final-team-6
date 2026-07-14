@@ -1,43 +1,59 @@
 import type { Config } from "tailwindcss";
 
+/** 색상 기준: design/tokens.md */
 const config: Config = {
   content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
   theme: {
     extend: {
       colors: {
         ink: {
-          DEFAULT: "#220A0E",
-          soft: "#61212D",
-          muted: "#8A5A66",
+          DEFAULT: "#1E2329",
+          soft: "#707786",
+          muted: "#707786",
         },
         accent: {
-          DEFAULT: "#FF617D",
-          soft: "#FF8DA1",
-          faint: "#FBE3EC",
-          disabled: "#F7EEEF",
+          DEFAULT: "#FB89A3",
+          soft: "#FB89A3",
+          faint: "#FAEEF4",
+          disabled: "#F2F5F9",
+        },
+        sky: {
+          DEFAULT: "#7BA5FD",
+          soft: "#AFC9F8",
+          faint: "#DDEBFF",
+          deep: "#7BA5FD",
         },
         surface: {
-          DEFAULT: "#FFFAFB",
-          soft: "#FBE3EC",
-          page: "#F4E8EA",
-          white: "#FFFFFF",
+          DEFAULT: "#F9FBFE",
+          soft: "#DDEBFF",
+          page: "#DDEBFF",
+          card: "#F9FBFE",
+          white: "#F9FBFE",
+          empty: "#F5F5F5",
         },
         line: {
-          DEFAULT: "#FF8DA1",
-          soft: "#FBE3EC",
-          dashed: "#FF8DA1",
+          DEFAULT: "#7CA5FE",
+          soft: "#DDEBFF",
+          dashed: "#AFC9F8",
+        },
+        star: {
+          DEFAULT: "#7CA5FE",
+          empty: "#F9FBFE",
+        },
+        btn: {
+          disabled: "#F2F5F9",
         },
       },
       borderRadius: {
-        card: "20px",
-        panel: "16px",
+        card: "24px",
+        panel: "18px",
         chip: "9999px",
-        field: "14px",
+        field: "16px",
       },
       boxShadow: {
-        card: "0 10px 28px rgba(34, 10, 14, 0.06)",
-        float: "0 12px 32px rgba(255, 97, 125, 0.18)",
-        nav: "0 -8px 24px rgba(34, 10, 14, 0.05)",
+        card: "0 8px 28px rgba(123, 165, 253, 0.08)",
+        float: "0 10px 28px rgba(123, 165, 253, 0.22)",
+        nav: "0 -6px 20px rgba(30, 35, 41, 0.04)",
       },
       fontFamily: {
         sans: [
@@ -66,8 +82,8 @@ const config: Config = {
           "100%": { opacity: "1", transform: "scale(1)" },
         },
         "pulse-ring": {
-          "0%, 100%": { boxShadow: "0 0 0 0 rgba(255, 97, 125, 0.35)" },
-          "50%": { boxShadow: "0 0 0 8px rgba(255, 97, 125, 0)" },
+          "0%, 100%": { boxShadow: "0 0 0 0 rgba(251, 137, 163, 0.35)" },
+          "50%": { boxShadow: "0 0 0 8px rgba(251, 137, 163, 0)" },
         },
       },
       animation: {

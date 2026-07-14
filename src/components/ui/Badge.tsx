@@ -6,7 +6,7 @@ const tones: Record<Tone, string> = {
   accent: "bg-accent text-white",
   soft: "bg-accent-faint text-accent",
   muted: "bg-surface-soft text-ink-soft",
-  outline: "border border-line text-accent bg-surface-white",
+  outline: "border border-line text-accent bg-surface-card",
 };
 
 export default function Badge({

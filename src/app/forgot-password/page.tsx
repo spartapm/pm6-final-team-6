@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import Button from "@/components/ui/Button";
 import PageHeader from "@/components/ui/PageHeader";
-import { FieldLabel, TextInput } from "@/components/ui/Field";
+import { TextInput } from "@/components/ui/Field";
 import { isValidEmail, isValidPassword } from "@/lib/constants";
 import {
   requestResetCode,
@@ -77,7 +77,6 @@ export default function ForgotPasswordPage() {
         {step === 1 && (
           <>
             <div>
-              <FieldLabel required>이메일</FieldLabel>
               <TextInput
                 value={email}
                 onChange={(e) => {
@@ -124,7 +123,6 @@ export default function ForgotPasswordPage() {
         {step === 2 && (
           <>
             <div>
-              <FieldLabel required>인증번호</FieldLabel>
               <div className="relative">
                 <TextInput
                   value={code}
@@ -141,14 +139,14 @@ export default function ForgotPasswordPage() {
                       : undefined)
                   }
                 />
-                <span className="absolute right-4 top-3 text-sm font-bold text-accent">
+                <span className="absolute right-4 top-3 text-sm font-bold text-[#ff0000]">
                   {timerText}
                 </span>
               </div>
             </div>
             <button
               type="button"
-              className="text-sm font-bold text-accent disabled:opacity-40"
+              className="text-sm font-bold text-ink-muted underline disabled:opacity-40"
               disabled={!canResend || busy}
               onClick={async () => {
                 setBusy(true);
@@ -193,7 +191,6 @@ export default function ForgotPasswordPage() {
         {step === 3 && (
           <>
             <div>
-              <FieldLabel required>새 비밀번호</FieldLabel>
               <TextInput
                 type="password"
                 value={password}
@@ -210,7 +207,6 @@ export default function ForgotPasswordPage() {
               />
             </div>
             <div>
-              <FieldLabel required>새 비밀번호 확인</FieldLabel>
               <TextInput
                 type="password"
                 value={passwordConfirm}

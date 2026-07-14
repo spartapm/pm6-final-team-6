@@ -48,6 +48,11 @@ npm run dev
 - 루틴 추천: Claude Haiku 실시간 생성
 - 세션 복원: 앱 시작 시 `syncAuthState()`
 
+## 디자인 참고
+
+- **색상 토큰:** [`design/tokens.md`](./design/tokens.md)
+- 시안·QA: [`design/`](./design/) (`design/README.md`)
+
 ## 화면
 
 | 화면 | 경로 |
@@ -62,5 +67,9 @@ npm run dev
 | 스킨서랍장 | `/drawer` |
 | 스킨노트 상세 | `/notes/[id]` |
 | 마이페이지 | `/mypage` |
+| 설정 | `/settings` |
+| 공지사항 | `/settings/notices` |
+| 문의하기 | `/settings/inquiry` |
+| 이용약관 | `/settings/terms` |
 | 로그인/회원가입/비번찾기 | `/login` `/signup` `/forgot-password` |
 | Auth 콜백 | `/auth/callback` |

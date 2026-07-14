@@ -4,6 +4,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAppDerivations } from "@/lib/useAppState";
 
+const ACTIVE = "#7BA5FD";
+const IDLE = "#707786";
+
 const tabs = [
   {
     href: "/",
@@ -13,7 +16,7 @@ const tabs = [
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
         <path
           d="M4 10.5L12 4l8 6.5V20a1 1 0 01-1 1h-5v-6H10v6H5a1 1 0 01-1-1v-9.5z"
-          stroke={active ? "#FF617D" : "#B58A94"}
+          stroke={active ? ACTIVE : IDLE}
           strokeWidth="1.8"
           strokeLinejoin="round"
         />
@@ -32,12 +35,12 @@ const tabs = [
           width="14"
           height="18"
           rx="2"
-          stroke={active ? "#FF617D" : "#B58A94"}
+          stroke={active ? ACTIVE : IDLE}
           strokeWidth="1.8"
         />
         <path
           d="M8 8h8M8 12h8M8 16h5"
-          stroke={active ? "#FF617D" : "#B58A94"}
+          stroke={active ? ACTIVE : IDLE}
           strokeWidth="1.8"
           strokeLinecap="round"
         />
@@ -47,17 +50,17 @@ const tabs = [
   {
     href: "/drawer",
     key: "drawer",
-    label: "스킨서랍장",
+    label: "스킨 서랍장",
     icon: (active: boolean) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
         <path
           d="M5 6h14v4H5V6zm0 6h14v6H5v-6z"
-          stroke={active ? "#FF617D" : "#B58A94"}
+          stroke={active ? ACTIVE : IDLE}
           strokeWidth="1.8"
           strokeLinejoin="round"
         />
-        <circle cx="8.5" cy="8" r="1" fill={active ? "#FF617D" : "#B58A94"} />
-        <circle cx="8.5" cy="15" r="1" fill={active ? "#FF617D" : "#B58A94"} />
+        <circle cx="8.5" cy="8" r="1" fill={active ? ACTIVE : IDLE} />
+        <circle cx="8.5" cy="15" r="1" fill={active ? ACTIVE : IDLE} />
       </svg>
     ),
   },
@@ -71,12 +74,12 @@ const tabs = [
           cx="12"
           cy="8"
           r="3.2"
-          stroke={active ? "#FF617D" : "#B58A94"}
+          stroke={active ? ACTIVE : IDLE}
           strokeWidth="1.8"
         />
         <path
           d="M5 19c1.8-3.2 4.2-4.8 7-4.8S17.2 15.8 19 19"
-          stroke={active ? "#FF617D" : "#B58A94"}
+          stroke={active ? ACTIVE : IDLE}
           strokeWidth="1.8"
           strokeLinecap="round"
         />
@@ -99,7 +102,7 @@ export default function BottomNav() {
   const { state, profile, activeRoutine } = useAppDerivations();
 
   return (
-    <nav className="bottom-nav z-40 flex w-full shrink-0 items-start justify-around border-t border-line/40 bg-surface-white pt-2 shadow-nav">
+    <nav className="bottom-nav z-40 flex w-full shrink-0 items-start justify-around border-t border-line/60 bg-surface-white pt-2 shadow-nav">
       {tabs.map((tab) => {
         const active = isActive(pathname, tab.key);
         return (
@@ -133,7 +136,7 @@ export default function BottomNav() {
           >
             {tab.icon(active)}
             <span
-              className={`text-[11px] font-bold ${active ? "text-accent" : "text-ink-muted"}`}
+              className={`text-[11px] font-bold ${active ? "text-sky" : "text-ink-muted"}`}
             >
               {tab.label}
             </span>
