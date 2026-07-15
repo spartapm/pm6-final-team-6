@@ -28,7 +28,7 @@ export default function Modal({
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-ink/35 px-6 animate-soft-pop">
-      <div className="w-full max-w-[320px] rounded-card border border-line bg-surface-white p-5 shadow-float">
+      <div className="w-full max-w-[320px] rounded-card bg-white p-5 shadow-float">
         <h3 className="text-lg font-extrabold text-ink">{title}</h3>
         {description && (
           <p className="mt-2 text-sm leading-relaxed text-ink-soft">{description}</p>

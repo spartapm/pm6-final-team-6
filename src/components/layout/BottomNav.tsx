@@ -102,7 +102,7 @@ export default function BottomNav() {
   const { state, profile, activeRoutine } = useAppDerivations();
 
   return (
-    <nav className="bottom-nav z-40 flex w-full shrink-0 items-start justify-around border-t border-line/60 bg-surface-white pt-2 shadow-nav">
+    <nav className="bottom-nav z-40 flex w-full shrink-0 items-start justify-around border-t border-black/5 bg-white pt-2 shadow-nav">
       {tabs.map((tab) => {
         const active = isActive(pathname, tab.key);
         return (

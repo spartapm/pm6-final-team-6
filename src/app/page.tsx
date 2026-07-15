@@ -15,10 +15,11 @@ import type { SkinNote } from "@/lib/types";
 function SkyCta({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <Button
+      type="button"
       variant="sky"
       fullWidth
       onClick={onClick}
-      className="justify-between px-5 text-[15px] font-extrabold text-ink"
+      className="relative z-[1] justify-between px-5 text-[15px] font-extrabold text-ink"
     >
       <span>{label}</span>
       <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FEFEFE] text-sky shadow-sm">
@@ -38,9 +39,9 @@ function SkyCta({ label, onClick }: { label: string; onClick: () => void }) {
 
 function HonorCard({ label, note }: { label: string; note: SkinNote | null }) {
   return (
-    <div className="rounded-[18px] border border-line bg-surface-card p-2.5 text-center shadow-card">
+    <div className="rounded-[18px] bg-white p-2.5 text-center shadow-card">
       <p className="text-[11px] font-extrabold text-accent">{label}</p>
-      <div className="mx-auto my-2.5 flex aspect-square w-full max-w-[84px] items-center justify-center overflow-hidden rounded-[14px] bg-accent-faint">
+      <div className="mx-auto my-2.5 flex aspect-square w-full max-w-[84px] items-center justify-center overflow-hidden rounded-[14px] bg-[#F9FBFE]">
         {note ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -128,7 +129,7 @@ export default function HomePage() {
           />
         </section>
 
-        <Card className="relative overflow-hidden !p-5">
+        <Card className="relative !p-5">
           {loggedIn ? (
             <>
               <h2 className="text-base font-extrabold text-ink">내 피부 프로필</h2>
@@ -206,35 +207,45 @@ export default function HomePage() {
         <section>
           <SectionHeader title="이번주 참여 기록" />
           {hasRoutine ? (
-            <Card className="overflow-hidden !px-3 !py-4">
-              <div className="grid grid-cols-7 gap-x-1">
-                {weekDays.map((day, i) => {
-                  const key = todayKey(day);
-                  const logged = state.dailyLogs.some(
-                    (l) => l.date === key && l.routineId === activeRoutine!.id
-                  );
-                  const isToday = key === today;
-                  const startKey = todayKey(new Date(activeRoutine!.startedAt));
-                  const beforeStart = key < startKey;
-                  const isFuture = day.getTime() > new Date(today).getTime();
-                  const icon = weekDayIllustration({
-                    isToday,
-                    logged,
-                    isFuture,
-                    beforeStart,
-                  });
-                  return (
-                    <div key={key} className="flex min-w-0 flex-col items-center gap-1.5">
-                      <span className="text-[11px] font-bold text-ink-muted">
-                        {WEEKDAY_LABELS[i]}
-                      </span>
+            <div className="grid grid-cols-7 gap-1.5">
+              {weekDays.map((day, i) => {
+                const key = todayKey(day);
+                const logged = state.dailyLogs.some(
+                  (l) => l.date === key && l.routineId === activeRoutine!.id
+                );
+                const isToday = key === today;
+                const startKey = todayKey(new Date(activeRoutine!.startedAt));
+                const beforeStart = key < startKey;
+                const isFuture = day.getTime() > new Date(today).getTime();
+                const icon = weekDayIllustration({
+                  isToday,
+                  logged,
+                  isFuture,
+                  beforeStart,
+                });
+                const showRing =
+                  (isToday && !beforeStart) || (!icon && !beforeStart && isFuture);
+                return (
+                  <div
+                    key={key}
+                    className="flex min-w-0 flex-col items-center gap-1.5 rounded-[16px] bg-white px-0.5 py-2 shadow-card"
+                  >
+                    <span className="text-[11px] font-bold text-ink">
+                      {WEEKDAY_LABELS[i]}
+                    </span>
+                    <div className="relative flex h-9 w-9 shrink-0 items-center justify-center">
+                      {isToday && !beforeStart && (
+                        <span className="pointer-events-none absolute -right-0.5 -top-1 text-[9px] leading-none text-accent">
+                          ✦✦
+                        </span>
+                      )}
                       <div
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full ${
-                          isToday && !beforeStart
-                            ? "border-2 border-dashed border-accent bg-[#FFF5F7] animate-pulse-ring"
+                        className={`flex h-9 w-9 items-center justify-center overflow-hidden rounded-full ${
+                          showRing
+                            ? "border-2 border-accent bg-white"
                             : icon
-                              ? "bg-accent-faint/40"
-                              : "border border-accent/35 bg-white"
+                              ? "bg-transparent"
+                              : "border border-accent/40 bg-white"
                         }`}
                       >
                         {icon ? (
@@ -248,10 +259,10 @@ export default function HomePage() {
                         ) : null}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            </Card>
+                  </div>
+                );
+              })}
+            </div>
           ) : (
             <Card className="relative overflow-hidden !p-5 min-h-[132px]">
               <Badge>이번주 기록 없음</Badge>

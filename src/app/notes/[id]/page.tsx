@@ -152,7 +152,7 @@ export default function NoteDetailPage() {
                   {isMine ? (
                     <button
                       type="button"
-                      className="rounded-chip border border-line bg-surface-card px-2.5 py-1 text-[11px] font-bold text-ink-soft"
+                      className="rounded-chip bg-white shadow-card px-2.5 py-1 text-[11px] font-bold text-ink-soft"
                       onClick={() => setSheet("note")}
                     >
                       삭제하기
@@ -188,62 +188,68 @@ export default function NoteDetailPage() {
             </div>
           </div>
 
-          <div className="mt-4">
-            <div className="flex gap-2 overflow-x-auto no-scrollbar touch-pan-x">
-              {note.products.map((product) => (
-                <div key={product.id} className="w-[72px] shrink-0 text-center">
-                  <div className="mx-auto mb-1 flex h-14 w-14 items-center justify-center overflow-hidden rounded-[10px] border border-dashed border-line bg-surface-empty text-[10px] font-bold text-ink-muted">
-                    {product.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={product.imageUrl}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      "이미지"
-                    )}
+          <div className="mt-4 -mx-4">
+            <div className="overflow-x-auto no-scrollbar overscroll-x-contain touch-pan-x">
+              <div className="flex w-max gap-2 px-4">
+                {note.products.map((product) => (
+                  <div key={product.id} className="w-[72px] shrink-0 text-center">
+                    <div className="mx-auto mb-1 flex h-14 w-14 items-center justify-center overflow-hidden rounded-[10px] border border-dashed border-line bg-surface-empty text-[10px] font-bold text-ink-muted">
+                      {product.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={product.imageUrl}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        "이미지"
+                      )}
+                    </div>
+                    <p className="line-clamp-2 text-[10px] font-bold text-ink">{product.name}</p>
                   </div>
-                  <p className="line-clamp-2 text-[10px] font-bold text-ink">{product.name}</p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
 
           {note.changeTimeline.length > 0 && (
             <div className="mt-4">
               <p className="mb-2 text-sm font-extrabold text-ink">변화 과정</p>
-              <div className="flex gap-2 overflow-x-auto no-scrollbar touch-pan-x">
-                {note.changeTimeline.map((item, index) => {
-                  const feeling = CHANGE_FEELINGS.find((f) => f.value === item.feeling);
-                  return (
-                    <button
-                      key={`${item.label}-${index}`}
-                      type="button"
-                      className="w-[76px] shrink-0 text-center"
-                      onClick={() => item.photoUrl && setPreview(item.photoUrl)}
-                    >
-                      {item.photoUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={item.photoUrl}
-                          alt=""
-                          className="mb-1 h-[72px] w-full rounded-[10px] object-cover"
-                        />
-                      ) : (
-                        <div className="mb-1 flex h-[72px] items-center justify-center rounded-[10px] bg-surface-empty text-xl">
-                          {feeling?.emoji ?? "🙂"}
-                        </div>
-                      )}
-                      <p className="text-[11px] font-bold text-ink">{item.label}</p>
-                    </button>
-                  );
-                })}
+              <div className="-mx-4">
+                <div className="overflow-x-auto no-scrollbar overscroll-x-contain touch-pan-x">
+                  <div className="flex w-max gap-2 px-4">
+                    {note.changeTimeline.map((item, index) => {
+                      const feeling = CHANGE_FEELINGS.find((f) => f.value === item.feeling);
+                      return (
+                        <button
+                          key={`${item.label}-${index}`}
+                          type="button"
+                          className="w-[76px] shrink-0 text-center"
+                          onClick={() => item.photoUrl && setPreview(item.photoUrl)}
+                        >
+                          {item.photoUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={item.photoUrl}
+                              alt=""
+                              className="mb-1 h-[72px] w-full rounded-[10px] object-cover"
+                            />
+                          ) : (
+                            <div className="mb-1 flex h-[72px] items-center justify-center rounded-[10px] bg-surface-empty text-xl">
+                              {feeling?.emoji ?? "🙂"}
+                            </div>
+                          )}
+                          <p className="text-[11px] font-bold text-ink">{item.label}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
-          <div className="mt-4 grid grid-cols-2 gap-2 rounded-[12px] border border-line px-3 py-2.5 text-center text-[11px]">
+          <div className="mt-4 grid grid-cols-2 gap-2 rounded-[12px] bg-[#F9FBFE] px-3 py-2.5 text-center text-[11px]">
             <div className="border-r border-dashed border-line/60">
               <p className="text-ink-muted">사용 기간</p>
               <p className="mt-0.5 font-extrabold text-ink">{note.durationDays}일</p>
@@ -312,7 +318,7 @@ export default function NoteDetailPage() {
                 {sort === "latest" ? "최신순" : "좋아요순"} ▾
               </button>
               {sortOpen && (
-                <div className="absolute right-0 top-7 z-20 min-w-[100px] overflow-hidden rounded-[12px] border border-line bg-surface-card shadow-card">
+                <div className="absolute right-0 top-7 z-20 min-w-[100px] overflow-hidden rounded-[12px] bg-white shadow-card">
                   <button
                     type="button"
                     className={`block w-full px-3 py-2 text-left text-xs font-bold ${
@@ -449,7 +455,7 @@ export default function NoteDetailPage() {
 
       {sheet && (
         <div className="fixed inset-0 z-[70] flex items-end justify-center bg-ink/35">
-          <div className="w-full max-w-phone rounded-t-[24px] border border-line bg-surface-card p-4">
+          <div className="w-full max-w-phone rounded-t-[24px] bg-white shadow-card p-4">
             {sheet === "note" && (
               <div className="space-y-2">
                 {isMine ? (

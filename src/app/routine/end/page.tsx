@@ -160,7 +160,7 @@ export default function RoutineEndPage() {
           <button
             type="button"
             onClick={goTags}
-            className="flex w-full items-center gap-2 rounded-card border border-line bg-surface-card px-3 py-3 text-left shadow-card"
+            className="flex w-full items-center gap-2 rounded-card bg-white shadow-card px-3 py-3 text-left shadow-card"
           >
             <span
               className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] ${

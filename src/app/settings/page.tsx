@@ -61,7 +61,7 @@ export default function SettingsPage() {
       <div className="page-pad mt-4 space-y-5 pb-8 animate-fade-up">
         <section>
           <h2 className="mb-2 text-sm font-extrabold text-ink">서비스 안내</h2>
-          <Card padded={false} className="overflow-hidden divide-y divide-line/50">
+          <Card padded={false} className="overflow-hidden divide-y divide-black/5">
             <SettingsRow label="공지사항" onClick={() => router.push("/settings/notices")} />
             <SettingsRow label="문의하기" onClick={() => router.push("/settings/inquiry")} />
             <SettingsRow label="이용약관" onClick={() => router.push("/settings/terms")} />
@@ -70,7 +70,7 @@ export default function SettingsPage() {
 
         <section>
           <h2 className="mb-2 text-sm font-extrabold text-ink">계정</h2>
-          <Card padded={false} className="overflow-hidden divide-y divide-line/50">
+          <Card padded={false} className="overflow-hidden divide-y divide-black/5">
             <SettingsRow label="로그아웃" onClick={() => setLogoutOpen(true)} />
             <SettingsRow
               label="회원탈퇴"

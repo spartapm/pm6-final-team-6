@@ -255,7 +255,7 @@ export default function SkinNoteCompletePage() {
 
         <div
           ref={cardRef}
-          className="rounded-card border border-line bg-surface-card p-4 shadow-card"
+          className="rounded-card bg-white shadow-card p-4 shadow-card"
         >
           <div className="mb-3 flex items-center justify-between gap-2">
             <button

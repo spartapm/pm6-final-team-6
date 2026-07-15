@@ -14,7 +14,7 @@ import { trackEvent } from "@/lib/analytics";
 import { BRAND, CHANGE_FEELINGS, daysSince, formatDateDot } from "@/lib/constants";
 import { compressImageFile, validateImageFile } from "@/lib/image";
 import { defaultAvatar } from "@/lib/illustrations";
-import { clearAvatar, logout, showToast, updateAvatar } from "@/lib/store";
+import { clearAvatar, showToast, updateAvatar } from "@/lib/store";
 import type { SkinNote } from "@/lib/types";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
 
@@ -60,43 +60,6 @@ export default function MyPage() {
     }
   };
 
-  const interestLinks = [
-    {
-      label: "최근 본 스킨노트",
-      onClick: () => {
-        if (state.viewedNoteIds.length === 0) {
-          showToast("최근 본 스킨노트가 없어요.");
-          return;
-        }
-        router.push(`/notes/${state.viewedNoteIds[state.viewedNoteIds.length - 1]}`);
-      },
-    },
-    {
-      label: "저장한 스킨노트",
-      onClick: () => router.push("/drawer"),
-    },
-    {
-      label: "좋아요한 스킨노트",
-      onClick: () => {
-        if (state.helpedNoteIds.length === 0) {
-          showToast("좋아요한 스킨노트가 없어요.");
-          return;
-        }
-        router.push(`/notes/${state.helpedNoteIds[0]}`);
-      },
-    },
-    {
-      label: "신고 내역",
-      onClick: () => {
-        showToast(
-          state.reportedNoteIds.length
-            ? `신고한 노트 ${state.reportedNoteIds.length}건이 있어요.`
-            : "신고 내역이 없어요."
-        );
-      },
-    },
-  ];
-
   return (
     <AppShell>
       <div className="page-pad space-y-5 pt-5 pb-6 animate-fade-up">
@@ -124,7 +87,7 @@ export default function MyPage() {
           <div className="flex items-center gap-4">
             <button
               type="button"
-              className="flex h-[72px] w-[72px] items-center justify-center overflow-hidden rounded-[16px] border border-line bg-surface-empty"
+              className="flex h-[72px] w-[72px] items-center justify-center overflow-hidden rounded-[16px] bg-surface-empty"
               onClick={() => setAvatarSheet(true)}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -169,7 +132,7 @@ export default function MyPage() {
           {activeRoutine ? (
             <button
               type="button"
-              className="w-full rounded-card border border-line bg-surface-card p-4 text-left shadow-card"
+              className="w-full rounded-card bg-white p-4 text-left shadow-card"
               onClick={() => {
                 trackEvent("mypage_routine_click", { routine_id: activeRoutine.id });
                 router.push("/care-log");
@@ -202,11 +165,7 @@ export default function MyPage() {
         </section>
 
         <section>
-          <SectionHeader
-            title="스킨노트 모아보기"
-            actionLabel="더보기 >"
-            actionHref="/drawer"
-          />
+          <SectionHeader title="스킨노트 모아보기" />
           {completedNotes.length === 0 ? (
             <Card className="text-center !py-6">
               <Illustration
@@ -228,7 +187,7 @@ export default function MyPage() {
                     trackEvent("mypage_skinnote_click", { card_id: note.id });
                     setPreviewNote(note);
                   }}
-                  className="w-[108px] shrink-0 rounded-[16px] border border-line bg-surface-card p-2.5 text-center shadow-card"
+                  className="w-[108px] shrink-0 rounded-[16px] bg-white p-2.5 text-center shadow-card"
                 >
                   {note.isAbandoned ? (
                     <Badge tone="outline" className="mb-2">
@@ -253,35 +212,6 @@ export default function MyPage() {
             </div>
           )}
         </section>
-
-        <section>
-          <SectionHeader title="나의 관심" />
-          <div className="divide-y divide-line/40">
-            {interestLinks.map((item) => (
-              <button
-                key={item.label}
-                type="button"
-                onClick={item.onClick}
-                className="flex w-full items-center justify-between py-3.5 text-left"
-              >
-                <span className="text-[15px] font-bold text-ink">{item.label}</span>
-                <span className="text-ink-muted">›</span>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <Button
-          variant="outline"
-          fullWidth
-          onClick={async () => {
-            await logout();
-            trackEvent("logout", { entry_point: "mypage" });
-            router.push("/login");
-          }}
-        >
-          로그아웃
-        </Button>
       </div>
 
       {avatarSheet && (
@@ -290,7 +220,7 @@ export default function MyPage() {
           onClick={() => setAvatarSheet(false)}
         >
           <div
-            className="w-full max-w-phone rounded-t-[24px] border border-line bg-surface-card p-4"
+            className="w-full max-w-phone rounded-t-[24px] bg-white shadow-card p-4"
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="mb-3 text-center text-lg font-extrabold text-ink">프로필 사진 수정</h3>
@@ -340,7 +270,7 @@ export default function MyPage() {
           onClick={() => setPreviewNote(null)}
         >
           <div
-            className="max-h-[85svh] w-full max-w-phone overflow-y-auto rounded-card border border-line bg-surface-card p-4 shadow-card"
+            className="max-h-[85svh] w-full max-w-phone overflow-y-auto rounded-card bg-white p-4 shadow-card"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-3 flex items-center justify-between gap-2">

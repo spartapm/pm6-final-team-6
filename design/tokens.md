@@ -46,8 +46,11 @@
 
 | 용도 | 값 | 토큰 |
 |------|-----|------|
-| 카드 채우기 | `#F9FBFE` | `surface-card` |
-| 카드 외곽선 | `#7CA5FE` | `line` / `--color-line` |
+| 섹션 카드 (기본) | `#FFFFFF` + soft shadow | `Card` / `bg-white shadow-card` |
+| 내부 서브면 | `#F9FBFE` | `bg-[#F9FBFE]` / `surface-card` |
+| 선택형 칩·체크 외곽 | `#7BA5FD` | `border-sky` (SelectChip 등) |
+
+**규칙:** 섹션/리스트 카드에는 파란 border를 쓰지 않습니다. 파란 테두리는 선택 가능한 칩·체크박스·아웃라인 버튼에만 사용합니다.
 
 ## 기타
 

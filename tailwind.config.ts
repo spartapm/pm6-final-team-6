@@ -51,7 +51,7 @@ const config: Config = {
         field: "16px",
       },
       boxShadow: {
-        card: "0 8px 28px rgba(123, 165, 253, 0.08)",
+        card: "0 8px 24px rgba(30, 35, 41, 0.06)",
         float: "0 10px 28px rgba(123, 165, 253, 0.22)",
         nav: "0 -6px 20px rgba(30, 35, 41, 0.04)",
       },

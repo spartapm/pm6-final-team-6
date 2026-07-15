@@ -338,7 +338,7 @@ export default function RoutineRegisterPage() {
                     });
                     setDragId(null);
                   }}
-                  className="flex items-center gap-2.5 rounded-[14px] border border-line bg-surface-card px-3 py-3"
+                  className="flex items-center gap-2.5 rounded-[14px] bg-white shadow-card px-3 py-3"
                 >
                   <button
                     type="button"
@@ -408,15 +408,15 @@ export default function RoutineRegisterPage() {
             <section>
               <h2 className="mb-2.5 text-[15px] font-extrabold text-ink">이렇게 추천했어요</h2>
               <div className="flex flex-wrap gap-2">
-                <span className="inline-flex items-center rounded-chip border border-line bg-surface-card px-3 py-1.5 text-[11px]">
+                <span className="inline-flex items-center rounded-chip bg-white shadow-card px-3 py-1.5 text-[11px]">
                   <span className="text-ink-muted">피부 타입 / </span>
                   <span className="font-extrabold text-ink">{profile.skinType}</span>
                 </span>
-                <span className="inline-flex max-w-full items-center rounded-chip border border-line bg-surface-card px-3 py-1.5 text-[11px]">
+                <span className="inline-flex max-w-full items-center rounded-chip bg-white shadow-card px-3 py-1.5 text-[11px]">
                   <span className="shrink-0 text-ink-muted">피부 고민 / </span>
                   <span className="truncate font-extrabold text-ink">{concernJoined}</span>
                 </span>
-                <span className="inline-flex items-center rounded-chip border border-line bg-surface-card px-3 py-1.5 text-[11px]">
+                <span className="inline-flex items-center rounded-chip bg-white shadow-card px-3 py-1.5 text-[11px]">
                   <span className="text-ink-muted">민감도 / </span>
                   <span className="font-extrabold text-ink">{profile.sensitivity}</span>
                 </span>
@@ -578,7 +578,7 @@ export default function RoutineRegisterPage() {
       {/* Product picker sheet */}
       {sheetOpen && (
         <div className="fixed inset-0 z-[70] flex items-end justify-center bg-ink/35">
-          <div className="flex max-h-[88svh] w-full max-w-phone flex-col overflow-hidden rounded-t-[24px] border border-line bg-surface-card animate-fade-up">
+          <div className="flex max-h-[88svh] w-full max-w-phone flex-col overflow-hidden rounded-t-[24px] bg-white shadow-card animate-fade-up">
             <div className="flex items-center justify-between px-4 pb-2 pt-4">
               <h3 className="text-lg font-extrabold text-ink">단계 추가</h3>
               <button
@@ -634,7 +634,7 @@ export default function RoutineRegisterPage() {
                     )}
 
                     {searchError && (
-                      <div className="space-y-2 rounded-[14px] border border-line bg-surface-card p-3 text-center">
+                      <div className="space-y-2 rounded-[14px] bg-white shadow-card p-3 text-center">
                         <p className="text-sm text-accent">{searchError}</p>
                         <button
                           type="button"

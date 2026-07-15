@@ -127,7 +127,7 @@ export default function DrawerPage() {
         </header>
 
         {!state.bannerDismissed.drawer && (
-          <div className="flex items-start gap-2.5 rounded-[14px] border border-line bg-surface-card px-3 py-3">
+          <div className="flex items-start gap-2.5 rounded-[14px] bg-white px-3 py-3 shadow-card">
             <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-sky text-[11px] font-bold text-sky">
               i
             </span>
@@ -150,7 +150,7 @@ export default function DrawerPage() {
         )}
 
         {/* Tabs */}
-        <div className="flex border-b border-line/50">
+        <div className="flex border-b border-black/5">
           {(["전체", "저장", "인기"] as Tab[]).map((item) => (
             <button
               key={item}
@@ -231,7 +231,7 @@ export default function DrawerPage() {
               return (
                 <div
                   key={note.id}
-                  className="relative w-full rounded-card border border-line bg-surface-card p-4 text-left shadow-card"
+                  className="relative w-full rounded-card bg-white p-4 text-left shadow-card"
                 >
                   <div className="flex items-start gap-2.5">
                     <button
@@ -278,7 +278,7 @@ export default function DrawerPage() {
                   </div>
 
                   {menuNoteId === note.id && (
-                    <div className="absolute right-3 top-12 z-10 overflow-hidden rounded-[12px] border border-line bg-surface-card shadow-card">
+                    <div className="absolute right-3 top-12 z-10 overflow-hidden rounded-[12px] bg-white shadow-card">
                       <button
                         type="button"
                         className="block w-full px-4 py-2.5 text-left text-sm font-bold text-accent"
@@ -345,7 +345,7 @@ export default function DrawerPage() {
       {/* Filter sheet */}
       {filterOpen && (
         <div className="fixed inset-0 z-[70] flex items-end justify-center bg-ink/35">
-          <div className="max-h-[88svh] w-full max-w-phone overflow-auto rounded-t-[24px] border border-line bg-surface-card p-4 animate-fade-up">
+          <div className="max-h-[88svh] w-full max-w-phone overflow-auto rounded-t-[24px] bg-white shadow-card p-4 animate-fade-up">
             <div className="mb-3 flex items-center justify-between">
               <div className="w-8" />
               <h3 className="text-lg font-extrabold text-ink">조건 선택</h3>
