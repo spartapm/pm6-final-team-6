@@ -584,7 +584,7 @@ export async function toggleHelpNote(noteId: string) {
 export async function addComment(noteId: string, content: string) {
   const state = loadState();
   const user = getCurrentUser(state);
-  if (!user) return;
+  if (!user) throw new Error("로그인이 필요합니다.");
   const comment: Comment = {
     id: newUuid(),
     noteId,
@@ -602,7 +602,18 @@ export async function addComment(noteId: string, content: string) {
       n.id === noteId ? { ...n, commentCount: n.commentCount + 1 } : n
     ),
   }));
-  await insertComment(comment);
+  const { error } = await insertComment(comment);
+  if (error) {
+    updateState((s) => ({
+      ...s,
+      comments: s.comments.filter((c) => c.id !== comment.id),
+      skinNotes: s.skinNotes.map((n) =>
+        n.id === noteId ? { ...n, commentCount: Math.max(0, n.commentCount - 1) } : n
+      ),
+    }));
+    throw error;
+  }
+  return comment;
 }
 
 export async function deleteComment(commentId: string) {

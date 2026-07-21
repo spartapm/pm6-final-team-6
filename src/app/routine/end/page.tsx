@@ -12,8 +12,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import RadioRow from "@/components/ui/RadioRow";
 import SelectChip from "@/components/ui/SelectChip";
 import StarRating from "@/components/ui/StarRating";
-import { trackEvent } from "@/lib/analytics";
-import { DIFFICULTIES, END_REASONS, daysSince } from "@/lib/constants";
+import { DIFFICULTIES, END_REASONS } from "@/lib/constants";
 import { ILLUSTRATIONS, difficultyIllustration } from "@/lib/illustrations";
 import { setPendingEnd } from "@/lib/store";
 import type { Difficulty, EndReason } from "@/lib/types";
@@ -216,12 +215,6 @@ export default function RoutineEndPage() {
               if (!reason || !difficulty) return;
               setSaving(true);
               setPendingEnd({ reason, difficulty, tags, feltChange });
-              trackEvent("routine_end", {
-                end_reason: reason,
-                difficulty,
-                star_rating: feltChange,
-                duration_days: daysSince(activeRoutine.startedAt),
-              });
               router.push("/skin-note/complete");
             }}
           >

@@ -1,5 +1,7 @@
 "use client";
 
+import { todayKey } from "@/lib/constants";
+
 export type AnalyticsPayload = Record<
   string,
   string | number | boolean | null | undefined
@@ -15,17 +17,58 @@ declare global {
 export function trackEvent(event: string, payload: AnalyticsPayload = {}) {
   if (typeof window === "undefined") return;
   window.dataLayer = window.dataLayer || [];
+  const cleaned: Record<string, string | number | boolean | null> = {};
+  for (const [key, value] of Object.entries(payload)) {
+    if (value !== undefined) cleaned[key] = value;
+  }
   window.dataLayer.push({
     event,
-    ...payload,
+    ...cleaned,
   });
 }
 
+const recentScreenViews = new Map<string, number>();
+
+/**
+ * screen_view with short-window dedupe (re-render / React Strict Mode).
+ * Same screen can fire again after navigating away and returning.
+ */
 export function trackScreenView(
   screenName: string,
+  payload: AnalyticsPayload = {},
+  dedupeKey = ""
+) {
+  if (typeof window === "undefined") return;
+  const key = `${screenName}:${dedupeKey}`;
+  const now = Date.now();
+  const prev = recentScreenViews.get(key) ?? 0;
+  if (now - prev < 1500) return;
+  recentScreenViews.set(key, now);
+  trackEvent("screen_view", { screen_name: screenName, ...payload });
+}
+
+/** Once per user per calendar day (localStorage). Used by active_routine_users. */
+export function trackEventOncePerUserDay(
+  event: string,
+  userId: string,
   payload: AnalyticsPayload = {}
 ) {
-  trackEvent("screen_view", { screen_name: screenName, ...payload });
+  if (typeof window === "undefined" || !userId) return;
+  const key = `ana_once_${event}_${userId}_${todayKey()}`;
+  try {
+    if (window.localStorage.getItem(key)) return;
+    window.localStorage.setItem(key, "1");
+  } catch {
+    // private mode — still fire once this JS session via memory map
+    const memKey = `mem:${key}`;
+    if (recentScreenViews.has(memKey)) return;
+    recentScreenViews.set(memKey, Date.now());
+  }
+  trackEvent(event, payload);
+}
+
+export function trackActiveRoutineUser(userId: string) {
+  trackEventOncePerUserDay("active_routine_users", userId);
 }
 
 export function mapAgeRange(ageGroup: string) {

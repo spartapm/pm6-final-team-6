@@ -386,12 +386,13 @@ export default function RoutineRegisterPage() {
                 fullWidth
                 disabled={steps.length === 0}
                 onClick={async () => {
-                  await createRoutine({
+                  const routine = await createRoutine({
                     title: `${profile.concerns[0]} 루틴`,
                     concernLabel: profile.concerns[0],
                     source: "manual",
                     steps: steps.map((s) => ({ category: s.category, product: s.product })),
                   });
+                  if (!routine) return;
                   trackEvent("routine_start", {
                     routine_type: "direct",
                     step_count: steps.length,
@@ -551,12 +552,13 @@ export default function RoutineRegisterPage() {
                 disabled={!recApplied || !recommend}
                 onClick={async () => {
                   if (!recommend) return;
-                  await createRoutine({
+                  const routine = await createRoutine({
                     title: recommend.title,
                     concernLabel: profile.concerns[0],
                     source: "recommend",
                     steps: recommend.steps,
                   });
+                  if (!routine) return;
                   trackEvent("routine_start", {
                     routine_type: "recommend",
                     recommend_id: recommend.id,

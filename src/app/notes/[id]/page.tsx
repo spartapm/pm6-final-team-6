@@ -62,7 +62,7 @@ export default function NoteDetailPage() {
     }
     markNoteViewed(note.id);
     setAllowed(true);
-    trackScreenView("community_detail", { card_id: note.id });
+    trackScreenView("community_detail", { card_id: note.id }, note.id);
   }, [hydrated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const comments = useMemo(() => {
@@ -436,14 +436,18 @@ export default function NoteDetailPage() {
             disabled={!comment.trim()}
             onClick={() =>
               requireLogin(() => {
-                void addComment(note.id, comment.trim()).then(() => {
-                  trackEvent("comment_write", {
-                    card_id: note.id,
-                    has_image: false,
-                    is_reply: false,
+                void addComment(note.id, comment.trim())
+                  .then(() => {
+                    trackEvent("comment_write", {
+                      card_id: note.id,
+                      has_image: false,
+                      is_reply: false,
+                    });
+                    setComment("");
+                  })
+                  .catch(() => {
+                    // 서버 실패 시 이벤트 미발생
                   });
-                  setComment("");
-                });
               })
             }
             aria-label="댓글 등록"

@@ -90,7 +90,7 @@ export default function SettingsPage() {
         onConfirm={async () => {
           setBusy(true);
           await logout();
-          trackEvent("logout", { entry_point: "settings" });
+          trackEvent("logout", { entry_point: "mypage" });
           setBusy(false);
           setLogoutOpen(false);
           router.replace("/login");

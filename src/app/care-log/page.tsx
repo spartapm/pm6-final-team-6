@@ -50,10 +50,12 @@ export default function CareLogPage() {
 
   useEffect(() => {
     if (!hydrated || !state.isLoggedIn) return;
-    trackScreenView("carelog_main", {
-      has_active_routine: Boolean(activeRoutine),
-    });
-  }, [hydrated, state.isLoggedIn, activeRoutine?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    trackScreenView(
+      "carelog_main",
+      { has_active_routine: Boolean(activeRoutine) },
+      "carelog_main"
+    );
+  }, [hydrated, state.isLoggedIn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!hydrated) {
     return (
@@ -140,15 +142,19 @@ export default function CareLogPage() {
       showToast("최소 2단계 이상 체크한 뒤 저장할 수 있어요.");
       return;
     }
-    await saveDailyLog(activeRoutine.id, checked);
-    const completionRate = total > 0 ? Math.round((doneCount / total) * 100) / 100 : 0;
-    trackEvent("today_done", {
-      checked_count: doneCount,
-      total_steps: total,
-      completion_rate: completionRate,
-      day_since_start: daysSince(activeRoutine.startedAt),
-      is_full_complete: doneCount === total,
-    });
+    try {
+      await saveDailyLog(activeRoutine.id, checked);
+      const completionRate = total > 0 ? Math.round((doneCount / total) * 100) / 100 : 0;
+      trackEvent("today_done", {
+        checked_count: doneCount,
+        total_steps: total,
+        completion_rate: completionRate,
+        day_since_start: daysSince(activeRoutine.startedAt),
+        is_full_complete: doneCount === total,
+      });
+    } catch {
+      showToast("저장에 실패했어요. 잠시 후 다시 시도해주세요.");
+    }
   };
 
   return (

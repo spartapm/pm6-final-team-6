@@ -216,6 +216,12 @@ export default function SkinNoteCompletePage() {
       setFinishing(false);
       return;
     }
+    trackEvent("routine_end", {
+      end_reason: pending.reason!,
+      difficulty: pending.difficulty!,
+      star_rating: pending.feltChange,
+      duration_days: duration,
+    });
     trackEvent("skinnote_created", {
       routine_duration: duration,
       skin_type: profile.skinType,
