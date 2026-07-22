@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
+import FeatureHelpButton from "@/components/help/FeatureHelpButton";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Illustration from "@/components/ui/Illustration";
@@ -160,9 +161,11 @@ export default function CareLogPage() {
   return (
     <AppShell>
       <div className="page-pad space-y-4 pb-28 pt-3 animate-fade-up">
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-end gap-2">
+          <FeatureHelpButton tourId="care-log" />
           <button
             type="button"
+            data-help-id="care-end"
             onClick={() => setEndConfirmOpen(true)}
             className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-ink-soft shadow-card"
             aria-label="루틴 종료"
@@ -204,7 +207,7 @@ export default function CareLogPage() {
           <p className="mt-1 text-xs text-ink-muted">이제 이 피부 구역을 함께 기록해봐요.</p>
         </section>
 
-        <Card className="!px-4 !py-3.5">
+        <Card data-help-id="care-progress" className="!px-4 !py-3.5">
           <div className="grid grid-cols-2 gap-2">
             <div className="flex items-start gap-2 border-r border-dashed border-black/10 pr-3">
               <span className="mt-0.5 text-sky" aria-hidden>
@@ -248,7 +251,10 @@ export default function CareLogPage() {
             )}
           </div>
 
-          <div className="mt-3 grid grid-cols-3 rounded-[14px] bg-[#F9FBFE] text-center text-[11px]">
+          <div
+            data-help-id="care-summary"
+            className="mt-3 grid grid-cols-3 rounded-[14px] bg-[#F9FBFE] text-center text-[11px]"
+          >
             <div className="border-r border-dashed border-black/10 px-2 py-2.5">
               <p className="text-ink-muted">오늘 루틴</p>
               <p className="mt-1 font-extrabold text-ink">{total}단계</p>
@@ -263,7 +269,7 @@ export default function CareLogPage() {
             </div>
           </div>
 
-          <div className="mt-3 space-y-2.5">
+          <div data-help-id="care-steps" className="mt-3 space-y-2.5">
             {activeRoutine.steps.map((step) => {
               const isChecked = checked.includes(step.id);
               return (
@@ -314,45 +320,39 @@ export default function CareLogPage() {
           </div>
         </Card>
 
-        {weeklyDone ? (
-          <div className="flex w-full items-center gap-3 rounded-card bg-white p-4 shadow-card">
-            <Illustration
-              src={ILLUSTRATIONS.changeCard}
-              alt=""
-              width={56}
-              height={56}
-              className="shrink-0"
-            />
-            <div className="min-w-0 flex-1">
-              <p className="font-extrabold text-ink">이번 주 변화 과정 기록 완료!</p>
-              <p className="mt-1 text-xs text-ink-muted">다음주에 기록할 수 있어요.</p>
-            </div>
+        <button
+          type="button"
+          data-help-id="care-weekly"
+          onClick={() => {
+            trackEvent("week_record_click", { is_completed: weeklyDone });
+            router.push("/care-log/change");
+          }}
+          className="flex w-full items-center gap-3 rounded-card bg-white p-4 text-left shadow-card"
+        >
+          <Illustration
+            src={ILLUSTRATIONS.changeCard}
+            alt=""
+            width={56}
+            height={56}
+            className="shrink-0"
+          />
+          <div className="min-w-0 flex-1">
+            {weeklyDone ? (
+              <>
+                <p className="font-extrabold text-ink">이번 주 변화 과정 기록 완료!</p>
+                <p className="mt-1 text-xs text-ink-muted">다음주에 기록할 수 있어요.</p>
+              </>
+            ) : (
+              <>
+                <p className="font-extrabold text-ink">이번 주 변화 과정 기록</p>
+                <p className="mt-1 text-xs text-ink-muted">
+                  이번 주 피부 변화를 사진으로 남겨보세요.
+                </p>
+              </>
+            )}
           </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => {
-              trackEvent("week_record_click", { is_completed: false });
-              router.push("/care-log/change");
-            }}
-            className="flex w-full items-center gap-3 rounded-card bg-white p-4 text-left shadow-card"
-          >
-            <Illustration
-              src={ILLUSTRATIONS.changeCard}
-              alt=""
-              width={56}
-              height={56}
-              className="shrink-0"
-            />
-            <div className="min-w-0 flex-1">
-              <p className="font-extrabold text-ink">이번 주 변화 과정 기록</p>
-              <p className="mt-1 text-xs text-ink-muted">
-                이번 주 피부 변화를 사진으로 남겨보세요.
-              </p>
-            </div>
-            <span className="text-sky">›</span>
-          </button>
-        )}
+          <span className="text-sky">›</span>
+        </button>
       </div>
 
       {/* Fixed above bottom nav; only the button itself receives clicks */}
@@ -360,24 +360,25 @@ export default function CareLogPage() {
         className="pointer-events-none fixed inset-x-0 z-50 mx-auto w-full max-w-phone px-4"
         style={{ bottom: "calc(var(--nav-height) + var(--safe-bottom) + 12px)" }}
       >
-        <Button
-          type="button"
-          fullWidth
-          variant="primary"
-          className={[
-            "pointer-events-auto",
-            todayLog || !canSave
-              ? "!bg-btn-disabled !text-ink-muted !border-transparent shadow-none"
-              : "shadow-float",
-          ].join(" ")}
-          aria-disabled={Boolean(todayLog) || !canSave}
-          onClick={handleTodayDone}
-        >
-          <span className="flex h-6 w-6 items-center justify-center rounded-full border border-current/25 bg-white/60 text-xs">
-            ✓
-          </span>
-          {todayLog ? "오늘 기록 완료" : "오늘 했어요"}
-        </Button>
+        <div data-help-id="care-today-done" className="pointer-events-auto">
+          <Button
+            type="button"
+            fullWidth
+            variant="primary"
+            className={[
+              todayLog || !canSave
+                ? "!bg-btn-disabled !text-ink-muted !border-transparent shadow-none"
+                : "shadow-float",
+            ].join(" ")}
+            aria-disabled={Boolean(todayLog) || !canSave}
+            onClick={handleTodayDone}
+          >
+            <span className="flex h-6 w-6 items-center justify-center rounded-full border border-current/25 bg-white/60 text-xs">
+              ✓
+            </span>
+            {todayLog ? "오늘 기록 완료" : "오늘 했어요"}
+          </Button>
+        </div>
       </div>
 
       <Modal

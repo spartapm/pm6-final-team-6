@@ -2,6 +2,7 @@
 
 import { type ReactNode, useEffect } from "react";
 import BottomNav from "./BottomNav";
+import { FeatureHelpProvider } from "@/components/help/FeatureHelpContext";
 import Toast from "@/components/ui/Toast";
 import { trackActiveRoutineUser } from "@/lib/analytics";
 import { useAppDerivations } from "@/lib/useAppState";
@@ -26,11 +27,13 @@ export default function AppShell({
   showNav?: boolean;
 }) {
   return (
-    <div className={`app-frame ${showNav ? "app-frame--nav" : ""}`}>
-      <ActiveRoutineUsersBeacon />
-      <main className={showNav ? "app-main" : "app-main--flush"}>{children}</main>
-      {showNav && <BottomNav />}
-      <Toast />
-    </div>
+    <FeatureHelpProvider>
+      <div className={`app-frame ${showNav ? "app-frame--nav" : ""}`}>
+        <ActiveRoutineUsersBeacon />
+        <main className={showNav ? "app-main" : "app-main--flush"}>{children}</main>
+        {showNav && <BottomNav />}
+        <Toast />
+      </div>
+    </FeatureHelpProvider>
   );
 }

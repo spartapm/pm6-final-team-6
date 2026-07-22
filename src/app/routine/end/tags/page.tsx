@@ -11,12 +11,10 @@ import Modal from "@/components/ui/Modal";
 import PageHeader from "@/components/ui/PageHeader";
 import SelectChip from "@/components/ui/SelectChip";
 import { trackEvent } from "@/lib/analytics";
-import { CHANGE_TAGS } from "@/lib/constants";
+import { NONE_CHANGE_TAG, REGULAR_CHANGE_TAGS } from "@/lib/constants";
 import { ILLUSTRATIONS } from "@/lib/illustrations";
 import { setPendingEnd, showToast } from "@/lib/store";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
-
-const NONE_TAGS = new Set(["#큰 변화 없음", "#아직 잘 모르겠음", "#좀 더 지켜봐야 함"]);
 
 export default function ChangeTagsPage() {
   const router = useRouter();
@@ -34,23 +32,28 @@ export default function ChangeTagsPage() {
   const dirty = JSON.stringify(tags) !== JSON.stringify(initial);
 
   const toggleTag = (tag: string) => {
-    if (NONE_TAGS.has(tag)) {
-      setTags([tag]);
+    // "#큰 변화 없음" — 단독 선택 / 재클릭 시 해제
+    if (tag === NONE_CHANGE_TAG) {
+      if (tags.includes(NONE_CHANGE_TAG)) {
+        setTags([]);
+      } else {
+        setTags([NONE_CHANGE_TAG]);
+      }
       return;
     }
+
     if (tags.includes(tag)) {
       setTags((prev) => prev.filter((t) => t !== tag));
       return;
     }
-    if (tags.some((t) => NONE_TAGS.has(t))) {
-      setTags([tag]);
-      return;
-    }
-    if (tags.length >= 5) {
+
+    // 다른 태그 선택 시 "큰 변화 없음" 자동 해제
+    const withoutNone = tags.filter((t) => t !== NONE_CHANGE_TAG);
+    if (withoutNone.length >= 5) {
       showToast("태그는 최대 5개까지 선택할 수 있어요.");
       return;
     }
-    setTags((prev) => [...prev, tag]);
+    setTags([...withoutNone, tag]);
   };
 
   return (
@@ -59,6 +62,7 @@ export default function ChangeTagsPage() {
         title="변화 태그 선택"
         subtitle="루틴 사용 후 변화를 선택해주세요"
         center
+        helpTourId="routine-end-tags"
         onBack={() => {
           if (dirty) setConfirmOpen(true);
           else router.push("/routine/end");
@@ -86,8 +90,8 @@ export default function ChangeTagsPage() {
             <Badge tone="soft">최대 5개</Badge>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {CHANGE_TAGS.map((tag) => (
+          <div data-help-id="end-tags-list" className="flex flex-wrap gap-2">
+            {REGULAR_CHANGE_TAGS.map((tag) => (
               <SelectChip
                 key={tag}
                 selected={tags.includes(tag)}
@@ -97,6 +101,16 @@ export default function ChangeTagsPage() {
                 {tag}
               </SelectChip>
             ))}
+          </div>
+
+          <div data-help-id="end-tags-none" className="mt-3 flex justify-center">
+            <SelectChip
+              selected={tags.includes(NONE_CHANGE_TAG)}
+              className="justify-center px-4 text-[12px] !font-extrabold"
+              onClick={() => toggleTag(NONE_CHANGE_TAG)}
+            >
+              {NONE_CHANGE_TAG}
+            </SelectChip>
           </div>
         </Card>
 
@@ -113,25 +127,28 @@ export default function ChangeTagsPage() {
           </p>
         </Card>
 
-        <Button
-          fullWidth
-          disabled={tags.length === 0}
-          onClick={() => {
-            setPendingEnd({
-              reason: state.pendingEnd?.reason,
-              difficulty: state.pendingEnd?.difficulty,
-              tags,
-              feltChange: state.pendingEnd?.feltChange ?? 0,
-            });
-            trackEvent("tag_complete", {
-              selected_tags: tags.join(","),
-              tag_count: tags.length,
-            });
-            router.push("/routine/end");
-          }}
-        >
-          선택 완료
-        </Button>
+        <div data-help-id="end-tags-done">
+          <Button
+            fullWidth
+            disabled={tags.length === 0}
+            onClick={() => {
+              setPendingEnd({
+                reason: state.pendingEnd?.reason,
+                quitDetails: state.pendingEnd?.quitDetails,
+                difficulty: state.pendingEnd?.difficulty,
+                tags,
+                feltChange: state.pendingEnd?.feltChange ?? 0,
+              });
+              trackEvent("tag_complete", {
+                selected_tags: tags.join(","),
+                tag_count: tags.length,
+              });
+              router.push("/routine/end");
+            }}
+          >
+            선택 완료
+          </Button>
+        </div>
       </div>
 
       <Modal

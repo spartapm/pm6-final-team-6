@@ -11,9 +11,9 @@ import { SectionHeader } from "@/components/ui/PageHeader";
 import SelectChip from "@/components/ui/SelectChip";
 import StarRating from "@/components/ui/StarRating";
 import { trackEvent } from "@/lib/analytics";
-import { BRAND, CHANGE_FEELINGS, daysSince, formatDateDot } from "@/lib/constants";
+import { BRAND, daysSince, formatDateDot } from "@/lib/constants";
 import { compressImageFile, validateImageFile } from "@/lib/image";
-import { defaultAvatar } from "@/lib/illustrations";
+import { defaultAvatar, peachFeelingIllustration } from "@/lib/illustrations";
 import { clearAvatar, showToast, updateAvatar } from "@/lib/store";
 import type { SkinNote } from "@/lib/types";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
@@ -71,14 +71,18 @@ export default function MyPage() {
             onClick={() => router.push("/settings")}
             aria-label="설정"
           >
-            <svg width="20" height="19" viewBox="0 0 20 19" fill="none" aria-hidden>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path
-                d="M8.1 1.2l.4-1h2.9l.4 1c.2.6.7 1 1.3 1.1l1 .2.9-1.1 2.1 1.2-.4 1.2c-.2.5 0 1.1.4 1.5l.7.7-1.2.9c-.5.4-.7 1-.6 1.6l.1 1 .2.1H14l-1.1.9c-.4.4-1 .6-1.5.4l-1.2-.3-.7.8-2.1-1.1.2-1.2c.1-.6-.2-1.2-.7-1.5l-.8-.5.1-.1v-1.8l1-.2c.6-.1 1.1-.5 1.3-1.1z"
+                d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"
                 stroke="currentColor"
-                strokeWidth="1.4"
+                strokeWidth="1.7"
+              />
+              <path
+                d="M19.4 13.1c.04-.36.06-.73.06-1.1s-.02-.74-.06-1.1l2.1-1.64a.5.5 0 0 0 .12-.64l-2-3.46a.5.5 0 0 0-.6-.22l-2.48 1a7.7 7.7 0 0 0-1.9-1.1l-.38-2.64A.5.5 0 0 0 13.76 1h-3.52a.5.5 0 0 0-.5.42l-.38 2.64c-.67.27-1.3.63-1.9 1.1l-2.48-1a.5.5 0 0 0-.6.22l-2 3.46a.5.5 0 0 0 .12.64L4.6 10.9c-.04.36-.06.73-.06 1.1s.02.74.06 1.1L2.5 14.74a.5.5 0 0 0-.12.64l2 3.46c.14.24.42.34.68.22l2.48-1c.58.45 1.22.82 1.9 1.1l.38 2.64c.05.24.25.42.5.42h3.52c.24 0 .45-.18.5-.42l.38-2.64c.68-.28 1.32-.65 1.9-1.1l2.48 1c.26.12.54.02.68-.22l2-3.46a.5.5 0 0 0-.12-.64L19.4 13.1Z"
+                stroke="currentColor"
+                strokeWidth="1.5"
                 strokeLinejoin="round"
               />
-              <circle cx="10" cy="9.5" r="2.2" stroke="currentColor" strokeWidth="1.4" />
             </svg>
           </button>
         </div>
@@ -212,6 +216,20 @@ export default function MyPage() {
             </div>
           )}
         </section>
+
+        <section>
+          <h2 className="mb-2.5 text-[15px] font-extrabold text-ink">나의 관심</h2>
+          <button
+            type="button"
+            onClick={() => router.push("/mypage/saved")}
+            className="flex w-full items-center justify-between rounded-card bg-white px-4 py-3.5 text-left shadow-card"
+          >
+            <span className="text-[14px] font-bold text-ink">저장한 스킨노트</span>
+            <span className="text-sky" aria-hidden>
+              ›
+            </span>
+          </button>
+        </section>
       </div>
 
       {avatarSheet && (
@@ -339,11 +357,10 @@ export default function MyPage() {
             </div>
             <div className="border-b border-dashed border-line/70 py-3">
               <p className="mb-2 text-sm font-extrabold text-ink">변화 과정</p>
-              <div className="grid grid-cols-4 gap-1.5">
-                {previewNote.changeTimeline.slice(0, 4).map((item, index) => {
-                  const feeling = CHANGE_FEELINGS.find((f) => f.value === item.feeling);
-                  return (
-                    <div key={`${item.label}-${index}`} className="text-center">
+              <div className="overflow-x-auto no-scrollbar overscroll-x-contain touch-pan-x">
+                <div className="flex w-max gap-2">
+                  {previewNote.changeTimeline.map((item, index) => (
+                    <div key={`${item.label}-${index}`} className="w-[72px] shrink-0 text-center">
                       {item.photoUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -352,14 +369,20 @@ export default function MyPage() {
                           className="mx-auto h-14 w-full rounded-[10px] object-cover"
                         />
                       ) : (
-                        <div className="mx-auto flex h-14 w-full items-center justify-center rounded-[10px] bg-surface-empty text-xl">
-                          {feeling?.emoji ?? "🙂"}
+                        <div className="mx-auto flex h-14 w-full items-center justify-center rounded-[10px] bg-accent-faint">
+                          <Illustration
+                            src={peachFeelingIllustration(item.feeling)}
+                            alt="피치"
+                            width={40}
+                            height={40}
+                            className="h-10 w-10 object-contain"
+                          />
                         </div>
                       )}
                       <p className="mt-1 text-[10px] text-ink-muted">{item.label}</p>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
             </div>
             <div className="space-y-3 pt-3 text-sm">

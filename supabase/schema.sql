@@ -144,6 +144,16 @@ create table if not exists public.note_reports (
   primary key (user_id, note_id)
 );
 
+create table if not exists public.comment_reports (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  comment_id uuid not null references public.note_comments(id) on delete cascade,
+  note_id uuid not null references public.skin_notes(id) on delete cascade,
+  target_author_id uuid not null references auth.users(id) on delete cascade,
+  comment_content text not null default '',
+  created_at timestamptz not null default now(),
+  primary key (user_id, comment_id)
+);
+
 create table if not exists public.user_prefs (
   user_id uuid primary key references auth.users(id) on delete cascade,
   selected_routine_id uuid,
@@ -167,6 +177,7 @@ alter table public.note_helps enable row level security;
 alter table public.comment_likes enable row level security;
 alter table public.note_hides enable row level security;
 alter table public.note_reports enable row level security;
+alter table public.comment_reports enable row level security;
 alter table public.user_prefs enable row level security;
 
 -- Profiles policies
@@ -224,6 +235,8 @@ drop policy if exists "note_hides_own" on public.note_hides;
 create policy "note_hides_own" on public.note_hides for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 drop policy if exists "note_reports_own" on public.note_reports;
 create policy "note_reports_own" on public.note_reports for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+drop policy if exists "comment_reports_own" on public.comment_reports;
+create policy "comment_reports_own" on public.comment_reports for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 drop policy if exists "user_prefs_own" on public.user_prefs;
 create policy "user_prefs_own" on public.user_prefs for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 

@@ -10,10 +10,16 @@ import PageHeader from "@/components/ui/PageHeader";
 import SelectChip from "@/components/ui/SelectChip";
 import StarRating from "@/components/ui/StarRating";
 import { trackEvent } from "@/lib/analytics";
-import { BRAND, CHANGE_FEELINGS, daysSince, formatDateDot } from "@/lib/constants";
-import { ILLUSTRATIONS } from "@/lib/illustrations";
+import { BRAND, daysSince, daysSinceAt, formatDateDot } from "@/lib/constants";
+import { ILLUSTRATIONS, peachFeelingIllustration } from "@/lib/illustrations";
 import { finishRoutine, showToast } from "@/lib/store";
+import type { ChangeFeeling } from "@/lib/types";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
+
+function isMobileDevice() {
+  if (typeof navigator === "undefined") return false;
+  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+}
 
 async function inlineSameOriginImages(root: HTMLElement) {
   const images = Array.from(root.querySelectorAll("img"));
@@ -56,41 +62,68 @@ async function inlineSameOriginImages(root: HTMLElement) {
 }
 
 async function downloadNoteCard(element: HTMLElement, filename: string) {
-  await inlineSameOriginImages(element);
-  const dataUrl = await toPng(element, {
-    cacheBust: true,
-    pixelRatio: 2,
-    backgroundColor: "#F9FBFE",
-    skipFonts: true,
+  // 가로 스크롤 영역을 캡처에 전부 포함
+  const scrollers = Array.from(
+    element.querySelectorAll<HTMLElement>("[data-capture-expand]")
+  );
+  const prevStyles = scrollers.map((el) => ({
+    el,
+    overflow: el.style.overflow,
+    width: el.style.width,
+    maxWidth: el.style.maxWidth,
+  }));
+  scrollers.forEach((el) => {
+    el.style.overflow = "visible";
+    el.style.width = `${el.scrollWidth}px`;
+    el.style.maxWidth = "none";
   });
 
-  const blob = await (await fetch(dataUrl)).blob();
-  const file = new File([blob], filename, { type: "image/png" });
-
-  const nav = navigator as Navigator & {
-    canShare?: (data?: ShareData) => boolean;
-    share?: (data?: ShareData) => Promise<void>;
-  };
-  if (typeof nav.canShare === "function" && nav.canShare({ files: [file] }) && nav.share) {
-    await nav.share({ files: [file], title: "ANA 스킨노트" });
-    return;
-  }
-
-  const objectUrl = URL.createObjectURL(blob);
   try {
-    const a = document.createElement("a");
-    a.href = objectUrl;
-    a.download = filename;
-    a.rel = "noopener";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    await inlineSameOriginImages(element);
+    const dataUrl = await toPng(element, {
+      cacheBust: true,
+      pixelRatio: 2,
+      backgroundColor: "#FFFFFF",
+      skipFonts: true,
+    });
+
+    const blob = await (await fetch(dataUrl)).blob();
+    const file = new File([blob], filename, { type: "image/png" });
+
+    // 모바일: 공유 시트로 갤러리 저장 / 데스크톱: 다운로드 창
+    if (isMobileDevice()) {
+      const nav = navigator as Navigator & {
+        canShare?: (data?: ShareData) => boolean;
+        share?: (data?: ShareData) => Promise<void>;
+      };
+      if (typeof nav.canShare === "function" && nav.canShare({ files: [file] }) && nav.share) {
+        await nav.share({ files: [file], title: "ANA 스킨노트" });
+        return;
+      }
+    }
+
+    const objectUrl = URL.createObjectURL(blob);
+    try {
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = filename;
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+    }
   } finally {
-    URL.revokeObjectURL(objectUrl);
+    prevStyles.forEach(({ el, overflow, width, maxWidth }) => {
+      el.style.overflow = overflow;
+      el.style.width = width;
+      el.style.maxWidth = maxWidth;
+    });
   }
 }
 
-function Thumb({
+function ProductThumb({
   src,
   label,
   className = "",
@@ -101,15 +134,33 @@ function Thumb({
 }) {
   if (src) {
     // eslint-disable-next-line @next/next/no-img-element
-    return (
-      <img src={src} alt={label ?? ""} className={`object-cover ${className}`} />
-    );
+    return <img src={src} alt={label ?? ""} className={`object-cover ${className}`} />;
   }
   return (
     <div
       className={`flex items-center justify-center bg-surface-empty text-[9px] font-bold text-ink-muted ${className}`}
     >
       {label ?? "이미지"}
+    </div>
+  );
+}
+
+function PeachThumb({
+  feeling,
+  className = "",
+}: {
+  feeling?: ChangeFeeling | null;
+  className?: string;
+}) {
+  return (
+    <div className={`flex items-center justify-center bg-accent-faint ${className}`}>
+      <Illustration
+        src={peachFeelingIllustration(feeling)}
+        alt="피치"
+        width={48}
+        height={48}
+        className="h-[78%] w-[78%] object-contain"
+      />
     </div>
   );
 }
@@ -143,37 +194,17 @@ export default function SkinNoteCompletePage() {
     [state.weeklyChanges, activeRoutine]
   );
 
+  /** 좌측(과거) → 우측(최신), 표기는 루틴 일차 */
   const progressSlots = useMemo(() => {
-    const slots: Array<{
-      id: string;
-      label: string;
-      photoUrl?: string;
-      feeling?: (typeof weekly)[number]["feeling"];
-      highlight?: boolean;
-    }> = [{ id: "start", label: "시작 전" }];
-
-    const filled = weekly.slice(0, 3);
-    filled.forEach((w, i) => {
-      slots.push({
-        id: w.id,
-        label: `${i + 1}주차`,
-        photoUrl: w.photoUrl,
-        feeling: w.feeling,
-        highlight: i === filled.length - 1,
-      });
-    });
-    while (slots.length < 4) {
-      const weekNum = slots.length;
-      slots.push({
-        id: `empty-${weekNum}`,
-        label: `${weekNum}주차`,
-      });
-    }
-    if (slots.length > 1) {
-      slots[slots.length - 1] = { ...slots[slots.length - 1], highlight: true };
-    }
-    return slots.slice(0, 4);
-  }, [weekly]);
+    if (!activeRoutine) return [];
+    return weekly.map((w, index) => ({
+      id: w.id,
+      label: `${daysSinceAt(activeRoutine.startedAt, w.createdAt)}일차`,
+      photoUrl: w.photoUrl,
+      feeling: w.feeling,
+      highlight: index === weekly.length - 1,
+    }));
+  }, [weekly, activeRoutine]);
 
   if (!hydrated || !user || !profile || !activeRoutine || !pending) {
     return (
@@ -241,7 +272,11 @@ export default function SkinNoteCompletePage() {
 
   return (
     <AppShell showNav={false}>
-      <PageHeader title="" onBack={() => router.replace("/routine/end")} />
+      <PageHeader
+        title=""
+        helpTourId="skin-note-complete"
+        onBack={() => router.replace("/routine/end")}
+      />
 
       <div className="page-pad -mt-2 space-y-4 pb-10 animate-fade-up">
         <div className="text-center">
@@ -259,25 +294,33 @@ export default function SkinNoteCompletePage() {
           <p className="mt-1 text-sm text-ink-muted">나의 피부 여정을 기록해 보세요 ✦</p>
         </div>
 
+        {/* 저장 버튼 — 캡처 범위 제외 */}
+        <div className="flex justify-start" data-help-id="note-save">
+          <button
+            type="button"
+            className="rounded-chip border border-sky bg-surface-card px-3 py-1.5 text-xs font-bold text-sky"
+            onClick={() => {
+              void saveCardImage();
+            }}
+          >
+            스킨노트 저장하기
+          </button>
+        </div>
+
+        {/* 캡처 대상: 스킨노트 카드만 */}
         <div
           ref={cardRef}
-          className="rounded-card bg-white shadow-card p-4 shadow-card"
+          className="rounded-card border border-sky/30 bg-white p-4 shadow-card"
         >
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <button
-              type="button"
-              className="rounded-chip border border-sky bg-surface-card px-3 py-1.5 text-xs font-bold text-sky"
-              onClick={() => {
-                void saveCardImage();
-              }}
-            >
-              스킨노트 저장하기
-            </button>
+          <div className="mb-3 flex justify-end">
             <span className="text-[11px] text-ink-muted">{createdLabel} 생성</span>
           </div>
 
           {/* Skin profile */}
-          <div className="space-y-2.5 border-b border-dashed border-line/70 pb-3 text-sm">
+          <div
+            data-help-id="note-skin"
+            className="space-y-2.5 border-b border-dashed border-line/70 pb-3 text-sm"
+          >
             <div className="flex gap-3">
               <span className="w-[4.5rem] shrink-0 text-ink-muted">피부 타입</span>
               <span className="font-extrabold text-ink">{profile.skinType}</span>
@@ -289,12 +332,18 @@ export default function SkinNoteCompletePage() {
           </div>
 
           {/* Products / period / order */}
-          <div className="space-y-2.5 border-b border-dashed border-line/70 py-3 text-sm">
+          <div
+            data-help-id="note-routine"
+            className="space-y-2.5 border-b border-dashed border-line/70 py-3 text-sm"
+          >
             <div className="flex gap-3">
               <span className="w-[4.5rem] shrink-0 pt-1 text-ink-muted">사용 제품</span>
-              <div className="flex flex-1 gap-1.5 overflow-x-auto no-scrollbar">
+              <div
+                data-capture-expand
+                className="flex flex-1 gap-1.5 overflow-x-auto no-scrollbar"
+              >
                 {activeRoutine.steps.map((step) => (
-                  <Thumb
+                  <ProductThumb
                     key={step.id}
                     src={step.product.imageUrl}
                     label={step.category.slice(0, 2)}
@@ -317,58 +366,70 @@ export default function SkinNoteCompletePage() {
             </div>
           </div>
 
-          {/* Difficulty */}
-          <div className="border-b border-dashed border-line/70 py-3 text-sm">
-            <div className="flex gap-3">
-              <span className="w-[4.5rem] shrink-0 text-ink-muted">루틴 난이도</span>
-              <span className="font-extrabold text-ink">{pending.difficulty}</span>
+          <div data-help-id="note-progress">
+            {/* Difficulty */}
+            <div className="border-b border-dashed border-line/70 py-3 text-sm">
+              <div className="flex gap-3">
+                <span className="w-[4.5rem] shrink-0 text-ink-muted">루틴 난이도</span>
+                <span className="font-extrabold text-ink">{pending.difficulty}</span>
+              </div>
             </div>
-          </div>
 
-          {/* Progress */}
-          <div className="border-b border-dashed border-line/70 py-3">
-            <p className="mb-2.5 text-sm font-extrabold text-ink">변화 과정</p>
-            <div className="grid grid-cols-4 gap-1.5">
-              {progressSlots.map((slot) => (
-                <div key={slot.id} className="text-center">
-                  <div
-                    className={`mx-auto overflow-hidden rounded-[10px] ${
-                      slot.highlight ? "ring-2 ring-sky" : ""
-                    }`}
-                  >
-                    <Thumb
-                      src={slot.photoUrl}
-                      label="📷"
-                      className="mx-auto h-14 w-full"
-                    />
+            {/* Progress */}
+            <div className="border-b border-dashed border-line/70 py-3">
+              <p className="mb-2.5 text-sm font-extrabold text-ink">변화 과정</p>
+              {progressSlots.length === 0 ? (
+                <p className="text-xs text-ink-muted">기록된 변화 과정이 없어요.</p>
+              ) : (
+                <div
+                  data-capture-expand
+                  className="overflow-x-auto overscroll-x-contain touch-pan-x no-scrollbar"
+                >
+                  <div className="flex w-max gap-2">
+                    {progressSlots.map((slot) => (
+                      <div key={slot.id} className="w-[72px] shrink-0 text-center">
+                        <div
+                          className={`mx-auto overflow-hidden rounded-[10px] ${
+                            slot.highlight ? "ring-2 ring-sky" : ""
+                          }`}
+                        >
+                          {slot.photoUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={slot.photoUrl}
+                              alt={slot.label}
+                              className="mx-auto h-14 w-full object-cover"
+                            />
+                          ) : (
+                            <PeachThumb feeling={slot.feeling} className="mx-auto h-14 w-full" />
+                          )}
+                        </div>
+                        <p
+                          className={`mt-1 text-[10px] font-bold ${
+                            slot.highlight ? "text-sky" : "text-ink-muted"
+                          }`}
+                        >
+                          {slot.label}
+                        </p>
+                        <div className="mx-auto mt-1.5 flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-accent-faint">
+                          <Illustration
+                            src={peachFeelingIllustration(slot.feeling)}
+                            alt=""
+                            width={28}
+                            height={28}
+                            className="h-7 w-7 object-contain"
+                          />
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <p
-                    className={`mt-1 text-[10px] font-bold ${
-                      slot.highlight ? "text-sky" : "text-ink-muted"
-                    }`}
-                  >
-                    {slot.label}
-                  </p>
                 </div>
-              ))}
-            </div>
-            <div className="mt-2.5 grid grid-cols-4 gap-1.5">
-              {progressSlots.map((slot) => {
-                const feeling = CHANGE_FEELINGS.find((f) => f.value === slot.feeling);
-                return (
-                  <div
-                    key={`${slot.id}-mood`}
-                    className="mx-auto flex h-9 w-9 items-center justify-center rounded-full bg-accent-faint text-base"
-                  >
-                    {feeling?.emoji ?? "🙂"}
-                  </div>
-                );
-              })}
+              )}
             </div>
           </div>
 
           {/* Tags / rating / reason */}
-          <div className="space-y-3 pt-3 text-sm">
+          <div data-help-id="note-result" className="space-y-3 pt-3 text-sm">
             <div className="flex gap-3">
               <span className="w-[4.5rem] shrink-0 pt-1 text-ink-muted">변화 태그</span>
               <div className="flex flex-1 flex-wrap gap-1.5">
@@ -400,7 +461,7 @@ export default function SkinNoteCompletePage() {
           </p>
         </div>
 
-        <div className="space-y-2.5 pt-1">
+        <div className="space-y-2.5 pt-1" data-help-id="note-actions">
           <Button
             fullWidth
             variant="outline"

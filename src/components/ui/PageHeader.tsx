@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode } from "react";
+import FeatureHelpButton from "@/components/help/FeatureHelpButton";
 
 export default function PageHeader({
   title,
@@ -11,6 +12,7 @@ export default function PageHeader({
   onBack,
   right,
   center,
+  helpTourId,
 }: {
   title: string;
   subtitle?: string;
@@ -18,6 +20,8 @@ export default function PageHeader({
   onBack?: () => void;
   right?: ReactNode;
   center?: boolean;
+  /** 등록된 기능설명 투어 ID — 있으면 우측 상단에 ? 버튼 노출 */
+  helpTourId?: string;
 }) {
   const router = useRouter();
 
@@ -54,7 +58,10 @@ export default function PageHeader({
             <p className="mt-1 text-sm leading-relaxed text-ink-muted">{subtitle}</p>
           )}
         </div>
-        <div className="flex h-10 min-w-10 items-center justify-end">{right}</div>
+        <div className="flex h-10 min-w-10 items-center justify-end gap-1">
+          {right}
+          {helpTourId ? <FeatureHelpButton tourId={helpTourId} /> : null}
+        </div>
       </div>
     </header>
   );

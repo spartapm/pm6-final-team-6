@@ -88,6 +88,52 @@ button:disabled {
   overflow: hidden;
 }
 
+@keyframes text-slide {
+  0%,
+  12% {
+    transform: translateX(0);
+  }
+  88%,
+  100% {
+    transform: translateX(calc(-1 * var(--slide-distance, 0px)));
+  }
+}
+
+.text-slide {
+  display: inline-block;
+  max-width: none;
+  white-space: nowrap;
+  will-change: transform;
+  animation: text-slide var(--slide-duration, 6s) ease-in-out infinite alternate;
+}
+
+/* 추천 루틴 제품 가로 스크롤 — 얇은 스크롤바 노출 */
+.recommend-h-scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #c5ccd6 transparent;
+  cursor: grab;
+}
+
+.recommend-h-scroll:active {
+  cursor: grabbing;
+}
+
+.recommend-h-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.recommend-h-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.recommend-h-scroll::-webkit-scrollbar-thumb {
+  background: #c5ccd6;
+  border-radius: 9999px;
+}
+
 .app-frame {
   width: 100%;
   max-width: var(--phone-width);

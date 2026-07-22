@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
+import FeatureHelpButton from "@/components/help/FeatureHelpButton";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
@@ -111,12 +112,15 @@ export default function HomePage() {
     <AppShell>
       <div className="page-pad space-y-5 pt-5 animate-fade-up">
         <section className="relative flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1 pt-2">
+          <div className="absolute right-0 top-0 z-10">
+            <FeatureHelpButton tourId="home" />
+          </div>
+          <div className="min-w-0 flex-1 pt-2 pr-14">
             <p className="text-[15px] font-semibold text-ink-soft">안녕하세요</p>
             <h1 className="mt-1 text-[22px] font-extrabold leading-snug tracking-tight text-ink">
-              오늘도 <span className="text-accent">피부</span>{" "}
-              <span className="text-accent">기록</span>
-              해볼까요?
+              오늘도 <span className="text-accent">피부</span>
+              <br />
+              <span className="text-accent">기록</span>해볼까요?
             </h1>
           </div>
           <Illustration
@@ -124,7 +128,7 @@ export default function HomePage() {
             alt="ANA 캐릭터"
             width={110}
             height={100}
-            className="shrink-0 animate-soft-pop"
+            className="mt-6 shrink-0 animate-soft-pop"
             priority
           />
         </section>
@@ -132,23 +136,23 @@ export default function HomePage() {
         <Card className="relative !p-5">
           {loggedIn ? (
             <>
-              <h2 className="text-base font-extrabold text-ink">내 피부 프로필</h2>
-              <div className="mt-3 space-y-2.5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="w-[4.5rem] text-[13px] font-semibold text-ink-soft">
-                    피부 타입
-                  </span>
-                  {hasProfile ? (
-                    <Badge>{profile!.skinType}</Badge>
-                  ) : (
-                    <Badge tone="muted">미등록</Badge>
-                  )}
-                </div>
-                <div className="flex flex-wrap items-start gap-2">
-                  <span className="w-[4.5rem] pt-0.5 text-[13px] font-semibold text-ink-soft">
-                    주요 고민
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
+              <div data-help-id="home-skin-profile">
+                <h2 className="text-base font-extrabold text-ink">내 피부 프로필</h2>
+                <div className="mt-3 space-y-2">
+                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1.5">
+                    <span className="shrink-0 text-[13px] font-semibold text-ink-soft">
+                      피부 타입
+                    </span>
+                    {hasProfile ? (
+                      <Badge>{profile!.skinType}</Badge>
+                    ) : (
+                      <Badge tone="muted">미등록</Badge>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1.5">
+                    <span className="shrink-0 text-[13px] font-semibold text-ink-soft">
+                      주요 고민
+                    </span>
                     {hasProfile ? (
                       profile!.concerns.map((c) => <Badge key={c}>{c}</Badge>)
                     ) : (
@@ -157,7 +161,7 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
-              <div className="mt-5">
+              <div className="mt-5" data-help-id="home-routine-cta">
                 <SkyCta label="오늘 루틴 기록하기" onClick={handleRoutineCta} />
                 {helperText && (
                   <p className="mt-3 text-center text-[12px] leading-relaxed text-ink-muted">
@@ -168,24 +172,27 @@ export default function HomePage() {
             </>
           ) : (
             <>
-              <div className="pointer-events-none select-none blur-[2.5px] opacity-45">
+              <div
+                data-help-id="home-skin-profile"
+                className="pointer-events-none select-none blur-[2.5px] opacity-45"
+              >
                 <h2 className="text-base font-extrabold text-ink">내 피부 프로필</h2>
-                <div className="mt-3 space-y-2.5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="w-[4.5rem] text-[13px] font-semibold text-ink-soft">
+                <div className="mt-3 space-y-2">
+                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1.5">
+                    <span className="shrink-0 text-[13px] font-semibold text-ink-soft">
                       피부 타입
                     </span>
                     <Badge tone="muted">미등록</Badge>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="w-[4.5rem] text-[13px] font-semibold text-ink-soft">
+                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1.5">
+                    <span className="shrink-0 text-[13px] font-semibold text-ink-soft">
                       주요 고민
                     </span>
                     <Badge tone="muted">미등록</Badge>
                   </div>
                 </div>
               </div>
-              <div className="relative z-[1] mt-4">
+              <div className="relative z-[1] mt-4" data-help-id="home-routine-cta">
                 <SkyCta
                   label="루틴 등록하러 로그인"
                   onClick={() => router.push("/login?next=/")}
@@ -195,7 +202,7 @@ export default function HomePage() {
           )}
         </Card>
 
-        <section>
+        <section data-help-id="home-honor">
           <SectionHeader title="명예의 스킨노트" actionLabel="더보기 >" actionHref="/drawer" />
           <div className="grid grid-cols-3 gap-2.5">
             {honorCards.map((card) => (
@@ -204,7 +211,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section>
+        <section data-help-id="home-week">
           <SectionHeader title="이번주 참여 기록" />
           {hasRoutine ? (
             <div className="grid grid-cols-7 gap-1.5">

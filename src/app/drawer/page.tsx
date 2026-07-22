@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
+import FeatureHelpButton from "@/components/help/FeatureHelpButton";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Illustration from "@/components/ui/Illustration";
@@ -21,8 +22,15 @@ import type { SkinNote, SkinType } from "@/lib/types";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
 
 type Tab = "전체" | "저장" | "인기";
-type DurationFilter = "전체" | "14일 이하" | "30일 이하";
+type DurationFilter = "전체" | "14일 미만" | "14일 이상" | "30일 이상";
 type ConcernFilter = (typeof DRAWER_CONCERN_FILTERS)[number];
+
+const DURATION_FILTERS: DurationFilter[] = [
+  "전체",
+  "14일 미만",
+  "14일 이상",
+  "30일 이상",
+];
 
 function RadioDot({ selected }: { selected: boolean }) {
   return (
@@ -53,12 +61,17 @@ export default function DrawerPage() {
 
   const notes = useMemo(() => {
     let list: SkinNote[] = [...publicNotes];
-    if (tab === "저장") list = list.filter((n) => state.savedNoteIds.includes(n.id));
-    else if (tab === "인기") list = [...list].sort((a, b) => b.helpCount - a.helpCount);
-    else
+
+    if (tab === "저장") {
+      // 저장 수 기준 내림차순
+      list = [...list].sort((a, b) => b.saveCount - a.saveCount);
+    } else if (tab === "인기") {
+      list = [...list].sort((a, b) => b.helpCount - a.helpCount);
+    } else {
       list = [...list].sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
+    }
 
     if (photoOnly) list = list.filter((n) => n.changeTimeline.some((t) => t.photoUrl));
     if (skinTypes.length) list = list.filter((n) => skinTypes.includes(n.skinType));
@@ -66,10 +79,11 @@ export default function DrawerPage() {
       list = list.filter((n) =>
         concerns.some((c) => concernFilterMatch(c, n.concerns))
       );
-    if (duration === "14일 이하") list = list.filter((n) => n.durationDays <= 14);
-    if (duration === "30일 이하") list = list.filter((n) => n.durationDays <= 30);
+    if (duration === "14일 미만") list = list.filter((n) => n.durationDays < 14);
+    if (duration === "14일 이상") list = list.filter((n) => n.durationDays >= 14);
+    if (duration === "30일 이상") list = list.filter((n) => n.durationDays >= 30);
     return list;
-  }, [publicNotes, tab, state.savedNoteIds, photoOnly, skinTypes, concerns, duration]);
+  }, [publicNotes, tab, photoOnly, skinTypes, concerns, duration]);
 
   const activeChips = [
     ...skinTypes,
@@ -121,7 +135,10 @@ export default function DrawerPage() {
   return (
     <AppShell>
       <div className="page-pad space-y-4 pt-5 pb-6 animate-fade-up">
-        <header className="text-center">
+        <header className="relative text-center">
+          <div className="absolute right-0 top-0 z-10">
+            <FeatureHelpButton tourId="drawer" />
+          </div>
           <h1 className="text-[22px] font-extrabold text-ink">스킨 서랍장</h1>
           <p className="mt-1 text-sm text-ink-muted">나의 루틴을 나누고 함께 성장해요!</p>
         </header>
@@ -131,11 +148,13 @@ export default function DrawerPage() {
             <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-sky text-[11px] font-bold text-sky">
               i
             </span>
-            <p className="min-w-0 flex-1 text-xs leading-relaxed text-ink-soft">
-              스킨노트만 공유할 수 있어요.
-              <br />
-              게시글에는 추가 글을 작성할 수 없어요.
-            </p>
+            <div className="min-w-0 flex-1 text-xs leading-relaxed text-ink-soft">
+              <p className="font-extrabold text-ink">스킨노트만 공유할 수 있어요</p>
+              <p className="mt-1">게시글에는 추가 글을 작성할 수 없어요.</p>
+              <p className="mt-0.5 font-bold text-ink">
+                포함된 사진은 작성자 동의 없이 캡처·저장·외부 공유하지 마세요.
+              </p>
+            </div>
             <button
               type="button"
               className="shrink-0 text-ink-muted"
@@ -168,28 +187,36 @@ export default function DrawerPage() {
         </div>
 
         {/* Filters */}
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-          <button
-            type="button"
-            onClick={() => {
-              setDraftTypes(skinTypes);
-              setDraftConcerns(concerns);
-              setDraftDuration(duration);
-              setFilterOpen(true);
-            }}
-            className="shrink-0 rounded-chip border border-sky bg-surface-card px-3 py-2 text-xs font-bold text-ink"
+        <div className="flex items-center gap-2">
+          <div
+            data-help-id="drawer-filters"
+            className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto no-scrollbar"
           >
-            조건 선택 ▾
-          </button>
-          {activeChips.map((chip) => (
-            <span
-              key={chip}
+            <button
+              type="button"
+              onClick={() => {
+                setDraftTypes(skinTypes);
+                setDraftConcerns(concerns);
+                setDraftDuration(duration);
+                setFilterOpen(true);
+              }}
               className="shrink-0 rounded-chip border border-sky bg-surface-card px-3 py-2 text-xs font-bold text-ink"
             >
-              {chip}
-            </span>
-          ))}
-          <div className="ml-auto flex shrink-0 items-center gap-1.5 pl-2">
+              조건 선택 ▾
+            </button>
+            {activeChips.map((chip) => (
+              <span
+                key={chip}
+                className="shrink-0 rounded-chip border border-sky bg-surface-card px-3 py-2 text-xs font-bold text-ink"
+              >
+                {chip}
+              </span>
+            ))}
+          </div>
+          <div
+            data-help-id="drawer-photo"
+            className="ml-auto flex shrink-0 items-center gap-1.5 pl-2"
+          >
             <span className="text-xs font-bold text-ink-muted">사진</span>
             <button
               type="button"
@@ -296,41 +323,54 @@ export default function DrawerPage() {
 
                   <button type="button" className="mt-3 w-full text-left" onClick={openNote}>
                     <p className="text-[12px] font-bold text-sky">✦ 스킨노트</p>
-                    <h3 className="mt-1 text-[15px] font-extrabold text-ink">{note.title}</h3>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {note.tags.slice(0, 5).map((tag) => (
-                        <SelectChip
-                          key={tag}
-                          selected={false}
-                          className="pointer-events-none !px-2 !py-1 text-[10px]"
-                        >
-                          {tag}
-                        </SelectChip>
-                      ))}
-                    </div>
-
-                    <div className="mt-3 grid grid-cols-2 gap-2 rounded-[12px] border border-dashed border-line/80 px-3 py-2.5 text-center text-[11px]">
-                      <div className="border-r border-dashed border-line/60">
-                        <p className="text-ink-muted">사용 기간</p>
-                        <p className="mt-0.5 font-extrabold text-ink">{note.durationDays}일</p>
+                    <h3
+                      className="mt-1 text-[15px] font-extrabold text-ink"
+                      {...(position === 0 ? { "data-help-id": "drawer-card-title" } : {})}
+                    >
+                      {note.title}
+                    </h3>
+                    <div
+                      className="mt-2"
+                      {...(position === 0 ? { "data-help-id": "drawer-card-info" } : {})}
+                    >
+                      <div className="flex flex-wrap gap-1.5">
+                        {note.tags.slice(0, 5).map((tag) => (
+                          <SelectChip
+                            key={tag}
+                            selected={false}
+                            className="pointer-events-none !px-2 !py-1 text-[10px]"
+                          >
+                            {tag}
+                          </SelectChip>
+                        ))}
                       </div>
-                      <div>
-                        <p className="text-ink-muted">체감 변화</p>
-                        <div className="mt-0.5 flex items-center justify-center gap-1">
-                          {note.feltChange > 0 ? (
-                            <>
-                              <StarRating value={note.feltChange} readOnly size="sm" />
-                              <span className="font-extrabold text-ink">{note.feltChange}</span>
-                            </>
-                          ) : (
-                            <span className="font-extrabold text-ink-muted">-</span>
-                          )}
+
+                      <div className="mt-3 grid grid-cols-2 gap-2 rounded-[12px] border border-dashed border-line/80 px-3 py-2.5 text-center text-[11px]">
+                        <div className="border-r border-dashed border-line/60">
+                          <p className="text-ink-muted">사용 기간</p>
+                          <p className="mt-0.5 font-extrabold text-ink">{note.durationDays}일</p>
+                        </div>
+                        <div>
+                          <p className="text-ink-muted">체감 변화</p>
+                          <div className="mt-0.5 flex items-center justify-center gap-1">
+                            {note.feltChange > 0 ? (
+                              <>
+                                <StarRating value={note.feltChange} readOnly size="sm" />
+                                <span className="font-extrabold text-ink">{note.feltChange}</span>
+                              </>
+                            ) : (
+                              <span className="font-extrabold text-ink-muted">-</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
                   </button>
 
-                  <div className="mt-3 flex gap-4 text-xs font-bold text-ink-muted">
+                  <div
+                    className="mt-3 flex gap-4 text-xs font-bold text-ink-muted"
+                    {...(position === 0 ? { "data-help-id": "drawer-card-stats" } : {})}
+                  >
                     <span>저장 {note.saveCount}</span>
                     <span>도움돼요 {note.helpCount}</span>
                     <span>댓글 {note.commentCount}</span>
@@ -423,7 +463,7 @@ export default function DrawerPage() {
 
               <section className="pt-3">
                 <p className="mb-1 px-1 text-sm font-extrabold text-ink">사용 기간</p>
-                {(["전체", "14일 이하", "30일 이하"] as DurationFilter[]).map((item) => (
+                {DURATION_FILTERS.map((item) => (
                   <button
                     key={item}
                     type="button"

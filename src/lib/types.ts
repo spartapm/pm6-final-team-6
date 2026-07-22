@@ -167,6 +167,8 @@ export type AppState = {
   };
   pendingEnd: {
     reason?: EndReason;
+    /** "지속하기 어려워서 그만할래요" 세부 사유 (최대 2개) */
+    quitDetails?: string[];
     difficulty?: Difficulty;
     tags: string[];
     feltChange: number;

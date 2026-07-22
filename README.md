@@ -37,7 +37,7 @@ npm run dev
 | POST | `/api/auth/send-otp` | `{ email }` → 6자리 OTP 생성·저장·Resend 발송 (3분 만료) |
 | POST | `/api/auth/verify-otp` | `{ email, otp }` → 일치/만료 확인 후 `resetToken` 반환 |
 | POST | `/api/auth/reset-password` | `{ email, resetToken, password }` → 비밀번호 변경 |
-| GET | `/api/products/search?query=` | 네이버 쇼핑 검색 → title/image |
+| GET | `/api/products/search?query=&category=` | 네이버 쇼핑 검색 → title/image (category로 루틴 단계 필터) |
 | POST | `/api/routines/recommend` | `{ skinType, concern, sensitivity }` → Claude 추천 루틴 |
 
 ## 연동된 기능

@@ -10,7 +10,8 @@ import PageHeader from "@/components/ui/PageHeader";
 import SelectChip from "@/components/ui/SelectChip";
 import { SelectInput, TextInput } from "@/components/ui/Field";
 import { mapAgeRange, mapGender, trackEvent } from "@/lib/analytics";
-import { AGE_GROUPS, isValidEmail, isValidPassword } from "@/lib/constants";
+import { AGE_GROUPS, isValidEmail, isValidNickname, isValidPassword } from "@/lib/constants";
+import { PRIVACY_POLICY, TERMS_OF_SERVICE } from "@/lib/legal";
 import { signup } from "@/lib/store";
 import type { AgeGroup, Gender } from "@/lib/types";
 
@@ -22,18 +23,24 @@ export default function SignupPage() {
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [ageGroup, setAgeGroup] = useState<AgeGroup | "">("");
   const [gender, setGender] = useState<Gender>(null);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [terms, setTerms] = useState(false);
   const [privacy, setPrivacy] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [nicknameError, setNicknameError] = useState("");
+  const [emailError, setEmailError] = useState("");
   const [formError, setFormError] = useState("");
   const [docModal, setDocModal] = useState<"terms" | "privacy" | null>(null);
   const [saving, setSaving] = useState(false);
 
   const errors = useMemo(() => {
     const e: Record<string, string> = {};
-    if (!nickname.trim()) e.nickname = "닉네임을 입력해주세요.";
-    else if (nickname.trim().length < 2) e.nickname = "닉네임은 2자 이상 입력해주세요.";
-    else if (nickname.trim().length > 12) e.nickname = "닉네임은 12자 이하로 입력해주세요.";
+    const nick = nickname.trim();
+    if (!nick) e.nickname = "닉네임을 입력해주세요.";
+    else if (nick.length < 2 || nick.length > 10)
+      e.nickname = "닉네임은 2~10자로 입력해주세요.";
+    else if (!isValidNickname(nick))
+      e.nickname = "닉네임은 한글, 영문, 숫자만 사용할 수 있어요.";
     if (!email.trim()) e.email = "이메일을 입력해주세요.";
     else if (!isValidEmail(email.trim())) e.email = "올바른 이메일 형식으로 입력해주세요.";
     if (!password) e.password = "비밀번호를 입력해주세요.";
@@ -42,10 +49,11 @@ export default function SignupPage() {
     if (!passwordConfirm) e.passwordConfirm = "비밀번호 확인을 입력해주세요.";
     else if (passwordConfirm !== password) e.passwordConfirm = "비밀번호가 일치하지 않습니다.";
     if (!ageGroup) e.ageGroup = "연령대를 선택해주세요.";
-    if (!terms) e.terms = "이용약관에 동의해주세요.";
+    if (!ageConfirmed) e.ageConfirmed = "만 14세 이상임을 확인해주세요.";
     if (!privacy) e.privacy = "개인정보 처리방침에 동의해주세요.";
+    if (!terms) e.terms = "이용약관에 동의해주세요.";
     return e;
-  }, [nickname, email, password, passwordConfirm, ageGroup, terms, privacy]);
+  }, [nickname, email, password, passwordConfirm, ageGroup, ageConfirmed, terms, privacy]);
 
   const canSubmit = Object.keys(errors).length === 0;
 
@@ -61,15 +69,24 @@ export default function SignupPage() {
       <div className="page-pad mt-5 space-y-3 pb-8 animate-fade-up">
         <TextInput
           value={nickname}
-          onChange={(e) => setNickname(e.target.value)}
+          onChange={(e) => {
+            setNickname(e.target.value);
+            setNicknameError("");
+          }}
           placeholder="닉네임 입력"
-          error={submitted ? errors.nickname : undefined}
+          maxLength={10}
+          error={nicknameError || (submitted ? errors.nickname : undefined)}
         />
         <TextInput
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="아이디 입력"
-          error={submitted ? errors.email : undefined}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            setEmailError("");
+          }}
+          placeholder="이메일 입력"
+          inputMode="email"
+          autoComplete="email"
+          error={emailError || (submitted ? errors.email : undefined)}
         />
         <TextInput
           type="password"
@@ -112,27 +129,19 @@ export default function SignupPage() {
         </div>
 
         <div className="space-y-3 pt-2">
-          <label className="flex items-center justify-between gap-3 text-sm text-ink">
-            <span className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={terms}
-                onChange={(e) => setTerms(e.target.checked)}
-                className="h-4 w-4 accent-sky"
-              />
-              [필수] 이용약관 동의
-            </span>
-            <button
-              type="button"
-              className="shrink-0 text-xs font-bold text-ink-muted"
-              onClick={() => setDocModal("terms")}
-            >
-              보기 &gt;
-            </button>
+          <label className="flex items-center gap-2 text-sm text-ink">
+            <input
+              type="checkbox"
+              checked={ageConfirmed}
+              onChange={(e) => setAgeConfirmed(e.target.checked)}
+              className="h-4 w-4 accent-sky"
+            />
+            [필수] 만 14세 이상입니다.
           </label>
-          {submitted && errors.terms && (
-            <p className="text-[10px] font-medium text-[#ff0000]">{errors.terms}</p>
+          {submitted && errors.ageConfirmed && (
+            <p className="text-[10px] font-medium text-[#ff0000]">{errors.ageConfirmed}</p>
           )}
+
           <label className="flex items-center justify-between gap-3 text-sm text-ink">
             <span className="flex items-center gap-2">
               <input
@@ -154,6 +163,28 @@ export default function SignupPage() {
           {submitted && errors.privacy && (
             <p className="text-[10px] font-medium text-[#ff0000]">{errors.privacy}</p>
           )}
+
+          <label className="flex items-center justify-between gap-3 text-sm text-ink">
+            <span className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={terms}
+                onChange={(e) => setTerms(e.target.checked)}
+                className="h-4 w-4 accent-sky"
+              />
+              [필수] 이용약관 동의
+            </span>
+            <button
+              type="button"
+              className="shrink-0 text-xs font-bold text-ink-muted"
+              onClick={() => setDocModal("terms")}
+            >
+              보기 &gt;
+            </button>
+          </label>
+          {submitted && errors.terms && (
+            <p className="text-[10px] font-medium text-[#ff0000]">{errors.terms}</p>
+          )}
         </div>
 
         {formError && (
@@ -163,10 +194,16 @@ export default function SignupPage() {
         <Button
           fullWidth
           disabled={saving}
-          className="mt-2"
+          className={`mt-2 ${
+            !canSubmit
+              ? "!border-transparent !bg-btn-disabled !text-ink-muted !shadow-none"
+              : ""
+          }`}
           onClick={async () => {
             setSubmitted(true);
             setFormError("");
+            setNicknameError("");
+            setEmailError("");
             if (!canSubmit || !ageGroup) return;
             setSaving(true);
             try {
@@ -178,7 +215,13 @@ export default function SignupPage() {
                 gender,
               });
               if (!result.ok) {
-                setFormError(result.message);
+                if (result.message.includes("닉네임")) {
+                  setNicknameError(result.message);
+                } else if (result.message.includes("이메일") || result.message.includes("가입된")) {
+                  setEmailError(result.message);
+                } else {
+                  setFormError(result.message);
+                }
                 return;
               }
               if ("needsEmailConfirmation" in result && result.needsEmailConfirmation) {
@@ -210,20 +253,15 @@ export default function SignupPage() {
       <Modal
         open={Boolean(docModal)}
         title={docModal === "terms" ? "이용약관" : "개인정보 처리방침"}
-        description={
-          docModal === "terms"
-            ? "ANA 서비스 이용과 관련된 기본 약관입니다. 전문은 설정 > 이용약관에서 확인할 수 있어요."
-            : "수집 항목, 이용 목적, 보관 기간에 대한 안내입니다. 전문은 설정 > 이용약관에서 확인할 수 있어요."
-        }
-        confirmLabel="전문 보기"
-        cancelLabel="닫기"
+        confirmLabel="확인"
+        hideCancel
+        onConfirm={() => setDocModal(null)}
         onCancel={() => setDocModal(null)}
-        onConfirm={() => {
-          const tab = docModal === "privacy" ? "privacy" : "terms";
-          setDocModal(null);
-          router.push(`/settings/terms?tab=${tab}`);
-        }}
-      />
+      >
+        <div className="mt-3 max-h-[50vh] overflow-y-auto whitespace-pre-wrap rounded-field border border-line/60 bg-surface-soft px-3 py-3 text-[12px] leading-relaxed text-ink-soft">
+          {docModal === "terms" ? TERMS_OF_SERVICE : PRIVACY_POLICY}
+        </div>
+      </Modal>
     </AppShell>
   );
 }

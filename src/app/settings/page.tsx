@@ -7,17 +7,15 @@ import Card from "@/components/ui/Card";
 import Modal from "@/components/ui/Modal";
 import PageHeader from "@/components/ui/PageHeader";
 import { trackEvent } from "@/lib/analytics";
-import { logout, showToast } from "@/lib/store";
+import { logout, showToast, withdrawAccount } from "@/lib/store";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
 
 function SettingsRow({
   label,
   onClick,
-  danger,
 }: {
   label: string;
   onClick: () => void;
-  danger?: boolean;
 }) {
   return (
     <button
@@ -25,9 +23,7 @@ function SettingsRow({
       onClick={onClick}
       className="flex w-full items-center justify-between px-4 py-3.5 text-left"
     >
-      <span className={`text-[15px] font-bold ${danger ? "text-accent" : "text-ink"}`}>
-        {label}
-      </span>
+      <span className="text-[15px] font-bold text-ink">{label}</span>
       <span className="text-ink-muted">›</span>
     </button>
   );
@@ -40,11 +36,13 @@ export default function SettingsPage() {
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  /** 로그아웃/탈퇴 후 홈 이동 시 로그인 강제 리다이렉트 방지 */
+  const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
     if (!hydrated) return;
-    if (!state.isLoggedIn) router.replace("/login?next=/settings");
-  }, [hydrated, state.isLoggedIn, router]);
+    if (!state.isLoggedIn && !leaving) router.replace("/login?next=/settings");
+  }, [hydrated, state.isLoggedIn, router, leaving]);
 
   if (!hydrated) {
     return (
@@ -72,46 +70,59 @@ export default function SettingsPage() {
           <h2 className="mb-2 text-sm font-extrabold text-ink">계정</h2>
           <Card padded={false} className="overflow-hidden divide-y divide-black/5">
             <SettingsRow label="로그아웃" onClick={() => setLogoutOpen(true)} />
-            <SettingsRow
-              label="회원탈퇴"
-              danger
-              onClick={() => setWithdrawOpen(true)}
-            />
+            <SettingsRow label="회원탈퇴" onClick={() => setWithdrawOpen(true)} />
           </Card>
         </section>
       </div>
 
       <Modal
         open={logoutOpen}
-        title="로그아웃 할까요?"
-        confirmLabel="로그아웃"
-        cancelLabel="취소"
+        title="로그아웃 하시겠습니까?"
+        cancelLabel="아니요"
+        confirmLabel={busy ? "처리 중..." : "예"}
+        centered
+        actionEmphasis="cancel"
         onCancel={() => setLogoutOpen(false)}
         onConfirm={async () => {
+          if (busy) return;
           setBusy(true);
-          await logout();
-          trackEvent("logout", { entry_point: "mypage" });
-          setBusy(false);
-          setLogoutOpen(false);
-          router.replace("/login");
+          try {
+            setLeaving(true);
+            await logout();
+            trackEvent("logout", { entry_point: "mypage" });
+            setLogoutOpen(false);
+            router.replace("/");
+          } finally {
+            setBusy(false);
+          }
         }}
       />
 
       <Modal
         open={withdrawOpen}
-        title="정말 탈퇴할까요?"
-        description="탈퇴 시 루틴·케어로그·스킨노트 등 계정 데이터가 삭제될 수 있어요. MVP에서는 로그아웃 처리 후 안내만 제공합니다."
-        confirmLabel={busy ? "처리 중..." : "탈퇴하기"}
-        cancelLabel="취소"
+        title="회원탈퇴 하시겠습니까?"
+        description="탈퇴 시, 모든 정보가 삭제되며 복구되지 않습니다."
+        cancelLabel="아니요"
+        confirmLabel={busy ? "처리 중..." : "예"}
+        centered
+        actionEmphasis="cancel"
         onCancel={() => setWithdrawOpen(false)}
         onConfirm={async () => {
+          if (busy) return;
           setBusy(true);
-          await logout();
-          trackEvent("logout", { entry_point: "withdraw" });
-          setBusy(false);
-          setWithdrawOpen(false);
-          showToast("회원탈퇴 요청이 접수되었어요.");
-          router.replace("/login");
+          try {
+            const result = await withdrawAccount();
+            if (!result.ok) {
+              showToast(result.message);
+              return;
+            }
+            setLeaving(true);
+            trackEvent("logout", { entry_point: "withdraw" });
+            setWithdrawOpen(false);
+            router.replace("/");
+          } finally {
+            setBusy(false);
+          }
         }}
       />
     </AppShell>

@@ -12,16 +12,16 @@ import SelectChip from "@/components/ui/SelectChip";
 import StarRating from "@/components/ui/StarRating";
 import { TextInput } from "@/components/ui/Field";
 import { trackEvent, trackScreenView } from "@/lib/analytics";
-import { CHANGE_FEELINGS, relativeTime } from "@/lib/constants";
-import { defaultAvatar } from "@/lib/illustrations";
+import { relativeTime } from "@/lib/constants";
+import { defaultAvatar, peachFeelingIllustration } from "@/lib/illustrations";
 import {
   addComment,
   canViewNoteDetail,
   consumeViewQuota,
   deleteComment,
   deleteNote,
-  hideNote,
   markNoteViewed,
+  reportComment,
   reportNote,
   showToast,
   toggleCommentLike,
@@ -122,6 +122,7 @@ export default function NoteDetailPage() {
         title="스킨노트 상세"
         subtitle="나의 루틴을 나누고 함께 성장해요!"
         center
+        helpTourId="note-detail"
         backHref="/drawer"
       />
 
@@ -188,7 +189,7 @@ export default function NoteDetailPage() {
             </div>
           </div>
 
-          <div className="mt-4 -mx-4">
+          <div className="mt-4 -mx-4" data-help-id="detail-products">
             <div className="overflow-x-auto no-scrollbar overscroll-x-contain touch-pan-x">
               <div className="flex w-max gap-2 px-4">
                 {note.products.map((product) => (
@@ -212,15 +213,14 @@ export default function NoteDetailPage() {
             </div>
           </div>
 
-          {note.changeTimeline.length > 0 && (
-            <div className="mt-4">
-              <p className="mb-2 text-sm font-extrabold text-ink">변화 과정</p>
-              <div className="-mx-4">
-                <div className="overflow-x-auto no-scrollbar overscroll-x-contain touch-pan-x">
-                  <div className="flex w-max gap-2 px-4">
-                    {note.changeTimeline.map((item, index) => {
-                      const feeling = CHANGE_FEELINGS.find((f) => f.value === item.feeling);
-                      return (
+          <div data-help-id="detail-progress">
+            {note.changeTimeline.length > 0 && (
+              <div className="mt-4">
+                <p className="mb-2 text-sm font-extrabold text-ink">변화 과정</p>
+                <div className="-mx-4">
+                  <div className="overflow-x-auto no-scrollbar overscroll-x-contain touch-pan-x">
+                    <div className="flex w-max gap-2 px-4">
+                      {note.changeTimeline.map((item, index) => (
                         <button
                           key={`${item.label}-${index}`}
                           type="button"
@@ -235,41 +235,48 @@ export default function NoteDetailPage() {
                               className="mb-1 h-[72px] w-full rounded-[10px] object-cover"
                             />
                           ) : (
-                            <div className="mb-1 flex h-[72px] items-center justify-center rounded-[10px] bg-surface-empty text-xl">
-                              {feeling?.emoji ?? "🙂"}
+                            <div className="mb-1 flex h-[72px] items-center justify-center rounded-[10px] bg-accent-faint">
+                              <Illustration
+                                src={peachFeelingIllustration(item.feeling)}
+                                alt="피치"
+                                width={48}
+                                height={48}
+                                className="h-12 w-12 object-contain"
+                              />
                             </div>
                           )}
                           <p className="text-[11px] font-bold text-ink">{item.label}</p>
                         </button>
-                      );
-                    })}
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <div className="mt-4 grid grid-cols-2 gap-2 rounded-[12px] bg-[#F9FBFE] px-3 py-2.5 text-center text-[11px]">
-            <div className="border-r border-dashed border-line/60">
-              <p className="text-ink-muted">사용 기간</p>
-              <p className="mt-0.5 font-extrabold text-ink">{note.durationDays}일</p>
-            </div>
-            <div>
-              <p className="text-ink-muted">체감 변화</p>
-              {note.feltChange > 0 ? (
-                <div className="mt-0.5 flex items-center justify-center gap-1">
-                  <StarRating value={note.feltChange} readOnly size="sm" />
-                  <span className="font-extrabold text-ink">{note.feltChange}</span>
-                </div>
-              ) : (
-                <p className="mt-0.5 font-extrabold text-ink-muted">-</p>
-              )}
+            <div className="mt-4 grid grid-cols-2 gap-2 rounded-[12px] bg-[#F9FBFE] px-3 py-2.5 text-center text-[11px]">
+              <div className="border-r border-dashed border-line/60">
+                <p className="text-ink-muted">사용 기간</p>
+                <p className="mt-0.5 font-extrabold text-ink">{note.durationDays}일</p>
+              </div>
+              <div>
+                <p className="text-ink-muted">체감 변화</p>
+                {note.feltChange > 0 ? (
+                  <div className="mt-0.5 flex items-center justify-center gap-1">
+                    <StarRating value={note.feltChange} readOnly size="sm" />
+                    <span className="font-extrabold text-ink">{note.feltChange}</span>
+                  </div>
+                ) : (
+                  <p className="mt-0.5 font-extrabold text-ink-muted">-</p>
+                )}
+              </div>
             </div>
           </div>
 
           <div className="mt-4 flex gap-4 text-sm font-bold text-ink-muted">
             <button
               type="button"
+              data-help-id="detail-save"
               className={saved ? "text-sky" : ""}
               onClick={() =>
                 requireLogin(() => {
@@ -282,26 +289,28 @@ export default function NoteDetailPage() {
             >
               저장 {note.saveCount}
             </button>
-            <button
-              type="button"
-              className={helped ? "text-sky" : ""}
-              onClick={() =>
-                requireLogin(() => {
-                  const nextAction = helped ? "remove" : "add";
-                  void toggleHelpNote(note.id).then(() => {
-                    trackEvent("card_helpful", { card_id: note.id, action: nextAction });
-                  });
-                })
-              }
-            >
-              도움돼요 {note.helpCount}
-            </button>
-            <button
-              type="button"
-              onClick={() => document.getElementById("comment-input")?.focus()}
-            >
-              댓글 {note.commentCount}
-            </button>
+            <div data-help-id="detail-engage" className="flex gap-4">
+              <button
+                type="button"
+                className={helped ? "text-sky" : ""}
+                onClick={() =>
+                  requireLogin(() => {
+                    const nextAction = helped ? "remove" : "add";
+                    void toggleHelpNote(note.id).then(() => {
+                      trackEvent("card_helpful", { card_id: note.id, action: nextAction });
+                    });
+                  })
+                }
+              >
+                도움돼요 {note.helpCount}
+              </button>
+              <button
+                type="button"
+                onClick={() => document.getElementById("comment-input")?.focus()}
+              >
+                댓글 {note.commentCount}
+              </button>
+            </div>
           </div>
         </Card>
 
@@ -374,29 +383,6 @@ export default function NoteDetailPage() {
                     <p className="mt-1 text-sm leading-relaxed text-ink-soft">{item.content}</p>
                     <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-ink-muted">
                       <span>{relativeTime(item.createdAt)}</span>
-                      {!isMyComment && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setTargetCommentId(item.id);
-                            setSheet("comment");
-                          }}
-                        >
-                          신고하기
-                        </button>
-                      )}
-                      {isMyComment && (
-                        <button
-                          type="button"
-                          className="text-accent"
-                          onClick={() => {
-                            setTargetCommentId(item.id);
-                            setSheet("comment");
-                          }}
-                        >
-                          삭제하기
-                        </button>
-                      )}
                       <button
                         type="button"
                         className={`ml-auto ${liked ? "font-bold text-accent" : ""}`}
@@ -408,6 +394,17 @@ export default function NoteDetailPage() {
                       >
                         ♡ {item.likeCount}
                       </button>
+                      <button
+                        type="button"
+                        className="text-ink-muted"
+                        aria-label="더보기"
+                        onClick={() => {
+                          setTargetCommentId(item.id);
+                          setSheet("comment");
+                        }}
+                      >
+                        ⋮
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -418,7 +415,10 @@ export default function NoteDetailPage() {
       </div>
 
       {/* Sticky comment input */}
-      <div className="absolute inset-x-0 bottom-[calc(var(--nav-height)+var(--safe-bottom))] z-30 border-t border-line/40 bg-surface-card px-3 py-2.5">
+      <div
+        data-help-id="detail-comment-input"
+        className="absolute inset-x-0 bottom-[calc(var(--nav-height)+var(--safe-bottom))] z-30 border-t border-line/40 bg-surface-card px-3 py-2.5"
+      >
         <div className="mx-auto flex max-w-phone items-center gap-2">
           <TextInput
             id="comment-input"
@@ -476,30 +476,16 @@ export default function NoteDetailPage() {
                     삭제하기
                   </button>
                 ) : (
-                  <>
-                    <button
-                      type="button"
-                      className="w-full rounded-[14px] px-3 py-3 text-left font-bold text-ink"
-                      onClick={() => {
-                        void reportNote(note.id);
-                        setSheet(null);
-                      }}
-                    >
-                      신고하기
-                    </button>
-                    <button
-                      type="button"
-                      className="w-full rounded-[14px] px-3 py-3 text-left font-bold text-ink"
-                      onClick={() => {
-                        void hideNote(note.id).then(() => {
-                          showToast("게시글을 숨겼어요.");
-                          router.push("/drawer");
-                        });
-                      }}
-                    >
-                      숨기기
-                    </button>
-                  </>
+                  <button
+                    type="button"
+                    className="w-full rounded-[14px] px-3 py-3 text-left font-bold text-ink"
+                    onClick={() => {
+                      void reportNote(note.id);
+                      setSheet(null);
+                    }}
+                  >
+                    신고하기
+                  </button>
                 )}
                 <button
                   type="button"
@@ -529,8 +515,20 @@ export default function NoteDetailPage() {
                     type="button"
                     className="w-full rounded-[14px] px-3 py-3 text-left font-bold text-ink"
                     onClick={() => {
-                      showToast("신고가 접수되었어요.");
-                      setSheet(null);
+                      requireLogin(() => {
+                        if (!targetCommentId) {
+                          setSheet(null);
+                          return;
+                        }
+                        void reportComment(targetCommentId, note.id).then((result) => {
+                          setSheet(null);
+                          if (!result.ok) {
+                            showToast(result.message);
+                            return;
+                          }
+                          router.push("/settings/inquiry?from=comment-report");
+                        });
+                      });
                     }}
                   >
                     신고하기

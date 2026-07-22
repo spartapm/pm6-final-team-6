@@ -320,6 +320,42 @@ export async function reportNoteDb(userId: string, noteId: string) {
   return supabase.from("note_reports").upsert({ user_id: userId, note_id: noteId });
 }
 
+export async function fetchCommentById(commentId: string) {
+  const { data, error } = await supabase
+    .from("note_comments")
+    .select("id, note_id, author_id, content")
+    .eq("id", commentId)
+    .maybeSingle();
+  if (error) return { ok: false as const, error, comment: null };
+  if (!data) return { ok: true as const, comment: null, error: null };
+  return {
+    ok: true as const,
+    error: null,
+    comment: {
+      id: String(data.id),
+      noteId: String(data.note_id),
+      authorId: String(data.author_id),
+      content: String(data.content ?? ""),
+    },
+  };
+}
+
+export async function reportCommentDb(input: {
+  userId: string;
+  commentId: string;
+  noteId: string;
+  targetAuthorId: string;
+  commentContent: string;
+}) {
+  return supabase.from("comment_reports").upsert({
+    user_id: input.userId,
+    comment_id: input.commentId,
+    note_id: input.noteId,
+    target_author_id: input.targetAuthorId,
+    comment_content: input.commentContent,
+  });
+}
+
 export async function upsertPrefs(
   userId: string,
   prefs: {

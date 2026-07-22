@@ -52,8 +52,30 @@ export const END_REASONS: EndReason[] = [
   "지속하기 어려워서 그만할래요",
 ];
 
+export const QUIT_END_REASON: EndReason = "지속하기 어려워서 그만할래요";
+
+/** "지속하기 어려워서 그만할래요" 선택 시 세부 사유 (최대 2개) */
+export const QUIT_DETAIL_REASONS = [
+  "매일 기록하는 게 번거로웠어요",
+  "루틴 단계가 너무 많았어요",
+  "사용하는 제품이 바뀌었어요",
+  "피부에 자극이 있었어요",
+  "효과를 느끼지 못했어요",
+  "루틴을 자주 잊어버렸어요",
+] as const;
+
+export type QuitDetailReason = (typeof QUIT_DETAIL_REASONS)[number];
+
 export const DIFFICULTIES: Difficulty[] = ["쉬웠어요", "보통이에요", "어려웠어요"];
 
+/** 단독 선택 전용 변화 태그 */
+export const NONE_CHANGE_TAG = "#큰 변화 없음";
+
+/**
+ * 변화 태그 목록 (일반 22개 + 단독 1개 = 총 23개)
+ * - 일반 태그: 복수 선택 (#모공 축소로 중복 "#붉은기 완화" 대체)
+ * - NONE_CHANGE_TAG("#큰 변화 없음"): 목록 마지막, 단독 선택
+ */
 export const CHANGE_TAGS = [
   "#붉은기 완화",
   "#촉촉해졌다",
@@ -70,15 +92,18 @@ export const CHANGE_TAGS = [
   "#당김 감소",
   "#속건조 감소",
   "#가려움 감소",
+  "#모공 축소",
   "#메이크업 들뜸 감소",
   "#메이크업 밀림 감소",
-  "#큰 변화 없음",
   "#아직 잘 모르겠음",
-  "#좀 더 지켜봐야 함",
   "#트러블 생김",
   "#자극이 있었음",
   "#건조해짐",
+  NONE_CHANGE_TAG,
 ];
+
+/** 일반 태그(복수 선택) — "큰 변화 없음" 제외 */
+export const REGULAR_CHANGE_TAGS = CHANGE_TAGS.filter((tag) => tag !== NONE_CHANGE_TAG);
 
 export const WEEKLY_CHANGE_TAGS = [...CHANGE_TAGS];
 
@@ -223,6 +248,11 @@ export function isValidEmail(email: string) {
 
 export function isValidPassword(password: string) {
   return password.length >= 8 && /[A-Za-z]/.test(password) && /\d/.test(password);
+}
+
+/** 닉네임: 2~10자, 한글/영문/숫자만 */
+export function isValidNickname(nickname: string) {
+  return /^[가-힣a-zA-Z0-9]{2,10}$/.test(nickname);
 }
 
 export function getWeekDays(base = new Date()) {

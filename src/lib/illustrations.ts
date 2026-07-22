@@ -1,4 +1,4 @@
-import type { Difficulty, SkinType } from "./types";
+import type { ChangeFeeling, Difficulty, SkinType } from "./types";
 
 export const ILLUSTRATIONS = {
   homeHero: "/illustrations/home-hero.svg",
@@ -61,6 +61,13 @@ export function weekFeelingIllustration(feeling: "yes" | "unknown" | "no") {
   if (feeling === "yes") return ILLUSTRATIONS.endDiffEasy;
   if (feeling === "unknown") return ILLUSTRATIONS.endDiffNormal;
   return ILLUSTRATIONS.endDiffHard;
+}
+
+/** 변화 과정 사진 미등록 시 / 감정 표시용 피치 캐릭터 */
+export function peachFeelingIllustration(feeling?: ChangeFeeling | null) {
+  if (feeling === "변화가 있었어요") return ILLUSTRATIONS.endDiffEasy;
+  if (feeling === "변화가 없었어요") return ILLUSTRATIONS.endDiffHard;
+  return ILLUSTRATIONS.endDiffNormal;
 }
 
 /** 유저 id/닉네임 기반 안정적인 기본 아바타 */

@@ -12,7 +12,12 @@ import PageHeader from "@/components/ui/PageHeader";
 import RadioRow from "@/components/ui/RadioRow";
 import SelectChip from "@/components/ui/SelectChip";
 import StarRating from "@/components/ui/StarRating";
-import { DIFFICULTIES, END_REASONS } from "@/lib/constants";
+import {
+  DIFFICULTIES,
+  END_REASONS,
+  QUIT_DETAIL_REASONS,
+  QUIT_END_REASON,
+} from "@/lib/constants";
 import { ILLUSTRATIONS, difficultyIllustration } from "@/lib/illustrations";
 import { setPendingEnd } from "@/lib/store";
 import type { Difficulty, EndReason } from "@/lib/types";
@@ -30,6 +35,9 @@ export default function RoutineEndPage() {
   const { state, activeRoutine } = useAppDerivations();
   const pending = state.pendingEnd;
   const [reason, setReason] = useState<EndReason | null>(pending?.reason ?? null);
+  const [quitDetails, setQuitDetails] = useState<string[]>(pending?.quitDetails ?? []);
+  const [quitSheetOpen, setQuitSheetOpen] = useState(false);
+  const [draftQuitDetails, setDraftQuitDetails] = useState<string[]>([]);
   const [difficulty, setDifficulty] = useState<Difficulty | null>(
     pending?.difficulty ?? null
   );
@@ -47,12 +55,54 @@ export default function RoutineEndPage() {
   useEffect(() => {
     if (pending?.tags) setTags(pending.tags);
     if (pending?.reason) setReason(pending.reason);
+    if (pending?.quitDetails) setQuitDetails(pending.quitDetails);
     if (pending?.difficulty) setDifficulty(pending.difficulty);
     if (typeof pending?.feltChange === "number") setFeltChange(pending.feltChange);
-  }, [pending?.tags, pending?.reason, pending?.difficulty, pending?.feltChange]);
+  }, [
+    pending?.tags,
+    pending?.reason,
+    pending?.quitDetails,
+    pending?.difficulty,
+    pending?.feltChange,
+  ]);
 
-  const dirty = Boolean(reason || difficulty || tags.length || feltChange > 0);
-  const canFinish = Boolean(reason && difficulty && tags.length > 0);
+  const dirty = Boolean(
+    reason || difficulty || tags.length || feltChange > 0 || quitDetails.length
+  );
+  const quitReasonReady =
+    reason !== QUIT_END_REASON || quitDetails.length > 0;
+  const canFinish = Boolean(reason && difficulty && tags.length > 0 && quitReasonReady);
+
+  const openQuitSheet = (initial: string[] = quitDetails) => {
+    setDraftQuitDetails(initial);
+    setQuitSheetOpen(true);
+  };
+
+  const closeQuitSheet = () => {
+    setQuitSheetOpen(false);
+    // 세부 사유 없이 닫으면 종료 사유 선택 해제
+    if (quitDetails.length === 0) {
+      setReason((prev) => (prev === QUIT_END_REASON ? null : prev));
+    }
+  };
+
+  const toggleDraftQuitDetail = (item: string) => {
+    setDraftQuitDetails((prev) => {
+      if (prev.includes(item)) return prev.filter((v) => v !== item);
+      if (prev.length >= 2) return prev;
+      return [...prev, item];
+    });
+  };
+
+  const selectReason = (item: EndReason) => {
+    if (item === QUIT_END_REASON) {
+      setReason(item);
+      openQuitSheet(reason === QUIT_END_REASON ? quitDetails : []);
+      return;
+    }
+    setReason(item);
+    setQuitDetails([]);
+  };
 
   if (!hydrated || !activeRoutine) {
     return (
@@ -65,6 +115,7 @@ export default function RoutineEndPage() {
   const goTags = () => {
     setPendingEnd({
       reason: reason ?? undefined,
+      quitDetails: reason === QUIT_END_REASON ? quitDetails : undefined,
       difficulty: difficulty ?? undefined,
       tags,
       feltChange,
@@ -77,6 +128,7 @@ export default function RoutineEndPage() {
       <PageHeader
         title="루틴 종료"
         center
+        helpTourId="routine-end"
         onBack={() => {
           if (dirty) setConfirmOpen(true);
           else router.replace("/care-log");
@@ -100,21 +152,29 @@ export default function RoutineEndPage() {
             <Badge>필수</Badge>
           </div>
           <p className="mb-2.5 text-xs text-ink-muted">해당하는 이유를 선택해 주세요.</p>
-          <Card className="!divide-y !divide-dashed !divide-line/50 !p-2 !px-3">
+          <Card
+            data-help-id="end-reason"
+            className="!divide-y !divide-dashed !divide-line/50 !p-2 !px-3"
+          >
             {END_REASONS.map((item) => (
               <RadioRow
                 key={item}
                 selected={reason === item}
-                onClick={() => setReason(item)}
+                onClick={() => selectReason(item)}
                 left={<span className="text-base">{REASON_EMOJI[item]}</span>}
               >
-                {item}
+                <span>{item}</span>
+                {item === QUIT_END_REASON && quitDetails.length > 0 && (
+                  <span className="mt-0.5 block text-[11px] font-semibold text-ink-muted">
+                    {quitDetails.join(" · ")}
+                  </span>
+                )}
               </RadioRow>
             ))}
           </Card>
         </section>
 
-        {/* Difficulty */}
+        {/* Difficulty — 변화 과정 기록 feeling UI와 동일 */}
         <section>
           <div className="mb-2.5 flex items-center gap-2">
             <h3 className="text-sm font-extrabold text-ink">
@@ -122,7 +182,7 @@ export default function RoutineEndPage() {
             </h3>
             <Badge>필수</Badge>
           </div>
-          <div className="grid grid-cols-3 gap-2.5">
+          <div data-help-id="end-difficulty" className="grid grid-cols-3 gap-2">
             {DIFFICULTIES.map((item) => {
               const selected = difficulty === item;
               return (
@@ -130,20 +190,28 @@ export default function RoutineEndPage() {
                   key={item}
                   type="button"
                   onClick={() => setDifficulty(item)}
-                  className={`rounded-[16px] border p-3 text-center transition ${
-                    selected
-                      ? "border-sky bg-sky-faint shadow-card"
-                      : "border-line bg-surface-card"
-                  }`}
+                  className="flex flex-col items-center gap-2 text-center"
                 >
-                  <Illustration
-                    src={difficultyIllustration(item)}
-                    alt={item}
-                    width={52}
-                    height={52}
-                    className="mx-auto"
-                  />
-                  <p className="mt-2 text-[12px] font-extrabold text-ink">{item}</p>
+                  <div
+                    className={`flex h-[84px] w-[84px] items-center justify-center rounded-full transition ${
+                      selected ? "bg-accent-faint ring-2 ring-accent" : "bg-transparent"
+                    }`}
+                  >
+                    <Illustration
+                      src={difficultyIllustration(item)}
+                      alt={item}
+                      width={68}
+                      height={68}
+                      className="h-[68px] w-[68px] object-contain"
+                    />
+                  </div>
+                  <span
+                    className={`text-[12px] font-bold leading-tight ${
+                      selected ? "text-ink" : "text-ink-muted"
+                    }`}
+                  >
+                    {item}
+                  </span>
                 </button>
               );
             })}
@@ -151,7 +219,7 @@ export default function RoutineEndPage() {
         </section>
 
         {/* Change tags preview */}
-        <section>
+        <section data-help-id="end-tags">
           <div className="mb-2.5 flex items-center gap-2">
             <h3 className="text-sm font-extrabold text-ink">어떤 변화가 있었나요?</h3>
             <Badge>필수</Badge>
@@ -159,7 +227,7 @@ export default function RoutineEndPage() {
           <button
             type="button"
             onClick={goTags}
-            className="flex w-full items-center gap-2 rounded-card bg-white shadow-card px-3 py-3 text-left shadow-card"
+            className="flex w-full items-center gap-2 rounded-card bg-white px-3 py-3 text-left shadow-card"
           >
             <span
               className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] ${
@@ -198,7 +266,7 @@ export default function RoutineEndPage() {
           <p className="mb-2.5 text-xs text-ink-muted">
             이번 루틴을 통해 느낀 변화를 선택해 주세요.
           </p>
-          <Card className="!p-4">
+          <Card data-help-id="end-stars" className="!p-4">
             <StarRating value={feltChange} onChange={setFeltChange} size="lg" />
             <div className="mt-2 flex justify-between text-[11px] text-ink-muted">
               <span>전혀 없어요</span>
@@ -207,14 +275,24 @@ export default function RoutineEndPage() {
           </Card>
         </section>
 
-        <div className="pt-1">
+        <div className="pt-1" data-help-id="end-finish">
           <Button
             fullWidth
             disabled={!canFinish || saving}
             onClick={() => {
               if (!reason || !difficulty) return;
+              if (reason === QUIT_END_REASON && quitDetails.length === 0) {
+                openQuitSheet();
+                return;
+              }
               setSaving(true);
-              setPendingEnd({ reason, difficulty, tags, feltChange });
+              setPendingEnd({
+                reason,
+                quitDetails: reason === QUIT_END_REASON ? quitDetails : undefined,
+                difficulty,
+                tags,
+                feltChange,
+              });
               router.push("/skin-note/complete");
             }}
           >
@@ -225,6 +303,77 @@ export default function RoutineEndPage() {
           </p>
         </div>
       </div>
+
+      {/* Quit detail reason sheet */}
+      {quitSheetOpen && (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-ink/35">
+          <div className="flex max-h-[88svh] w-full max-w-phone flex-col overflow-hidden rounded-t-[24px] bg-white shadow-card animate-fade-up">
+            <div className="flex items-start justify-between gap-3 px-4 pb-2 pt-4">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-[17px] font-extrabold leading-snug text-ink">
+                  지속하기 어려웠던 이유가 무엇인가요?
+                </h3>
+                <p className="mt-1.5 text-[12px] leading-relaxed text-ink-muted">
+                  서비스 개선을 위해 가장 가까운 이유를 선택해주세요. (최대 2개까지)
+                </p>
+              </div>
+              <button
+                type="button"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-muted"
+                onClick={closeQuitSheet}
+                aria-label="닫기"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-2">
+              <Card className="!divide-y !divide-dashed !divide-line/50 !p-2 !px-3">
+                {QUIT_DETAIL_REASONS.map((item) => {
+                  const selected = draftQuitDetails.includes(item);
+                  const locked = !selected && draftQuitDetails.length >= 2;
+                  return (
+                    <button
+                      key={item}
+                      type="button"
+                      disabled={locked}
+                      onClick={() => toggleDraftQuitDetail(item)}
+                      className={`flex w-full items-center gap-3 px-1 py-3 text-left transition ${
+                        locked ? "cursor-not-allowed opacity-40" : ""
+                      }`}
+                    >
+                      <div className="min-w-0 flex-1 text-sm font-bold text-ink">{item}</div>
+                      <span
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] ${
+                          selected
+                            ? "border-sky bg-sky text-white"
+                            : "border-sky bg-surface-card text-transparent"
+                        }`}
+                      >
+                        ✓
+                      </span>
+                    </button>
+                  );
+                })}
+              </Card>
+            </div>
+
+            <div className="border-t border-line/40 px-4 py-3">
+              <Button
+                fullWidth
+                disabled={draftQuitDetails.length === 0}
+                onClick={() => {
+                  setQuitDetails(draftQuitDetails);
+                  setReason(QUIT_END_REASON);
+                  setQuitSheetOpen(false);
+                }}
+              >
+                선택 완료
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Modal
         open={confirmOpen}

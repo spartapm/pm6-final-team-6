@@ -43,7 +43,7 @@ export async function generateRoutineRecommendation(
 사용자 피부 정보:
 - 피부타입: ${input.skinType}
 - 피부고민: ${input.concern}
-- 민감도: ${input.sensitivity}
+- 피부 민감도: ${input.sensitivity}
 
 실제 시중에서 구하기 쉬운 한국 화장품 제품명으로 4~5단계 루틴을 추천하세요.
 카테고리는 다음 중 하나만 사용: ${CATEGORIES.join(", ")}

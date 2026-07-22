@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
+import { useFeatureHelp } from "@/components/help/FeatureHelpContext";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Illustration from "@/components/ui/Illustration";
@@ -11,6 +12,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import { TextInput } from "@/components/ui/Field";
 import { trackEvent } from "@/lib/analytics";
 import { ROUTINE_CATEGORIES, uid } from "@/lib/constants";
+import { compressImageFile, validateImageFile } from "@/lib/image";
 import { ILLUSTRATIONS } from "@/lib/illustrations";
 import { createRoutine, showToast } from "@/lib/store";
 import type { Product, RoutineStepCategory } from "@/lib/types";
@@ -63,10 +65,191 @@ function ProductThumb({
   );
 }
 
+/** 추천 제품 가로 스크롤 — 다음 카드 피크 + 드래그/휠 지원 */
+function RecommendProductRail({
+  steps,
+}: {
+  steps: RecommendPayload["steps"];
+}) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [railWidth, setRailWidth] = useState(0);
+  const gap = 10;
+  const peek = steps.length > 3;
+  const visibleCount = peek ? 3.25 : Math.max(steps.length, 1);
+  const cardWidth =
+    railWidth > 0
+      ? Math.floor((railWidth - gap * Math.max(Math.ceil(visibleCount) - 1, 0)) / visibleCount)
+      : 88;
+
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+
+    const measure = () => setRailWidth(el.clientWidth);
+    measure();
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    observer?.observe(el);
+    window.addEventListener("resize", measure);
+
+    let dragging = false;
+    let moved = false;
+    let startX = 0;
+    let startScroll = 0;
+
+    const onPointerDown = (e: PointerEvent) => {
+      // 터치는 네이티브 스와이프, 마우스는 드래그 스크롤
+      if (e.pointerType === "touch") return;
+      dragging = true;
+      moved = false;
+      startX = e.clientX;
+      startScroll = el.scrollLeft;
+      el.setPointerCapture(e.pointerId);
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (!dragging) return;
+      const dx = e.clientX - startX;
+      if (Math.abs(dx) > 2) moved = true;
+      el.scrollLeft = startScroll - dx;
+    };
+
+    const onPointerUp = () => {
+      dragging = false;
+    };
+
+    const onClickCapture = (e: MouseEvent) => {
+      if (!moved) return;
+      e.preventDefault();
+      e.stopPropagation();
+      moved = false;
+    };
+
+    const onWheel = (e: WheelEvent) => {
+      if (el.scrollWidth <= el.clientWidth) return;
+      // 세로 휠도 가로 스크롤로 변환 (트랙패드 가로는 그대로)
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        el.scrollLeft += e.deltaY;
+        e.preventDefault();
+      }
+    };
+
+    el.addEventListener("pointerdown", onPointerDown);
+    el.addEventListener("pointermove", onPointerMove);
+    el.addEventListener("pointerup", onPointerUp);
+    el.addEventListener("pointercancel", onPointerUp);
+    el.addEventListener("click", onClickCapture, true);
+    el.addEventListener("wheel", onWheel, { passive: false });
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", measure);
+      el.removeEventListener("pointerdown", onPointerDown);
+      el.removeEventListener("pointermove", onPointerMove);
+      el.removeEventListener("pointerup", onPointerUp);
+      el.removeEventListener("pointercancel", onPointerUp);
+      el.removeEventListener("click", onClickCapture, true);
+      el.removeEventListener("wheel", onWheel);
+    };
+  }, [steps.length]);
+
+  return (
+    <div
+      ref={scrollerRef}
+      className="recommend-h-scroll flex gap-2.5 pb-2"
+      aria-label="추천 제품 목록"
+    >
+      {steps.map((step, index) => (
+        <div
+          key={`${step.product.id}-${index}`}
+          className="shrink-0 grow-0 text-center"
+          style={{ width: cardWidth }}
+        >
+          <div className="mx-auto mb-2 flex aspect-square w-[82%] max-w-[72px] items-center justify-center overflow-hidden rounded-[14px] bg-surface-empty">
+            {step.product.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={step.product.imageUrl}
+                alt=""
+                className="h-full w-full object-cover"
+                draggable={false}
+              />
+            ) : (
+              <span className="px-1 text-[10px] font-bold leading-tight text-ink-muted">
+                제품
+                <br />
+                이미지
+              </span>
+            )}
+          </div>
+          <p className="truncate text-[12px] font-extrabold text-ink">{step.category}</p>
+          <p className="mt-0.5 truncate text-[10px] text-ink-muted">
+            {step.product.brand || step.product.name}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** 영역보다 긴 텍스트는 좌우로 천천히 슬라이드 */
+function SlidingText({
+  text,
+  className = "",
+}: {
+  text: string;
+  className?: string;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+  const [slide, setSlide] = useState<{ distance: number; duration: number } | null>(null);
+
+  useEffect(() => {
+    const measure = () => {
+      const container = containerRef.current;
+      const label = textRef.current;
+      if (!container || !label) return;
+      const overflow = label.scrollWidth - container.clientWidth;
+      if (overflow > 4) {
+        setSlide({
+          distance: overflow + 8,
+          duration: Math.min(14, Math.max(4.5, overflow / 18)),
+        });
+      } else {
+        setSlide(null);
+      }
+    };
+
+    measure();
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    if (containerRef.current) observer?.observe(containerRef.current);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [text]);
+
+  const style = slide
+    ? ({
+        "--slide-distance": `${slide.distance}px`,
+        "--slide-duration": `${slide.duration}s`,
+      } as CSSProperties)
+    : undefined;
+
+  return (
+    <div ref={containerRef} className={`min-w-0 overflow-hidden ${className}`}>
+      <span ref={textRef} className={slide ? "text-slide" : "block truncate"} style={style}>
+        {text}
+      </span>
+    </div>
+  );
+}
+
 export default function RoutineRegisterPage() {
   const router = useRouter();
   const hydrated = useHydrated();
   const { state, profile } = useAppDerivations();
+  const { activeTour } = useFeatureHelp();
   const [tab, setTab] = useState<"manual" | "recommend">("manual");
   const [steps, setSteps] = useState<DraftStep[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -79,6 +262,7 @@ export default function RoutineRegisterPage() {
   const [searchError, setSearchError] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [customName, setCustomName] = useState("");
+  const [customImage, setCustomImage] = useState<string | undefined>();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [recommend, setRecommend] = useState<RecommendPayload | null>(null);
   const [recApplied, setRecApplied] = useState(false);
@@ -88,6 +272,35 @@ export default function RoutineRegisterPage() {
   const [dragId, setDragId] = useState<string | null>(null);
   const sheetHistoryRef = useRef(false);
   const closingSheetRef = useRef(false);
+  const helpSheetRef = useRef(false);
+  const customImageInputRef = useRef<HTMLInputElement>(null);
+  const customProductIdRef = useRef(uid("custom"));
+
+  const resetSheetForm = () => {
+    setSelectedProduct(null);
+    setCustomName("");
+    setCustomImage(undefined);
+    setQuery("");
+    setSearchResults([]);
+    setSearchError("");
+    setSheetTab("search");
+    customProductIdRef.current = uid("custom");
+  };
+
+  const syncCustomProduct = (name: string, imageUrl?: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setSelectedProduct(null);
+      return;
+    }
+    setSelectedProduct({
+      id: customProductIdRef.current,
+      name: trimmed,
+      isCustom: true,
+      category: selectedCategory,
+      imageUrl,
+    });
+  };
 
   const closeSheet = (action: "complete" | "cancel") => {
     trackEvent("popup_close", { action });
@@ -111,6 +324,41 @@ export default function RoutineRegisterPage() {
     else if (!profile) router.replace("/skin-profile");
   }, [hydrated, state.isLoggedIn, profile, router]);
 
+  /** 기능설명: 탭/시트 상태를 투어에 맞게 맞춤 */
+  useEffect(() => {
+    const tourId = activeTour?.tourId;
+    if (tourId === "routine-register-recommend") {
+      if (helpSheetRef.current) {
+        helpSheetRef.current = false;
+        setSheetOpen(false);
+      }
+      setTab("recommend");
+      if (!recommend && !recLoading) void loadRecommend();
+      return;
+    }
+    if (tourId !== "routine-register") {
+      if (helpSheetRef.current) {
+        helpSheetRef.current = false;
+        setSheetOpen(false);
+      }
+      return;
+    }
+    setTab("manual");
+    const step = activeTour?.stepIndex ?? 0;
+    if (step === 3 || step === 4) {
+      setSheetTab("search");
+      if (!sheetOpen) {
+        helpSheetRef.current = true;
+        setSheetOpen(true);
+      }
+      return;
+    }
+    if (helpSheetRef.current || sheetOpen) {
+      helpSheetRef.current = false;
+      setSheetOpen(false);
+    }
+  }, [activeTour?.tourId, activeTour?.stepIndex]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     const onPopState = () => {
       if (closingSheetRef.current) {
@@ -120,6 +368,7 @@ export default function RoutineRegisterPage() {
       if (sheetOpen) {
         sheetHistoryRef.current = false;
         setSheetOpen(false);
+        resetSheetForm();
         trackEvent("popup_close", { action: "cancel" });
       }
     };
@@ -141,7 +390,11 @@ export default function RoutineRegisterPage() {
       setSearchLoading(true);
       setSearchError("");
       try {
-        const res = await fetch(`/api/products/search?query=${encodeURIComponent(q)}`);
+        const params = new URLSearchParams({
+          query: q,
+          category: selectedCategory,
+        });
+        const res = await fetch(`/api/products/search?${params.toString()}`);
         const data = (await res.json()) as {
           ok?: boolean;
           message?: string;
@@ -173,6 +426,48 @@ export default function RoutineRegisterPage() {
 
     return () => window.clearTimeout(timer);
   }, [query, sheetOpen, sheetTab, selectedCategory]);
+
+  // 모바일/데스크톱 공통: 드래그 핸들 pointer 이벤트로 순서 변경 (스크롤 충돌 방지)
+  useEffect(() => {
+    if (!dragId) return;
+
+    const onMove = (e: PointerEvent) => {
+      e.preventDefault();
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const row = el?.closest("[data-step-id]") as HTMLElement | null;
+      const overId = row?.dataset.stepId;
+      if (!overId || overId === dragId) return;
+      setSteps((prev) => {
+        const from = prev.findIndex((s) => s.id === dragId);
+        const to = prev.findIndex((s) => s.id === overId);
+        if (from < 0 || to < 0 || from === to) return prev;
+        const next = [...prev];
+        const [item] = next.splice(from, 1);
+        next.splice(to, 0, item);
+        return next;
+      });
+    };
+
+    const onUp = () => setDragId(null);
+
+    window.addEventListener("pointermove", onMove, { passive: false });
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+
+    const main = document.querySelector(".app-main, .app-main--flush") as HTMLElement | null;
+    const prevOverflow = main?.style.overflow ?? "";
+    if (main) main.style.overflow = "hidden";
+    const prevTouchAction = document.body.style.touchAction;
+    document.body.style.touchAction = "none";
+
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      if (main) main.style.overflow = prevOverflow;
+      document.body.style.touchAction = prevTouchAction;
+    };
+  }, [dragId]);
 
   const dirty = steps.length > 0 || recApplied;
 
@@ -253,6 +548,9 @@ export default function RoutineRegisterPage() {
         title="루틴 등록"
         subtitle="회원님의 피부 고민에 맞는 루틴을 찾았어요"
         center
+        helpTourId={
+          tab === "recommend" ? "routine-register-recommend" : "routine-register"
+        }
         onBack={() => {
           if (sheetOpen) {
             closeSheet("cancel");
@@ -265,7 +563,7 @@ export default function RoutineRegisterPage() {
 
       <div className="page-pad mt-4 space-y-4 pb-10 animate-fade-up">
         {/* Mode tabs */}
-        <div className="grid grid-cols-2 gap-2.5">
+        <div data-help-id="routine-mode-tabs" className="grid grid-cols-2 gap-2.5">
           <button
             type="button"
             onClick={() => {
@@ -313,66 +611,64 @@ export default function RoutineRegisterPage() {
                 </p>
               </div>
 
-              {steps.length === 0 && (
-                <p className="py-3 text-center text-sm text-ink-muted">
-                  단계 추가하기를 눌러 루틴을 구성해보세요
-                </p>
-              )}
+              <div data-help-id="routine-steps-list" className="space-y-3">
+                {steps.length === 0 && (
+                  <p className="py-3 text-center text-sm text-ink-muted">
+                    단계 추가하기를 눌러 루틴을 구성해보세요
+                  </p>
+                )}
 
-              {steps.map((step) => (
-                <div
-                  key={step.id}
-                  draggable
-                  onDragStart={() => setDragId(step.id)}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={() => {
-                    if (!dragId || dragId === step.id) return;
-                    setSteps((prev) => {
-                      const from = prev.findIndex((s) => s.id === dragId);
-                      const to = prev.findIndex((s) => s.id === step.id);
-                      if (from < 0 || to < 0) return prev;
-                      const next = [...prev];
-                      const [item] = next.splice(from, 1);
-                      next.splice(to, 0, item);
-                      return next;
-                    });
-                    setDragId(null);
-                  }}
-                  className="flex items-center gap-2.5 rounded-[14px] bg-white shadow-card px-3 py-3"
-                >
-                  <button
-                    type="button"
-                    className="disabled:opacity-40"
-                    disabled={steps.length <= 1}
-                    onClick={() => {
-                      if (steps.length <= 1) {
-                        showToast("루틴은 최소 1개 단계가 필요해요.");
-                        return;
-                      }
-                      setSteps((prev) => prev.filter((s) => s.id !== step.id));
-                    }}
-                    aria-label="단계 삭제"
+                {steps.map((step) => (
+                  <div
+                    key={step.id}
+                    data-step-id={step.id}
+                    className={`flex items-center gap-2.5 rounded-[14px] bg-white px-3 py-3 shadow-card ${
+                      dragId === step.id ? "opacity-70 ring-2 ring-sky/40" : ""
+                    }`}
                   >
-                    <ImpactCircle>−</ImpactCircle>
-                  </button>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] font-extrabold text-ink">
-                      <span>{step.category}</span>
-                      <span className="font-semibold text-ink-muted">
-                        {" "}
-                        {step.product.brand ? `${step.product.brand} ` : ""}
-                        {step.product.name}
-                      </span>
-                    </p>
+                    <button
+                      type="button"
+                      className="disabled:opacity-40"
+                      disabled={steps.length <= 1}
+                      onClick={() => {
+                        if (steps.length <= 1) {
+                          showToast("루틴은 최소 1개 단계가 필요해요.");
+                          return;
+                        }
+                        setSteps((prev) => prev.filter((s) => s.id !== step.id));
+                      }}
+                      aria-label="단계 삭제"
+                    >
+                      <ImpactCircle>−</ImpactCircle>
+                    </button>
+                    <div className="min-w-0 flex-1">
+                      <SlidingText
+                        className="text-[13px] font-extrabold text-ink"
+                        text={`${step.category} ${
+                          step.product.brand ? `${step.product.brand} ` : ""
+                        }${step.product.name}`}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      aria-label="순서 변경"
+                      className="touch-none select-none px-1 py-1 text-ink-muted active:cursor-grabbing"
+                      style={{ touchAction: "none", cursor: "grab" }}
+                      onPointerDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setDragId(step.id);
+                      }}
+                    >
+                      ☰
+                    </button>
                   </div>
-                  <span className="cursor-grab text-ink-muted" aria-hidden>
-                    ☰
-                  </span>
-                </div>
-              ))}
+                ))}
+              </div>
 
               <button
                 type="button"
+                data-help-id="routine-add-step"
                 onClick={() => openSheet()}
                 className="flex w-full items-center gap-2.5 rounded-[14px] border border-dashed border-line px-3 py-3 text-left text-sm font-bold text-ink"
               >
@@ -381,7 +677,7 @@ export default function RoutineRegisterPage() {
               </button>
             </Card>
 
-            <div className="pt-1">
+            <div className="pt-1" data-help-id="routine-complete">
               <Button
                 fullWidth
                 disabled={steps.length === 0}
@@ -406,19 +702,19 @@ export default function RoutineRegisterPage() {
           </>
         ) : (
           <>
-            <section>
+            <section data-help-id="routine-rec-basis">
               <h2 className="mb-2.5 text-[15px] font-extrabold text-ink">이렇게 추천했어요</h2>
-              <div className="flex flex-wrap gap-2">
-                <span className="inline-flex items-center rounded-chip bg-white shadow-card px-3 py-1.5 text-[11px]">
+              <div className="flex flex-col items-start gap-2">
+                <span className="inline-flex max-w-full items-center rounded-[14px] border border-line/25 bg-white px-3 py-2 text-[12px] shadow-card">
                   <span className="text-ink-muted">피부 타입 / </span>
                   <span className="font-extrabold text-ink">{profile.skinType}</span>
                 </span>
-                <span className="inline-flex max-w-full items-center rounded-chip bg-white shadow-card px-3 py-1.5 text-[11px]">
+                <span className="inline-flex max-w-full items-center rounded-[14px] border border-line/25 bg-white px-3 py-2 text-[12px] shadow-card">
                   <span className="shrink-0 text-ink-muted">피부 고민 / </span>
-                  <span className="truncate font-extrabold text-ink">{concernJoined}</span>
+                  <span className="min-w-0 font-extrabold text-ink">{concernJoined}</span>
                 </span>
-                <span className="inline-flex items-center rounded-chip bg-white shadow-card px-3 py-1.5 text-[11px]">
-                  <span className="text-ink-muted">민감도 / </span>
+                <span className="inline-flex max-w-full items-center rounded-[14px] border border-line/25 bg-white px-3 py-2 text-[12px] shadow-card">
+                  <span className="text-ink-muted">피부 민감도 / </span>
                   <span className="font-extrabold text-ink">{profile.sensitivity}</span>
                 </span>
               </div>
@@ -426,29 +722,34 @@ export default function RoutineRegisterPage() {
 
             <Card className="!p-4">
               {recLoading ? (
-                <p className="py-10 text-center text-sm text-ink-muted">
+                <p
+                  data-help-id="routine-rec-preview"
+                  className="py-10 text-center text-sm text-ink-muted"
+                >
                   맞춤 루틴을 만들고 있어요...
                 </p>
               ) : recError || !recommend ? (
                 <div className="space-y-4 py-2 text-center">
-                  <Illustration
-                    src={ILLUSTRATIONS.recommendEmpty}
-                    alt=""
-                    width={140}
-                    height={120}
-                    className="mx-auto"
-                  />
-                  <div>
-                    <p className="text-[15px] font-extrabold text-ink">
-                      추천할 수 있는 루틴이 없어요
-                    </p>
-                    <p className="mt-2 text-xs leading-relaxed text-ink-muted">
-                      현재 조건으로 추천할 루틴 데이터가 없어요.
-                      <br />
-                      조건을 변경하거나 다시 시도해 주세요.
-                    </p>
+                  <div data-help-id="routine-rec-preview" className="space-y-4">
+                    <Illustration
+                      src={ILLUSTRATIONS.recommendEmpty}
+                      alt=""
+                      width={140}
+                      height={120}
+                      className="mx-auto"
+                    />
+                    <div>
+                      <p className="text-[15px] font-extrabold text-ink">
+                        추천할 수 있는 루틴이 없어요
+                      </p>
+                      <p className="mt-2 text-xs leading-relaxed text-ink-muted">
+                        현재 조건으로 추천할 루틴 데이터가 없어요.
+                        <br />
+                        조건을 변경하거나 다시 시도해 주세요.
+                      </p>
+                    </div>
                   </div>
-                  <div className="space-y-2 pt-1">
+                  <div data-help-id="routine-rec-actions" className="space-y-2 pt-1">
                     <Button fullWidth size="md" onClick={() => void loadRecommend()}>
                       <span aria-hidden>↻</span>
                       다시 시도하기
@@ -470,51 +771,22 @@ export default function RoutineRegisterPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div>
-                    <p className="text-[11px] font-bold text-ink-muted">
-                      피부 고민 맞춤 추천 미리보기
-                    </p>
-                    <h3 className="mt-1 text-[16px] font-extrabold leading-snug text-ink">
-                      {recommend.title}
-                    </h3>
-                    <p className="mt-1 text-xs text-ink-muted">
-                      {profile.skinType} · {concernJoined} 기준으로 구성했어요
-                    </p>
+                  <div data-help-id="routine-rec-preview" className="space-y-3">
+                    <div>
+                      <p className="text-[11px] font-bold text-ink-muted">
+                        피부 고민 맞춤 추천 미리보기
+                      </p>
+                      <h3 className="mt-1 text-[16px] font-extrabold leading-snug text-ink">
+                        {recommend.title}
+                      </h3>
+                      <p className="mt-1 text-xs text-ink-muted">
+                        {profile.skinType} · {concernJoined} 기준으로 구성했어요
+                      </p>
+                    </div>
+                    <RecommendProductRail steps={recommend.steps} />
                   </div>
 
-                  <div className="flex gap-2.5 overflow-x-auto pb-1 no-scrollbar">
-                    {recommend.steps.map((step, index) => (
-                      <div
-                        key={`${step.product.id}-${index}`}
-                        className="w-[88px] shrink-0 text-center"
-                      >
-                        <div className="mx-auto mb-2 flex h-[72px] w-[72px] items-center justify-center overflow-hidden rounded-[14px] bg-surface-empty">
-                          {step.product.imageUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={step.product.imageUrl}
-                              alt=""
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <span className="px-1 text-[10px] font-bold leading-tight text-ink-muted">
-                              제품
-                              <br />
-                              이미지
-                            </span>
-                          )}
-                        </div>
-                        <p className="truncate text-[12px] font-extrabold text-ink">
-                          {step.category}
-                        </p>
-                        <p className="mt-0.5 truncate text-[10px] text-ink-muted">
-                          {step.product.brand || step.product.name}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="space-y-2">
+                  <div data-help-id="routine-rec-actions" className="space-y-2">
                     <Button
                       fullWidth
                       size="md"
@@ -546,7 +818,7 @@ export default function RoutineRegisterPage() {
               )}
             </Card>
 
-            <div className="pt-1">
+            <div className="pt-1" data-help-id="routine-rec-complete">
               <Button
                 fullWidth
                 disabled={!recApplied || !recommend}
@@ -586,7 +858,10 @@ export default function RoutineRegisterPage() {
               <button
                 type="button"
                 className="flex h-8 w-8 items-center justify-center rounded-full text-ink-muted"
-                onClick={() => closeSheet("cancel")}
+                onClick={() => {
+                  resetSheetForm();
+                  closeSheet("cancel");
+                }}
                 aria-label="닫기"
               >
                 ✕
@@ -603,6 +878,15 @@ export default function RoutineRegisterPage() {
                     onClick={() => {
                       setSelectedCategory(cat);
                       setSelectedProduct(null);
+                      if (sheetTab === "custom" && customName.trim()) {
+                        setSelectedProduct({
+                          id: customProductIdRef.current,
+                          name: customName.trim(),
+                          isCustom: true,
+                          category: cat,
+                          imageUrl: customImage,
+                        });
+                      }
                     }}
                     className={`rounded-chip px-2 py-2.5 text-center text-[12px] font-bold transition ${
                       selectedCategory === cat
@@ -619,7 +903,7 @@ export default function RoutineRegisterPage() {
               <div className="min-w-0 flex-1 overflow-y-auto pl-2.5 pt-1">
                 {sheetTab === "search" ? (
                   <div className="space-y-3">
-                    <div className="relative">
+                    <div className="relative" data-help-id="routine-product-search">
                       <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted">
                         ⌕
                       </span>
@@ -642,6 +926,7 @@ export default function RoutineRegisterPage() {
                           type="button"
                           className="text-sm font-bold text-sky"
                           onClick={() => {
+                            customProductIdRef.current = uid("custom");
                             setSheetTab("custom");
                             setSearchError("");
                           }}
@@ -676,11 +961,15 @@ export default function RoutineRegisterPage() {
                             <ProductThumb src={product.imageUrl} size="sm" />
                             <div className="min-w-0 flex-1">
                               {product.brand && (
-                                <p className="truncate text-[11px] font-bold text-ink">
-                                  {product.brand}
-                                </p>
+                                <SlidingText
+                                  className="text-[11px] font-bold text-ink"
+                                  text={product.brand}
+                                />
                               )}
-                              <p className="truncate text-[12px] text-ink-soft">{product.name}</p>
+                              <SlidingText
+                                className="text-[12px] text-ink-soft"
+                                text={product.name}
+                              />
                             </div>
                             <span
                               className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] ${
@@ -704,7 +993,9 @@ export default function RoutineRegisterPage() {
 
                     <button
                       type="button"
+                      data-help-id="routine-custom-product"
                       onClick={() => {
+                        customProductIdRef.current = uid("custom");
                         setSheetTab("custom");
                         setSearchError("");
                       }}
@@ -723,23 +1014,54 @@ export default function RoutineRegisterPage() {
                     >
                       ← 제품 검색으로
                     </button>
-                    <div className="flex h-28 items-center justify-center rounded-[14px] border border-dashed border-line bg-surface-empty text-sm text-ink-muted">
-                      이미지 추가 (선택)
-                    </div>
+                    <input
+                      ref={customImageInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = "";
+                        if (!file) return;
+                        const invalid = validateImageFile(file);
+                        if (invalid) {
+                          showToast(invalid);
+                          return;
+                        }
+                        try {
+                          const dataUrl = await compressImageFile(file, {
+                            maxEdge: 720,
+                            quality: 0.82,
+                          });
+                          setCustomImage(dataUrl);
+                          syncCustomProduct(customName, dataUrl);
+                        } catch {
+                          showToast("사진 업로드에 실패했어요. 다시 시도해주세요.");
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => customImageInputRef.current?.click()}
+                      className="relative flex h-28 w-full items-center justify-center overflow-hidden rounded-[14px] border border-dashed border-line bg-surface-empty text-sm text-ink-muted"
+                    >
+                      {customImage ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={customImage}
+                          alt="선택한 제품 이미지"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        "이미지 추가 (선택)"
+                      )}
+                    </button>
                     <TextInput
                       value={customName}
                       onChange={(e) => {
-                        setCustomName(e.target.value);
-                        if (e.target.value.trim()) {
-                          setSelectedProduct({
-                            id: uid("custom"),
-                            name: e.target.value.trim(),
-                            isCustom: true,
-                            category: selectedCategory,
-                          });
-                        } else {
-                          setSelectedProduct(null);
-                        }
+                        const next = e.target.value;
+                        setCustomName(next);
+                        syncCustomProduct(next, customImage);
                       }}
                       placeholder="제품 이름 입력"
                     />
@@ -757,7 +1079,7 @@ export default function RoutineRegisterPage() {
                   const isCustom = Boolean(selectedProduct.isCustom);
                   if (isCustom) {
                     trackEvent("product_custom_register", {
-                      has_image: Boolean(selectedProduct.imageUrl),
+                      has_image: Boolean(selectedProduct.imageUrl || customImage),
                     });
                   }
                   trackEvent("routine_step_add", { step_type: selectedCategory });
@@ -766,15 +1088,14 @@ export default function RoutineRegisterPage() {
                     {
                       id: uid("draft"),
                       category: selectedCategory,
-                      product: { ...selectedProduct, category: selectedCategory },
+                      product: {
+                        ...selectedProduct,
+                        category: selectedCategory,
+                        imageUrl: selectedProduct.imageUrl || customImage,
+                      },
                     },
                   ]);
-                  setSelectedProduct(null);
-                  setCustomName("");
-                  setQuery("");
-                  setSearchResults([]);
-                  setSearchError("");
-                  setSheetTab("search");
+                  resetSheetForm();
                   closeSheet("complete");
                 }}
               >

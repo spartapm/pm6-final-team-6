@@ -9,6 +9,7 @@ import {
 } from "./constants";
 import {
   deleteSkinNote,
+  fetchCommentById,
   fetchPublicNotes,
   fetchUserBundle,
   hideNoteDb,
@@ -17,6 +18,7 @@ import {
   insertSkinNote,
   newUuid,
   removeComment,
+  reportCommentDb,
   reportNoteDb,
   toggleCommentLikeDb,
   toggleHelp,
@@ -29,6 +31,7 @@ import {
   deleteSkinProfile,
   upsertWeeklyChange,
 } from "./db";
+import { saveCommentReportContext } from "./commentReport";
 import { supabase } from "./supabase";
 import type {
   AppState,
@@ -291,10 +294,18 @@ export async function signup(input: {
   ageGroup: UserAccount["ageGroup"];
   gender: UserAccount["gender"];
 }) {
+  const nick = input.nickname.trim();
+  if (!/^[가-힣a-zA-Z0-9]{2,10}$/.test(nick)) {
+    return {
+      ok: false as const,
+      message: "닉네임은 한글, 영문, 숫자 2~10자로 입력해주세요.",
+    };
+  }
+
   const { data: nickRows } = await supabase
     .from("profiles")
     .select("nickname")
-    .eq("nickname", input.nickname)
+    .eq("nickname", nick)
     .maybeSingle();
   if (nickRows) return { ok: false as const, message: "이미 사용 중인 닉네임입니다." };
 
@@ -303,7 +314,7 @@ export async function signup(input: {
     password: input.password,
     options: {
       data: {
-        nickname: input.nickname,
+        nickname: nick,
         age_group: input.ageGroup,
         gender: input.gender,
       },
@@ -331,7 +342,7 @@ export async function signup(input: {
     id: data.user.id,
     email: input.email,
     password: "",
-    nickname: input.nickname,
+    nickname: nick,
     ageGroup: input.ageGroup,
     gender: input.gender,
     createdAt: new Date().toISOString(),
@@ -371,6 +382,45 @@ export async function logout() {
     skinNotes: publicNotes,
     comments: [],
   }));
+}
+
+/** 회원탈퇴: auth 유저 삭제(연관 데이터 cascade) 후 로컬 세션 정리 */
+export async function withdrawAccount() {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session?.access_token) {
+    return { ok: false as const, message: "로그인이 필요합니다." };
+  }
+
+  const res = await fetch("/api/auth/withdraw", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
+  });
+  const json = (await res.json().catch(() => null)) as
+    | { ok?: boolean; message?: string }
+    | null;
+  if (!res.ok || !json?.ok) {
+    return {
+      ok: false as const,
+      message: json?.message || "회원탈퇴 처리에 실패했습니다. 잠시 후 다시 시도해주세요.",
+    };
+  }
+
+  try {
+    await supabase.auth.signOut();
+  } catch {
+    // 이미 삭제된 계정일 수 있음
+  }
+  const publicNotes = await fetchPublicNotes().catch(() => [] as SkinNote[]);
+  updateState(() => ({
+    ...defaultState,
+    skinNotes: publicNotes,
+    comments: [],
+  }));
+  return { ok: true as const };
 }
 
 export async function saveSkinProfile(profile: SkinProfile) {
@@ -691,6 +741,72 @@ export async function reportNote(noteId: string) {
   }));
   await reportNoteDb(state.currentUserId, noteId);
   showToast("신고가 접수되었어요.");
+}
+
+/** 타인의 댓글 신고 접수 후 문의하기 전달 컨텍스트 저장 */
+export async function reportComment(commentId: string, noteId: string) {
+  const state = loadState();
+  if (!state.currentUserId) {
+    return { ok: false as const, message: "로그인이 필요합니다." };
+  }
+
+  try {
+    const fetched = await fetchCommentById(commentId);
+    if (!fetched.ok) {
+      return {
+        ok: false as const,
+        message: "신고 접수에 실패했어요. 다시 시도해주세요.",
+      };
+    }
+    if (!fetched.comment) {
+      // 로컬에도 없으면 삭제된 댓글
+      const local = state.comments.find((c) => c.id === commentId);
+      if (!local) {
+        return { ok: false as const, message: "이미 삭제된 댓글입니다." };
+      }
+      // 서버에만 없고 로컬에 있으면 삭제된 것으로 처리
+      updateState((s) => ({
+        ...s,
+        comments: s.comments.filter((c) => c.id !== commentId),
+      }));
+      return { ok: false as const, message: "이미 삭제된 댓글입니다." };
+    }
+
+    if (fetched.comment.authorId === state.currentUserId) {
+      return { ok: false as const, message: "본인 댓글은 신고할 수 없어요." };
+    }
+
+    const { error } = await reportCommentDb({
+      userId: state.currentUserId,
+      commentId: fetched.comment.id,
+      noteId: fetched.comment.noteId || noteId,
+      targetAuthorId: fetched.comment.authorId,
+      commentContent: fetched.comment.content,
+    });
+
+    if (error) {
+      return {
+        ok: false as const,
+        message: "신고 접수에 실패했어요. 다시 시도해주세요.",
+      };
+    }
+
+    saveCommentReportContext({
+      reporterId: state.currentUserId,
+      targetType: "댓글",
+      commentId: fetched.comment.id,
+      commentContent: fetched.comment.content,
+      commentAuthorId: fetched.comment.authorId,
+      noteId: fetched.comment.noteId || noteId,
+    });
+
+    return { ok: true as const };
+  } catch {
+    return {
+      ok: false as const,
+      message: "신고 접수에 실패했어요. 다시 시도해주세요.",
+    };
+  }
 }
 
 export async function requestResetCode(email: string) {
