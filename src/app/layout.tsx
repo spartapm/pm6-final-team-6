@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import { FeatureHelpProvider } from "@/components/help/FeatureHelpContext";
 import "./globals.css";
 
 const GTM_ID = "GTM-TFRG8QRH";
@@ -46,7 +47,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             })(window,document,'script','dataLayer','${GTM_ID}');
           `}
         </Script>
-        <div className="min-h-[100svh] h-[100svh]">{children}</div>
+        <FeatureHelpProvider>
+          <div className="min-h-[100svh] h-[100svh]">{children}</div>
+        </FeatureHelpProvider>
       </body>
     </html>
   );
