@@ -1,9 +1,10 @@
 "use client";
 
 import { hasFeatureHelpTour } from "@/lib/featureHelp/tours";
+import { ILLUSTRATIONS } from "@/lib/illustrations";
 import { useFeatureHelp } from "./FeatureHelpContext";
 
-/** 화면 우측 상단 공통 기능설명(?) 버튼 */
+/** 화면 우측 상단 공통 기능설명 버튼 */
 export default function FeatureHelpButton({
   tourId,
   className = "",
@@ -22,14 +23,19 @@ export default function FeatureHelpButton({
       disabled={isActive}
       onClick={() => startTour(tourId)}
       className={[
-        "flex shrink-0 flex-col items-center gap-0.5 text-sky transition enabled:active:scale-95 disabled:opacity-40",
+        "flex shrink-0 items-center justify-center transition enabled:active:scale-95 disabled:opacity-40",
         className,
       ].join(" ")}
     >
-      <span className="flex h-9 w-9 items-center justify-center rounded-full border-[1.5px] border-sky bg-white text-[16px] font-extrabold leading-none text-sky shadow-sm">
-        ?
-      </span>
-      <span className="text-[10px] font-bold leading-none text-sky">기능설명</span>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={ILLUSTRATIONS.featureHelp}
+        alt=""
+        width={36}
+        height={42}
+        className="h-[42px] w-[36px] object-contain"
+        draggable={false}
+      />
     </button>
   );
 }

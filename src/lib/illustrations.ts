@@ -2,6 +2,7 @@ import type { ChangeFeeling, Difficulty, SkinType } from "./types";
 
 export const ILLUSTRATIONS = {
   homeHero: "/illustrations/home-hero.svg",
+  featureHelp: "/illustrations/feature-help-icon.png",
   weekDonePast: "/illustrations/week-done-past.svg",
   weekDoneToday: "/illustrations/week-done-today.svg",
   weekMissedPast: "/illustrations/week-missed-past.svg",
