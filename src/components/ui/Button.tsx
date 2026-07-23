@@ -13,8 +13,8 @@ const variants: Record<Variant, string> = {
   /** 기본 버튼 채우기 #F9FBFE · 외곽선 #7BA5FD */
   outline:
     "bg-surface-card text-ink border border-sky enabled:hover:bg-sky-faint",
-  /** 오늘 루틴 기록하기 그라데이션 */
-  sky: "btn-sky enabled:active:scale-[0.99]",
+  /** 오늘 루틴 기록하기 그라데이션 (모서리 13px는 .btn-sky) */
+  sky: "btn-sky !rounded-[13px] enabled:active:scale-[0.99]",
 };
 
 const sizes: Record<Size, string> = {

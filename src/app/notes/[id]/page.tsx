@@ -480,8 +480,16 @@ export default function NoteDetailPage() {
                     type="button"
                     className="w-full rounded-[14px] px-3 py-3 text-left font-bold text-ink"
                     onClick={() => {
-                      void reportNote(note.id);
-                      setSheet(null);
+                      requireLogin(() => {
+                        void reportNote(note.id).then((result) => {
+                          setSheet(null);
+                          if (!result.ok) {
+                            showToast(result.message);
+                            return;
+                          }
+                          router.push("/settings/inquiry?from=report");
+                        });
+                      });
                     }}
                   >
                     신고하기
@@ -526,7 +534,7 @@ export default function NoteDetailPage() {
                             showToast(result.message);
                             return;
                           }
-                          router.push("/settings/inquiry?from=comment-report");
+                          router.push("/settings/inquiry?from=report");
                         });
                       });
                     }}

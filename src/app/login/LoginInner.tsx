@@ -71,7 +71,7 @@ export default function LoginInner() {
             error={submitted ? errors.password : undefined}
           />
 
-          <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center pt-1">
             <label className="flex items-center gap-2 text-sm text-ink-soft">
               <input
                 type="checkbox"
@@ -81,9 +81,6 @@ export default function LoginInner() {
               />
               자동 로그인
             </label>
-            <Link href="/forgot-password" className="text-sm font-bold text-ink-soft underline">
-              비밀번호 찾기
-            </Link>
           </div>
 
           {formError && (

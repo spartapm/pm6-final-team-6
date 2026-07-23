@@ -31,7 +31,7 @@ import {
   deleteSkinProfile,
   upsertWeeklyChange,
 } from "./db";
-import { saveCommentReportContext } from "./commentReport";
+import { saveReportInquiryContext } from "./commentReport";
 import { supabase } from "./supabase";
 import type {
   AppState,
@@ -732,81 +732,101 @@ export function markNoteViewed(noteId: string) {
 
 export async function reportNote(noteId: string) {
   const state = loadState();
-  if (!state.currentUserId) return;
+  if (!state.currentUserId) {
+    return { ok: false as const, message: "로그인이 필요합니다." };
+  }
+  const note = state.skinNotes.find((n) => n.id === noteId);
+  if (!note) {
+    return { ok: false as const, message: "스킨노트를 찾을 수 없어요." };
+  }
+  if (note.authorId === state.currentUserId) {
+    return { ok: false as const, message: "본인 게시글은 신고할 수 없어요." };
+  }
+
   updateState((s) => ({
     ...s,
     reportedNoteIds: s.reportedNoteIds.includes(noteId)
       ? s.reportedNoteIds
       : [...s.reportedNoteIds, noteId],
   }));
-  await reportNoteDb(state.currentUserId, noteId);
-  showToast("신고가 접수되었어요.");
+
+  // DB 접수는 백그라운드 — 문의하기 화면이 신고 채널
+  void reportNoteDb(state.currentUserId, noteId);
+
+  saveReportInquiryContext({
+    kind: "note",
+    reporterId: state.currentUserId,
+    noteId,
+    returnPath: `/notes/${noteId}`,
+    noteTitle: note.title,
+  });
+
+  return { ok: true as const, returnPath: `/notes/${noteId}` };
 }
 
-/** 타인의 댓글 신고 접수 후 문의하기 전달 컨텍스트 저장 */
+/** 타인의 댓글 신고 → 문의하기 전달 컨텍스트 저장 */
 export async function reportComment(commentId: string, noteId: string) {
   const state = loadState();
   if (!state.currentUserId) {
     return { ok: false as const, message: "로그인이 필요합니다." };
   }
 
+  const local = state.comments.find((c) => c.id === commentId);
+  let comment = local
+    ? {
+        id: local.id,
+        noteId: local.noteId,
+        authorId: local.authorId,
+        content: local.content,
+      }
+    : null;
+
   try {
     const fetched = await fetchCommentById(commentId);
-    if (!fetched.ok) {
-      return {
-        ok: false as const,
-        message: "신고 접수에 실패했어요. 다시 시도해주세요.",
-      };
-    }
-    if (!fetched.comment) {
-      // 로컬에도 없으면 삭제된 댓글
-      const local = state.comments.find((c) => c.id === commentId);
+    if (fetched.ok && fetched.comment) {
+      comment = fetched.comment;
+    } else if (fetched.ok && !fetched.comment) {
       if (!local) {
         return { ok: false as const, message: "이미 삭제된 댓글입니다." };
       }
-      // 서버에만 없고 로컬에 있으면 삭제된 것으로 처리
       updateState((s) => ({
         ...s,
         comments: s.comments.filter((c) => c.id !== commentId),
       }));
       return { ok: false as const, message: "이미 삭제된 댓글입니다." };
     }
-
-    if (fetched.comment.authorId === state.currentUserId) {
-      return { ok: false as const, message: "본인 댓글은 신고할 수 없어요." };
-    }
-
-    const { error } = await reportCommentDb({
-      userId: state.currentUserId,
-      commentId: fetched.comment.id,
-      noteId: fetched.comment.noteId || noteId,
-      targetAuthorId: fetched.comment.authorId,
-      commentContent: fetched.comment.content,
-    });
-
-    if (error) {
-      return {
-        ok: false as const,
-        message: "신고 접수에 실패했어요. 다시 시도해주세요.",
-      };
-    }
-
-    saveCommentReportContext({
-      reporterId: state.currentUserId,
-      targetType: "댓글",
-      commentId: fetched.comment.id,
-      commentContent: fetched.comment.content,
-      commentAuthorId: fetched.comment.authorId,
-      noteId: fetched.comment.noteId || noteId,
-    });
-
-    return { ok: true as const };
   } catch {
-    return {
-      ok: false as const,
-      message: "신고 접수에 실패했어요. 다시 시도해주세요.",
-    };
+    // 네트워크 실패 시 로컬 데이터로 문의하기 이동
   }
+
+  if (!comment) {
+    return { ok: false as const, message: "이미 삭제된 댓글입니다." };
+  }
+  if (comment.authorId === state.currentUserId) {
+    return { ok: false as const, message: "본인 댓글은 신고할 수 없어요." };
+  }
+
+  const resolvedNoteId = comment.noteId || noteId;
+
+  void reportCommentDb({
+    userId: state.currentUserId,
+    commentId: comment.id,
+    noteId: resolvedNoteId,
+    targetAuthorId: comment.authorId,
+    commentContent: comment.content,
+  });
+
+  saveReportInquiryContext({
+    kind: "comment",
+    reporterId: state.currentUserId,
+    noteId: resolvedNoteId,
+    returnPath: `/notes/${resolvedNoteId}`,
+    commentId: comment.id,
+    commentContent: comment.content,
+    commentAuthorId: comment.authorId,
+  });
+
+  return { ok: true as const, returnPath: `/notes/${resolvedNoteId}` };
 }
 
 export async function requestResetCode(email: string) {

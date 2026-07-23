@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import FeatureHelpButton from "@/components/help/FeatureHelpButton";
@@ -9,7 +10,8 @@ import Card from "@/components/ui/Card";
 import Illustration from "@/components/ui/Illustration";
 import { SectionHeader } from "@/components/ui/PageHeader";
 import { WEEKDAY_LABELS, getWeekDays, todayKey } from "@/lib/constants";
-import { ILLUSTRATIONS, defaultAvatar, weekDayIllustration } from "@/lib/illustrations";
+import { ILLUSTRATIONS, defaultAvatar } from "@/lib/illustrations";
+import { hasCompletedOnboarding } from "@/lib/onboarding";
 import { useAppDerivations, useHydrated } from "@/lib/useAppState";
 import type { SkinNote } from "@/lib/types";
 
@@ -20,7 +22,7 @@ function SkyCta({ label, onClick }: { label: string; onClick: () => void }) {
       variant="sky"
       fullWidth
       onClick={onClick}
-      className="relative z-[1] justify-between px-5 text-[15px] font-extrabold text-ink"
+      className="relative z-[1] !rounded-[13px] justify-between px-5 text-[15px] font-extrabold text-ink"
     >
       <span>{label}</span>
       <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FEFEFE] text-sky shadow-sm">
@@ -61,12 +63,275 @@ function HonorCard({ label, note }: { label: string; note: SkinNote | null }) {
   );
 }
 
+type DayCellState = "done" | "missed" | "empty";
+
+function dayCellState(
+  key: string,
+  today: string,
+  participated: Set<string>,
+  historyStart: string | null
+): DayCellState {
+  if (key > today) return "empty";
+  if (historyStart && key < historyStart) return "empty";
+  if (!historyStart) return "empty";
+  if (participated.has(key)) return "done";
+  return "missed";
+}
+
+function ParticipationDayCell({
+  state,
+  isToday,
+  weekday,
+  showWeekday,
+}: {
+  state: DayCellState;
+  isToday: boolean;
+  weekday?: string;
+  showWeekday?: boolean;
+}) {
+  return (
+    <div className="flex min-w-0 flex-col items-center gap-1.5">
+      {showWeekday && weekday ? (
+        <span className="text-[11px] font-bold text-ink">{weekday}</span>
+      ) : null}
+      <div
+        className={`flex h-9 w-9 items-center justify-center overflow-hidden rounded-full ${
+          isToday ? "border-2 border-[#F8899E] bg-white" : state === "empty" ? "border border-[#DCE3F0] bg-white" : "bg-transparent"
+        }`}
+      >
+        {state === "empty" ? null : (
+          <Illustration
+            src={ILLUSTRATIONS.weekDonePast}
+            alt=""
+            width={30}
+            height={30}
+            className={`h-[30px] w-[30px] object-contain ${
+              state === "missed" ? "opacity-20" : "opacity-100"
+            }`}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function formatWeekRange(days: Date[]) {
+  const first = days[0];
+  const last = days[6];
+  if (!first || !last) return "";
+  return `${first.getMonth() + 1}.${first.getDate()} – ${last.getMonth() + 1}.${last.getDate()}`;
+}
+
+function formatMonthLabel(year: number, monthIndex: number) {
+  return `${year}.${monthIndex + 1}`;
+}
+
+function ParticipationBoard({
+  hasRoutine,
+  participationCount,
+  participatedDates,
+  historyStart,
+}: {
+  hasRoutine: boolean;
+  participationCount: number;
+  participatedDates: Set<string>;
+  historyStart: string | null;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const today = todayKey();
+  const weekDays = getWeekDays();
+  const now = new Date();
+  const [cursor, setCursor] = useState({
+    year: now.getFullYear(),
+    month: now.getMonth(),
+  });
+
+  const title = hasRoutine
+    ? `이번 루틴 ${participationCount}번 참여했어요`
+    : "아직 루틴을 시작하지 않았어요.";
+
+  const monthCells = useMemo(() => {
+    const first = new Date(cursor.year, cursor.month, 1);
+    const startPad = first.getDay();
+    const daysInMonth = new Date(cursor.year, cursor.month + 1, 0).getDate();
+    const cells: Array<{ key: string | null; date: Date | null }> = [];
+    for (let i = 0; i < startPad; i += 1) cells.push({ key: null, date: null });
+    for (let d = 1; d <= daysInMonth; d += 1) {
+      const date = new Date(cursor.year, cursor.month, d);
+      cells.push({ key: todayKey(date), date });
+    }
+    while (cells.length % 7 !== 0) cells.push({ key: null, date: null });
+    return cells;
+  }, [cursor.year, cursor.month]);
+
+  return (
+    <section data-help-id="home-week">
+      <Card className="!p-4">
+        <h2 className="text-[16px] font-extrabold leading-snug text-ink">{title}</h2>
+
+        {!expanded ? (
+          <>
+            <p className="mt-1.5 text-[12px] font-semibold text-ink-muted">
+              {formatWeekRange(weekDays)}
+            </p>
+            <div className="mt-3 grid grid-cols-7 gap-1.5">
+              {weekDays.map((day, i) => {
+                const key = todayKey(day);
+                return (
+                  <ParticipationDayCell
+                    key={key}
+                    weekday={WEEKDAY_LABELS[i]}
+                    showWeekday
+                    isToday={key === today}
+                    state={dayCellState(key, today, participatedDates, historyStart)}
+                  />
+                );
+              })}
+            </div>
+            <button
+              type="button"
+              onClick={() => setExpanded(true)}
+              className="mt-3 flex w-full items-center justify-center gap-1 py-1 text-[13px] font-bold text-ink-soft"
+            >
+              펼쳐보기
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
+                <path
+                  d="M2.5 4.5L6 8l3.5-3.5"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="mt-3 flex items-center justify-center gap-4">
+              <button
+                type="button"
+                aria-label="이전 달"
+                onClick={() =>
+                  setCursor((c) => {
+                    const month = c.month - 1;
+                    if (month < 0) return { year: c.year - 1, month: 11 };
+                    return { year: c.year, month };
+                  })
+                }
+                className="flex h-8 w-8 items-center justify-center rounded-full text-ink-soft"
+              >
+                ‹
+              </button>
+              <p className="min-w-[4.5rem] text-center text-[15px] font-extrabold text-ink">
+                {formatMonthLabel(cursor.year, cursor.month)}
+              </p>
+              <button
+                type="button"
+                aria-label="다음 달"
+                onClick={() =>
+                  setCursor((c) => {
+                    const month = c.month + 1;
+                    if (month > 11) return { year: c.year + 1, month: 0 };
+                    return { year: c.year, month };
+                  })
+                }
+                className="flex h-8 w-8 items-center justify-center rounded-full text-ink-soft"
+              >
+                ›
+              </button>
+            </div>
+
+            <div className="mt-3 grid grid-cols-7 gap-y-2">
+              {WEEKDAY_LABELS.map((label) => (
+                <p
+                  key={label}
+                  className="text-center text-[11px] font-bold text-ink-muted"
+                >
+                  {label}
+                </p>
+              ))}
+              {monthCells.map((cell, index) => {
+                if (!cell.key || !cell.date) {
+                  return <div key={`pad-${index}`} className="h-9" />;
+                }
+                return (
+                  <ParticipationDayCell
+                    key={cell.key}
+                    isToday={cell.key === today}
+                    state={dayCellState(
+                      cell.key,
+                      today,
+                      participatedDates,
+                      historyStart
+                    )}
+                  />
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setExpanded(false)}
+              className="mt-3 flex w-full items-center justify-center gap-1 py-1 text-[13px] font-bold text-ink-soft"
+            >
+              접기
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
+                <path
+                  d="M2.5 7.5L6 4l3.5 3.5"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          </>
+        )}
+      </Card>
+    </section>
+  );
+}
+
 export default function HomePage() {
   const hydrated = useHydrated();
   const router = useRouter();
   const { state, user, profile, activeRoutine, honor } = useAppDerivations();
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
 
-  if (!hydrated) {
+  useEffect(() => {
+    if (!hasCompletedOnboarding()) {
+      router.replace("/onboarding");
+      return;
+    }
+    setOnboardingChecked(true);
+  }, [router]);
+
+  const participatedDates = useMemo(() => {
+    const set = new Set<string>();
+    for (const log of state.dailyLogs) set.add(log.date);
+    return set;
+  }, [state.dailyLogs]);
+
+  const historyStart = useMemo(() => {
+    const starts = state.routines
+      .filter((r) => r.userId === state.currentUserId)
+      .map((r) => todayKey(new Date(r.startedAt)));
+    for (const log of state.dailyLogs) starts.push(log.date);
+    if (!starts.length) return null;
+    return starts.reduce((a, b) => (a < b ? a : b));
+  }, [state.routines, state.dailyLogs, state.currentUserId]);
+
+  const participationCount = useMemo(() => {
+    if (!activeRoutine) return 0;
+    const dates = new Set(
+      state.dailyLogs
+        .filter((l) => l.routineId === activeRoutine.id)
+        .map((l) => l.date)
+    );
+    return dates.size;
+  }, [state.dailyLogs, activeRoutine]);
+
+  if (!onboardingChecked || !hydrated) {
     return (
       <AppShell>
         <div className="page-pad py-10 text-center text-ink-muted">불러오는 중...</div>
@@ -77,13 +342,11 @@ export default function HomePage() {
   const loggedIn = Boolean(state.isLoggedIn && user);
   const hasProfile = Boolean(profile);
   const hasRoutine = Boolean(activeRoutine);
-  const weekDays = getWeekDays();
-  const today = todayKey();
 
   const honorCards = [
     { key: "save", label: "저장 best", note: honor.bySave },
     { key: "comment", label: "댓글 best", note: honor.byComment },
-    { key: "like", label: "좋아요 best", note: honor.byHelp },
+    { key: "like", label: "도움돼요 best", note: honor.byHelp },
   ];
 
   const handleRoutineCta = () => {
@@ -117,7 +380,7 @@ export default function HomePage() {
           </div>
           <div className="min-w-0 flex-1 pt-2 pr-14">
             <p className="text-[15px] font-semibold text-ink-soft">안녕하세요</p>
-            <h1 className="mt-1 text-[22px] font-extrabold leading-snug tracking-tight text-ink">
+            <h1 className="mt-1 text-[28px] font-extrabold leading-[1.25] tracking-tight text-ink">
               오늘도 <span className="text-accent">피부</span>
               <br />
               <span className="text-accent">기록</span>해볼까요?
@@ -202,6 +465,13 @@ export default function HomePage() {
           )}
         </Card>
 
+        <ParticipationBoard
+          hasRoutine={hasRoutine}
+          participationCount={participationCount}
+          participatedDates={participatedDates}
+          historyStart={historyStart}
+        />
+
         <section data-help-id="home-honor">
           <SectionHeader title="명예의 스킨노트" actionLabel="더보기 >" actionHref="/drawer" />
           <div className="grid grid-cols-3 gap-2.5">
@@ -209,85 +479,6 @@ export default function HomePage() {
               <HonorCard key={card.key} label={card.label} note={card.note} />
             ))}
           </div>
-        </section>
-
-        <section data-help-id="home-week">
-          <SectionHeader title="이번주 참여 기록" />
-          {hasRoutine ? (
-            <div className="grid grid-cols-7 gap-1.5">
-              {weekDays.map((day, i) => {
-                const key = todayKey(day);
-                const logged = state.dailyLogs.some(
-                  (l) => l.date === key && l.routineId === activeRoutine!.id
-                );
-                const isToday = key === today;
-                const startKey = todayKey(new Date(activeRoutine!.startedAt));
-                const beforeStart = key < startKey;
-                const isFuture = day.getTime() > new Date(today).getTime();
-                const icon = weekDayIllustration({
-                  isToday,
-                  logged,
-                  isFuture,
-                  beforeStart,
-                });
-                const showRing =
-                  (isToday && !beforeStart) || (!icon && !beforeStart && isFuture);
-                return (
-                  <div
-                    key={key}
-                    className="flex min-w-0 flex-col items-center gap-1.5 rounded-[16px] bg-white px-0.5 py-2 shadow-card"
-                  >
-                    <span className="text-[11px] font-bold text-ink">
-                      {WEEKDAY_LABELS[i]}
-                    </span>
-                    <div className="relative flex h-9 w-9 shrink-0 items-center justify-center">
-                      {isToday && !beforeStart && (
-                        <span className="pointer-events-none absolute -right-0.5 -top-1 text-[9px] leading-none text-accent">
-                          ✦✦
-                        </span>
-                      )}
-                      <div
-                        className={`flex h-9 w-9 items-center justify-center overflow-hidden rounded-full ${
-                          showRing
-                            ? "border-2 border-accent bg-white"
-                            : icon
-                              ? "bg-transparent"
-                              : "border border-accent/40 bg-white"
-                        }`}
-                      >
-                        {icon ? (
-                          <Illustration
-                            src={icon}
-                            alt=""
-                            width={30}
-                            height={30}
-                            className="h-[30px] w-[30px] object-contain"
-                          />
-                        ) : null}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <Card className="relative overflow-hidden !p-5 min-h-[132px]">
-              <Badge>이번주 기록 없음</Badge>
-              <p className="mt-3 max-w-[190px] text-[15px] font-extrabold leading-snug text-ink">
-                아직 루틴을 시작하지
-                <br />
-                않았어요
-              </p>
-              <div className="pointer-events-none absolute bottom-2 right-2">
-                <Illustration
-                  src={ILLUSTRATIONS.recommendEmpty}
-                  alt=""
-                  width={92}
-                  height={92}
-                />
-              </div>
-            </Card>
-          )}
         </section>
       </div>
     </AppShell>

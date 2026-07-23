@@ -7,9 +7,9 @@ import Button from "@/components/ui/Button";
 import PageHeader from "@/components/ui/PageHeader";
 import { TextInput } from "@/components/ui/Field";
 import {
-  buildCommentReportInquiryDraft,
-  consumeCommentReportContext,
-  type CommentReportContext,
+  buildReportInquiryDraft,
+  consumeReportInquiryContext,
+  type ReportInquiryContext,
 } from "@/lib/commentReport";
 import { compressImageFile, validateImageFile } from "@/lib/image";
 import { showToast } from "@/lib/store";
@@ -45,17 +45,21 @@ function InquiryInner() {
   const [dragging, setDragging] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [reportMeta, setReportMeta] = useState<CommentReportContext | null>(null);
+  const [reportMeta, setReportMeta] = useState<ReportInquiryContext | null>(null);
+  const [backHref, setBackHref] = useState("/settings");
 
   useEffect(() => {
-    if (search.get("from") !== "comment-report") return;
-    const ctx = consumeCommentReportContext();
+    if (search.get("from") !== "report" && search.get("from") !== "comment-report") {
+      return;
+    }
+    const ctx = consumeReportInquiryContext();
     if (!ctx) {
       router.replace("/settings/inquiry", { scroll: false });
       return;
     }
-    const draft = buildCommentReportInquiryDraft(ctx);
+    const draft = buildReportInquiryDraft(ctx);
     setReportMeta(ctx);
+    setBackHref(ctx.returnPath || `/notes/${ctx.noteId}`);
     setTitle(draft.title);
     setBody(draft.body.slice(0, MAX_LEN));
     router.replace("/settings/inquiry", { scroll: false });
@@ -123,11 +127,12 @@ function InquiryInner() {
           reportMeta: reportMeta
             ? {
                 reporterId: reportMeta.reporterId,
-                targetType: reportMeta.targetType,
+                targetType: reportMeta.kind === "note" ? "스킨노트" : "댓글",
                 commentId: reportMeta.commentId,
                 commentContent: reportMeta.commentContent,
                 commentAuthorId: reportMeta.commentAuthorId,
                 noteId: reportMeta.noteId,
+                noteTitle: reportMeta.noteTitle,
               }
             : undefined,
           attachments: photos.map((p, i) => ({
@@ -155,7 +160,7 @@ function InquiryInner() {
       }
 
       showToast("문의가 접수되었어요.");
-      router.push("/settings");
+      router.push(backHref.startsWith("/notes/") ? backHref : "/settings");
     } finally {
       setBusy(false);
     }
@@ -163,7 +168,7 @@ function InquiryInner() {
 
   return (
     <AppShell>
-      <PageHeader title="문의하기" center backHref="/settings" />
+      <PageHeader title="문의하기" center backHref={backHref} />
 
       <div className="page-pad mt-4 space-y-4 pb-8 animate-fade-up">
         <div>

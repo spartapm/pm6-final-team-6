@@ -26,6 +26,7 @@ export async function POST(req: Request) {
         commentContent?: string;
         commentAuthorId?: string;
         noteId?: string;
+        noteTitle?: string;
       };
     };
 
@@ -73,7 +74,18 @@ export async function POST(req: Request) {
           <li>댓글 ID: ${escapeHtml(reportMeta.commentId || "")}</li>
         </ul>
       `
-        : "";
+        : reportMeta?.targetType === "스킨노트"
+          ? `
+        <hr />
+        <p><strong>[스킨노트 신고 접수 데이터]</strong></p>
+        <ul>
+          <li>신고자 ID: ${escapeHtml(reportMeta.reporterId || "")}</li>
+          <li>신고 대상 유형: 스킨노트</li>
+          <li>스킨노트 제목: ${escapeHtml(reportMeta.noteTitle || "")}</li>
+          <li>스킨노트 ID: ${escapeHtml(reportMeta.noteId || "")}</li>
+        </ul>
+      `
+          : "";
 
     const html = `
       <div style="font-family:sans-serif;line-height:1.7;color:#222">

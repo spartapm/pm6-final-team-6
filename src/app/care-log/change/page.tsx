@@ -142,7 +142,13 @@ export default function ChangeRecordPage() {
     <AppShell showNav={false}>
       <PageHeader
         title="변화 과정 기록"
-        subtitle="피부 변화 과정을 기록해보세요. 기록할수록 루틴이 더 정확해져요!"
+        subtitle={
+          <>
+            피부 변화 과정을 기록해보세요.
+            <br />
+            기록할수록 루틴이 더 정확해져요!
+          </>
+        }
         center
         helpTourId="care-log-change"
         onBack={() => {
@@ -238,17 +244,17 @@ export default function ChangeRecordPage() {
         </Card>
 
         {/* Info note */}
-        <Card className="!flex !items-start gap-3 !p-3.5">
-          <span className="mt-0.5 text-sky" aria-hidden>
-            🖼
-          </span>
-          <div>
-            <p className="text-[13px] font-extrabold text-ink">부담 없이 기록해보세요</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-ink-muted">
-              얼굴 전체가 아닌 볼·이마·턱 등 원하는 부위만 촬영할 수 있어요. 사진 없이
-              기록하거나, 스킨노트를 나만 보기로 저장할 수도 있어요.
-            </p>
-          </div>
+        <Card className="!p-3.5">
+          <p className="text-[13px] font-extrabold text-ink">부담 없이 기록해보세요</p>
+          <p className="mt-0.5 text-xs leading-relaxed text-ink-muted">
+            얼굴 전체가 아닌 볼·이마·턱 등{" "}
+            <span className="font-extrabold text-ink-soft">원하는 부위</span>만 촬영할 수
+            있어요.
+            <br />
+            사진 없이 기록하거나, 스킨노트를{" "}
+            <span className="font-extrabold text-ink-soft">나만 보기</span>로 저장할 수도
+            있어요.
+          </p>
         </Card>
 
         {/* Feeling */}
@@ -301,7 +307,7 @@ export default function ChangeRecordPage() {
         </section>
 
         {/* Tags */}
-        <section>
+        <section data-help-id="change-tags">
           <h2 className="mb-2.5 text-sm font-extrabold text-ink">
             어떤 변화가 있었나요?{" "}
             <span
@@ -311,7 +317,7 @@ export default function ChangeRecordPage() {
               (복수 선택 가능)
             </span>
           </h2>
-          <div data-help-id="change-tags">
+          <div>
             <div className="flex flex-wrap gap-2">
               {REGULAR_CHANGE_TAGS.map((tag) => {
                 const selected = tags.includes(tag);

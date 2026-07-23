@@ -18,16 +18,16 @@ export const FEATURE_HELP_TOURS: Record<string, FeatureHelpTour> = {
         placement: "below",
       },
       {
-        targetId: "home-honor",
-        title: "명예의 스킨노트",
-        description: "저장 best, 댓글 best 기록을 빠르게 볼 수 있어요",
+        targetId: "home-week",
+        title: "참여기록",
+        description:
+          "이번 루틴을 얼마나 참여했는지 보여주고, 날짜별로 기록한 날은 표시돼요. 화살표를 누르면 더 볼 수 있어요.",
         placement: "above",
       },
       {
-        targetId: "home-week",
-        title: "이번주 참여 기록",
-        description:
-          "아직 루틴을 시작하지 않았는지, 이번 주 기록이 있는지 한눈에 확인해요",
+        targetId: "home-honor",
+        title: "명예의 스킨노트",
+        description: "저장 best, 댓글 best 기록을 빠르게 볼 수 있어요",
         placement: "above",
       },
       {
@@ -37,6 +37,44 @@ export const FEATURE_HELP_TOURS: Record<string, FeatureHelpTour> = {
           "홈은 시작점, 케어로그는 기록, 스킨서랍장은 저장한 후기, 마이페이지는 내 정보예요",
         placement: "above",
         padding: 4,
+      },
+    ],
+  },
+  mypage: {
+    id: "mypage",
+    steps: [
+      {
+        targetId: "mypage-profile",
+        title: "내 프로필",
+        description: "내 이름과 프로필 상태를 확인하는 공간이에요.",
+        placement: "below",
+      },
+      {
+        targetId: "mypage-routine",
+        title: "진행중인 루틴",
+        description:
+          "현재 진행 중인 루틴이 있으면 여기서 바로 확인하거나 이어서 볼 수 있어요.",
+        placement: "below",
+      },
+      {
+        targetId: "mypage-notes",
+        title: "스킨노트 모아보기",
+        description: "내가 모아본 스킨노트를 빠르게 다시 꺼내볼 수 있어요.",
+        placement: "above",
+      },
+      {
+        targetId: "mypage-saved",
+        title: "저장한 스킨노트",
+        description:
+          "스킨서랍장에서 사용자가 저장한 스킨노트들을 확인할 수 있어요.",
+        placement: "above",
+      },
+      {
+        targetId: "mypage-settings",
+        title: "설정",
+        description:
+          "공지사항, 문의하기, 이용약관, 회원탈퇴 같은 설정은 톱니바퀴에서 볼 수 있어요.",
+        placement: "below",
       },
     ],
   },
@@ -315,7 +353,7 @@ export const FEATURE_HELP_TOURS: Record<string, FeatureHelpTour> = {
         targetId: "change-tags",
         title: "변화 태그 선택",
         description: "붉은기 완화, 촉촉해졌다 같은 태그로 변화를 간단히 남겨보세요.",
-        placement: "above",
+        placement: "auto",
       },
       {
         targetId: "change-multi-hint",
@@ -343,7 +381,7 @@ export const FEATURE_HELP_TOURS: Record<string, FeatureHelpTour> = {
       {
         targetId: "care-steps",
         title: "오늘 단계 체크",
-        description: "오늘 사용한 단계만 하나씩 체크하면 되네요.",
+        description: "오늘 사용한 단계만 하나씩 체크하면 돼요.",
         placement: "above",
       },
       {

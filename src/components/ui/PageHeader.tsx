@@ -15,7 +15,7 @@ export default function PageHeader({
   helpTourId,
 }: {
   title: string;
-  subtitle?: string;
+  subtitle?: ReactNode;
   backHref?: string;
   onBack?: () => void;
   right?: ReactNode;

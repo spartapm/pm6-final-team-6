@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
+import FeatureHelpButton from "@/components/help/FeatureHelpButton";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
@@ -63,32 +64,36 @@ export default function MyPage() {
   return (
     <AppShell>
       <div className="page-pad space-y-5 pt-5 pb-6 animate-fade-up">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <h1 className="text-[22px] font-extrabold text-ink">마이페이지</h1>
-          <button
-            type="button"
-            className="flex h-10 w-10 items-center justify-center rounded-full text-ink-soft hover:bg-sky-faint"
-            onClick={() => router.push("/settings")}
-            aria-label="설정"
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path
-                d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"
-                stroke="currentColor"
-                strokeWidth="1.7"
-              />
-              <path
-                d="M19.4 13.1c.04-.36.06-.73.06-1.1s-.02-.74-.06-1.1l2.1-1.64a.5.5 0 0 0 .12-.64l-2-3.46a.5.5 0 0 0-.6-.22l-2.48 1a7.7 7.7 0 0 0-1.9-1.1l-.38-2.64A.5.5 0 0 0 13.76 1h-3.52a.5.5 0 0 0-.5.42l-.38 2.64c-.67.27-1.3.63-1.9 1.1l-2.48-1a.5.5 0 0 0-.6.22l-2 3.46a.5.5 0 0 0 .12.64L4.6 10.9c-.04.36-.06.73-.06 1.1s.02.74.06 1.1L2.5 14.74a.5.5 0 0 0-.12.64l2 3.46c.14.24.42.34.68.22l2.48-1c.58.45 1.22.82 1.9 1.1l.38 2.64c.05.24.25.42.5.42h3.52c.24 0 .45-.18.5-.42l.38-2.64c.68-.28 1.32-.65 1.9-1.1l2.48 1c.26.12.54.02.68-.22l2-3.46a.5.5 0 0 0-.12-.64L19.4 13.1Z"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
+          <div className="flex items-center gap-1">
+            <FeatureHelpButton tourId="mypage" />
+            <button
+              type="button"
+              data-help-id="mypage-settings"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-ink-soft hover:bg-sky-faint"
+              onClick={() => router.push("/settings")}
+              aria-label="설정"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path
+                  d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                />
+                <path
+                  d="M19.4 13.1c.04-.36.06-.73.06-1.1s-.02-.74-.06-1.1l2.1-1.64a.5.5 0 0 0 .12-.64l-2-3.46a.5.5 0 0 0-.6-.22l-2.48 1a7.7 7.7 0 0 0-1.9-1.1l-.38-2.64A.5.5 0 0 0 13.76 1h-3.52a.5.5 0 0 0-.5.42l-.38 2.64c-.67.27-1.3.63-1.9 1.1l-2.48-1a.5.5 0 0 0-.6.22l-2 3.46a.5.5 0 0 0 .12.64L4.6 10.9c-.04.36-.06.73-.06 1.1s.02.74.06 1.1L2.5 14.74a.5.5 0 0 0-.12.64l2 3.46c.14.24.42.34.68.22l2.48-1c.58.45 1.22.82 1.9 1.1l.38 2.64c.05.24.25.42.5.42h3.52c.24 0 .45-.18.5-.42l.38-2.64c.68-.28 1.32-.65 1.9-1.1l2.48 1c.26.12.54.02.68-.22l2-3.46a.5.5 0 0 0-.12-.64L19.4 13.1Z"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
 
         <Card className="!p-4">
-          <div className="flex items-center gap-4">
+          <div data-help-id="mypage-profile" className="flex items-center gap-4">
             <button
               type="button"
               className="flex h-[72px] w-[72px] items-center justify-center overflow-hidden rounded-[16px] bg-surface-empty"
@@ -131,7 +136,7 @@ export default function MyPage() {
           </p>
         </Card>
 
-        <section>
+        <section data-help-id="mypage-routine">
           <SectionHeader title="진행중인 루틴" />
           {activeRoutine ? (
             <button
@@ -168,7 +173,7 @@ export default function MyPage() {
           )}
         </section>
 
-        <section>
+        <section data-help-id="mypage-notes">
           <SectionHeader title="스킨노트 모아보기" />
           {completedNotes.length === 0 ? (
             <Card className="text-center !py-6">
@@ -217,7 +222,7 @@ export default function MyPage() {
           )}
         </section>
 
-        <section>
+        <section data-help-id="mypage-saved">
           <h2 className="mb-2.5 text-[15px] font-extrabold text-ink">나의 관심</h2>
           <button
             type="button"
