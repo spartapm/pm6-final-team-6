@@ -66,7 +66,7 @@ export default function MyPage() {
       <div className="page-pad space-y-5 pt-5 pb-6 animate-fade-up">
         <div className="flex items-center justify-between gap-2">
           <h1 className="text-[22px] font-extrabold text-ink">마이페이지</h1>
-          <div className="flex items-center gap-1">
+          <div className="flex shrink-0 items-center gap-0.5">
             <FeatureHelpButton tourId="mypage" />
             <button
               type="button"
@@ -136,90 +136,94 @@ export default function MyPage() {
           </p>
         </Card>
 
-        <section data-help-id="mypage-routine">
+        <section>
           <SectionHeader title="진행중인 루틴" />
-          {activeRoutine ? (
-            <button
-              type="button"
-              className="w-full rounded-card bg-white p-4 text-left shadow-card"
-              onClick={() => {
-                trackEvent("mypage_routine_click", { routine_id: activeRoutine.id });
-                router.push("/care-log");
-              }}
-            >
-              <Badge>진행중</Badge>
-              <div className="mt-2 flex items-center justify-between gap-2">
-                <div>
-                  <p className="font-extrabold text-ink">{activeRoutine.concernLabel} 루틴</p>
-                  <p className="mt-1 text-xs text-ink-muted">
-                    {daysSince(activeRoutine.startedAt)}일차 ·{" "}
-                    {activeRoutine.steps.map((s) => s.category).join(" · ")}
-                  </p>
-                </div>
-                <span className="text-sky">›</span>
-              </div>
-            </button>
-          ) : (
-            <Card className="text-center !py-6">
-              <p className="text-sm font-extrabold text-ink">진행 중인 루틴이 없어요.</p>
-              <Button
-                className="mt-4"
-                size="md"
-                onClick={() => router.push(user ? "/skin-profile" : "/login")}
+          <div data-help-id="mypage-routine">
+            {activeRoutine ? (
+              <button
+                type="button"
+                className="w-full rounded-card bg-white p-4 text-left shadow-card"
+                onClick={() => {
+                  trackEvent("mypage_routine_click", { routine_id: activeRoutine.id });
+                  router.push("/care-log");
+                }}
               >
-                루틴 등록하기
-              </Button>
-            </Card>
-          )}
+                <Badge>진행중</Badge>
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <div>
+                    <p className="font-extrabold text-ink">{activeRoutine.concernLabel} 루틴</p>
+                    <p className="mt-1 text-xs text-ink-muted">
+                      {daysSince(activeRoutine.startedAt)}일차 ·{" "}
+                      {activeRoutine.steps.map((s) => s.category).join(" · ")}
+                    </p>
+                  </div>
+                  <span className="text-sky">›</span>
+                </div>
+              </button>
+            ) : (
+              <Card className="text-center !py-6">
+                <p className="text-sm font-extrabold text-ink">진행 중인 루틴이 없어요.</p>
+                <Button
+                  className="mt-4"
+                  size="md"
+                  onClick={() => router.push(user ? "/skin-profile" : "/login")}
+                >
+                  루틴 등록하기
+                </Button>
+              </Card>
+            )}
+          </div>
         </section>
 
-        <section data-help-id="mypage-notes">
+        <section>
           <SectionHeader title="스킨노트 모아보기" />
-          {completedNotes.length === 0 ? (
-            <Card className="text-center !py-6">
-              <Illustration
-                src={defaultAvatar(user.id)}
-                alt=""
-                width={64}
-                height={64}
-                className="mx-auto"
-              />
-              <p className="mt-2 text-sm font-bold text-ink-soft">아직 완성된 스킨노트가 없어요</p>
-            </Card>
-          ) : (
-            <div className="flex gap-2.5 overflow-x-auto no-scrollbar">
-              {completedNotes.slice(0, 6).map((note) => (
-                <button
-                  key={note.id}
-                  type="button"
-                  onClick={() => {
-                    trackEvent("mypage_skinnote_click", { card_id: note.id });
-                    setPreviewNote(note);
-                  }}
-                  className="w-[108px] shrink-0 rounded-[16px] bg-white p-2.5 text-center shadow-card"
-                >
-                  {note.isAbandoned ? (
-                    <Badge tone="outline" className="mb-2">
-                      중도 종료
-                    </Badge>
-                  ) : (
-                    <Badge className="mb-2">완료</Badge>
-                  )}
-                  <div className="mx-auto flex h-[72px] w-[72px] items-center justify-center overflow-hidden rounded-[12px] bg-sky-faint">
-                    <Illustration
-                      src={note.authorAvatar || defaultAvatar(note.authorId)}
-                      alt=""
-                      width={56}
-                      height={56}
-                    />
-                  </div>
-                  <p className="mt-2 truncate text-[12px] font-bold text-ink">
-                    {note.authorNickname || "닉네임"}
-                  </p>
-                </button>
-              ))}
-            </div>
-          )}
+          <div data-help-id="mypage-notes">
+            {completedNotes.length === 0 ? (
+              <Card className="text-center !py-6">
+                <Illustration
+                  src={defaultAvatar(user.id)}
+                  alt=""
+                  width={64}
+                  height={64}
+                  className="mx-auto"
+                />
+                <p className="mt-2 text-sm font-bold text-ink-soft">아직 완성된 스킨노트가 없어요</p>
+              </Card>
+            ) : (
+              <div className="flex gap-2.5 overflow-x-auto no-scrollbar">
+                {completedNotes.slice(0, 6).map((note) => (
+                  <button
+                    key={note.id}
+                    type="button"
+                    onClick={() => {
+                      trackEvent("mypage_skinnote_click", { card_id: note.id });
+                      setPreviewNote(note);
+                    }}
+                    className="w-[108px] shrink-0 rounded-[16px] bg-white p-2.5 text-center shadow-card"
+                  >
+                    {note.isAbandoned ? (
+                      <Badge tone="outline" className="mb-2">
+                        중도 종료
+                      </Badge>
+                    ) : (
+                      <Badge className="mb-2">완료</Badge>
+                    )}
+                    <div className="mx-auto flex h-[72px] w-[72px] items-center justify-center overflow-hidden rounded-[12px] bg-sky-faint">
+                      <Illustration
+                        src={note.authorAvatar || defaultAvatar(note.authorId)}
+                        alt=""
+                        width={56}
+                        height={56}
+                      />
+                    </div>
+                    <p className="mt-2 truncate text-[12px] font-bold text-ink">
+                      {note.authorNickname || "닉네임"}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </section>
 
         <section data-help-id="mypage-saved">

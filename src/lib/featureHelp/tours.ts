@@ -60,7 +60,7 @@ export const FEATURE_HELP_TOURS: Record<string, FeatureHelpTour> = {
         targetId: "mypage-notes",
         title: "스킨노트 모아보기",
         description: "내가 모아본 스킨노트를 빠르게 다시 꺼내볼 수 있어요.",
-        placement: "above",
+        placement: "below",
       },
       {
         targetId: "mypage-saved",
@@ -75,6 +75,7 @@ export const FEATURE_HELP_TOURS: Record<string, FeatureHelpTour> = {
         description:
           "공지사항, 문의하기, 이용약관, 회원탈퇴 같은 설정은 톱니바퀴에서 볼 수 있어요.",
         placement: "below",
+        padding: 6,
       },
     ],
   },
