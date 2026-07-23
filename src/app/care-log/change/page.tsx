@@ -144,9 +144,8 @@ export default function ChangeRecordPage() {
         title="변화 과정 기록"
         subtitle={
           <>
-            피부 변화 과정을 기록해보세요.
-            <br />
-            기록할수록 루틴이 더 정확해져요!
+            <span className="block">피부 변화 과정을 기록해보세요.</span>
+            <span className="block">기록할수록 루틴이 더 정확해져요!</span>
           </>
         }
         center
@@ -243,18 +242,21 @@ export default function ChangeRecordPage() {
           </div>
         </Card>
 
-        {/* Info note */}
+        {/* Info note — 사진 아이콘 없이 문장 단위 줄바꿈 + 핵심 문구 bold */}
         <Card className="!p-3.5">
           <p className="text-[13px] font-extrabold text-ink">부담 없이 기록해보세요</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-ink-muted">
-            얼굴 전체가 아닌 볼·이마·턱 등{" "}
-            <span className="font-extrabold text-ink-soft">원하는 부위</span>만 촬영할 수
-            있어요.
-            <br />
-            사진 없이 기록하거나, 스킨노트를{" "}
-            <span className="font-extrabold text-ink-soft">나만 보기</span>로 저장할 수도
-            있어요.
-          </p>
+          <div className="mt-0.5 break-keep text-xs leading-relaxed text-ink-muted">
+            <p>
+              얼굴 전체가 아닌 볼·이마·턱 등{" "}
+              <strong className="font-extrabold text-ink">원하는 부위</strong>만 촬영할 수
+              있어요.
+            </p>
+            <p>
+              사진 없이 기록하거나, 스킨노트를{" "}
+              <strong className="font-extrabold text-ink">나만 보기</strong>로 저장할 수도
+              있어요.
+            </p>
+          </div>
         </Card>
 
         {/* Feeling */}

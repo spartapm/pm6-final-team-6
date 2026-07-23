@@ -82,34 +82,49 @@ function ParticipationDayCell({
   state,
   isToday,
   weekday,
+  dayLabel,
   showWeekday,
 }: {
   state: DayCellState;
   isToday: boolean;
   weekday?: string;
+  dayLabel?: string;
   showWeekday?: boolean;
 }) {
   return (
-    <div className="flex min-w-0 flex-col items-center gap-1.5">
+    <div className="flex min-w-0 flex-col items-center gap-1">
       {showWeekday && weekday ? (
         <span className="text-[11px] font-bold text-ink">{weekday}</span>
       ) : null}
+      {dayLabel ? (
+        <span className="text-[11px] font-bold text-ink-muted">{dayLabel}</span>
+      ) : null}
       <div
-        className={`flex h-9 w-9 items-center justify-center overflow-hidden rounded-full ${
-          isToday ? "border-2 border-[#F8899E] bg-white" : state === "empty" ? "border border-[#DCE3F0] bg-white" : "bg-transparent"
+        className={`flex h-10 w-9 items-center justify-center ${
+          isToday ? "rounded-[10px] bg-[#F8899E]" : ""
         }`}
       >
-        {state === "empty" ? null : (
-          <Illustration
-            src={ILLUSTRATIONS.weekDonePast}
-            alt=""
-            width={30}
-            height={30}
-            className={`h-[30px] w-[30px] object-contain ${
-              state === "missed" ? "opacity-20" : "opacity-100"
-            }`}
-          />
-        )}
+        <div
+          className={`flex h-9 w-9 items-center justify-center overflow-hidden rounded-full ${
+            state === "empty"
+              ? isToday
+                ? "border border-white/80 bg-white/30"
+                : "border border-[#DCE3F0] bg-white"
+              : "bg-transparent"
+          }`}
+        >
+          {state === "empty" ? null : (
+            <Illustration
+              src={ILLUSTRATIONS.weekDonePast}
+              alt=""
+              width={30}
+              height={30}
+              className={`h-[30px] w-[30px] object-contain ${
+                state === "missed" ? "opacity-20" : "opacity-100"
+              }`}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
@@ -146,10 +161,6 @@ function ParticipationBoard({
     month: now.getMonth(),
   });
 
-  const title = hasRoutine
-    ? `이번 루틴 ${participationCount}번 참여했어요`
-    : "아직 루틴을 시작하지 않았어요.";
-
   const monthCells = useMemo(() => {
     const first = new Date(cursor.year, cursor.month, 1);
     const startPad = first.getDay();
@@ -167,7 +178,16 @@ function ParticipationBoard({
   return (
     <section data-help-id="home-week">
       <Card className="!p-4">
-        <h2 className="text-[16px] font-extrabold leading-snug text-ink">{title}</h2>
+        <h2 className="text-[16px] font-extrabold leading-snug text-ink">
+          {hasRoutine ? (
+            <>
+              이번 루틴{" "}
+              <span className="text-[#F8899E]">{participationCount}</span>번 참여했어요
+            </>
+          ) : (
+            "아직 루틴을 시작하지 않았어요."
+          )}
+        </h2>
 
         {!expanded ? (
           <>
@@ -181,6 +201,7 @@ function ParticipationBoard({
                   <ParticipationDayCell
                     key={key}
                     weekday={WEEKDAY_LABELS[i]}
+                    dayLabel={String(day.getDate())}
                     showWeekday
                     isToday={key === today}
                     state={dayCellState(key, today, participatedDates, historyStart)}
@@ -380,7 +401,7 @@ export default function HomePage() {
           </div>
           <div className="min-w-0 flex-1 pt-2 pr-14">
             <p className="text-[15px] font-semibold text-ink-soft">안녕하세요</p>
-            <h1 className="mt-1 text-[28px] font-extrabold leading-[1.25] tracking-tight text-ink">
+            <h1 className="mt-1 text-[32px] font-extrabold leading-[1.2] tracking-tight text-ink">
               오늘도 <span className="text-accent">피부</span>
               <br />
               <span className="text-accent">기록</span>해볼까요?

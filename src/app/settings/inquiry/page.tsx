@@ -8,7 +8,10 @@ import PageHeader from "@/components/ui/PageHeader";
 import { TextInput } from "@/components/ui/Field";
 import {
   buildReportInquiryDraft,
-  consumeReportInquiryContext,
+  clearReportInquiryContext,
+  clearReportReturnPath,
+  loadReportInquiryContext,
+  loadReportReturnPath,
   type ReportInquiryContext,
 } from "@/lib/commentReport";
 import { compressImageFile, validateImageFile } from "@/lib/image";
@@ -46,23 +49,49 @@ function InquiryInner() {
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [reportMeta, setReportMeta] = useState<ReportInquiryContext | null>(null);
-  const [backHref, setBackHref] = useState("/settings");
+  const [backHref, setBackHref] = useState(() => loadReportReturnPath() || "/settings");
+  const reportAppliedRef = useRef(false);
 
   useEffect(() => {
-    if (search.get("from") !== "report" && search.get("from") !== "comment-report") {
+    const fromReport =
+      search.get("from") === "report" || search.get("from") === "comment-report";
+    const returnQ = search.get("return");
+    const storedReturn = loadReportReturnPath();
+    const noteReturn =
+      (returnQ && returnQ.startsWith("/notes/") ? returnQ : null) || storedReturn;
+
+    if (noteReturn) setBackHref(noteReturn);
+
+    if (reportAppliedRef.current) {
+      if (fromReport) router.replace("/settings/inquiry", { scroll: false });
       return;
     }
-    const ctx = consumeReportInquiryContext();
-    if (!ctx) {
+
+    const ctx = loadReportInquiryContext();
+    const isReportSession = Boolean(fromReport || noteReturn);
+
+    if (ctx && isReportSession) {
+      reportAppliedRef.current = true;
+      const draft = buildReportInquiryDraft(ctx);
+      setReportMeta(ctx);
+      setBackHref(ctx.returnPath || noteReturn || `/notes/${ctx.noteId}`);
+      setTitle(draft.title);
+      setBody(draft.body.slice(0, MAX_LEN));
+      if (fromReport || returnQ) {
+        router.replace("/settings/inquiry", { scroll: false });
+      }
+      return;
+    }
+
+    if (fromReport) {
       router.replace("/settings/inquiry", { scroll: false });
       return;
     }
-    const draft = buildReportInquiryDraft(ctx);
-    setReportMeta(ctx);
-    setBackHref(ctx.returnPath || `/notes/${ctx.noteId}`);
-    setTitle(draft.title);
-    setBody(draft.body.slice(0, MAX_LEN));
-    router.replace("/settings/inquiry", { scroll: false });
+
+    // 설정 > 문의하기 일반 진입
+    clearReportInquiryContext();
+    clearReportReturnPath();
+    setBackHref("/settings");
   }, [search, router]);
 
   const errors = useMemo(() => {
@@ -160,15 +189,24 @@ function InquiryInner() {
       }
 
       showToast("문의가 접수되었어요.");
+      clearReportInquiryContext();
+      clearReportReturnPath();
       router.push(backHref.startsWith("/notes/") ? backHref : "/settings");
     } finally {
       setBusy(false);
     }
   };
 
+  const handleBack = () => {
+    const target = backHref || loadReportReturnPath() || "/settings";
+    clearReportInquiryContext();
+    clearReportReturnPath();
+    router.push(target);
+  };
+
   return (
     <AppShell>
-      <PageHeader title="문의하기" center backHref={backHref} />
+      <PageHeader title="문의하기" center onBack={handleBack} />
 
       <div className="page-pad mt-4 space-y-4 pb-8 animate-fade-up">
         <div>

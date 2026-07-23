@@ -1,6 +1,8 @@
 /** 게시글/댓글 신고 → 문의하기 전달용 컨텍스트 (화면에는 ID 미노출) */
 
 export const REPORT_INQUIRY_STORAGE_KEY = "ana-report-inquiry";
+/** 문의하기 이전 버튼 복귀 경로 (초안 consume 후에도 유지) */
+export const REPORT_RETURN_PATH_KEY = "ana-report-inquiry-return";
 
 /** @deprecated 하위 호환 */
 export const COMMENT_REPORT_STORAGE_KEY = REPORT_INQUIRY_STORAGE_KEY;
@@ -25,16 +27,25 @@ export type CommentReportContext = ReportInquiryContext & {
 export function saveReportInquiryContext(ctx: ReportInquiryContext) {
   if (typeof window === "undefined") return;
   window.sessionStorage.setItem(REPORT_INQUIRY_STORAGE_KEY, JSON.stringify(ctx));
+  window.sessionStorage.setItem(REPORT_RETURN_PATH_KEY, ctx.returnPath);
 }
 
-export function consumeReportInquiryContext(): ReportInquiryContext | null {
+export function loadReportReturnPath(): string | null {
   if (typeof window === "undefined") return null;
-  const raw = window.sessionStorage.getItem(REPORT_INQUIRY_STORAGE_KEY);
-  if (!raw) return null;
-  window.sessionStorage.removeItem(REPORT_INQUIRY_STORAGE_KEY);
+  const path = window.sessionStorage.getItem(REPORT_RETURN_PATH_KEY);
+  return path && path.startsWith("/") ? path : null;
+}
+
+export function clearReportReturnPath() {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.removeItem(REPORT_RETURN_PATH_KEY);
+}
+
+function parseReportInquiryContext(raw: string): ReportInquiryContext | null {
   try {
     const parsed = JSON.parse(raw) as ReportInquiryContext & { targetType?: string };
-    if (!parsed?.noteId || !parsed.returnPath) return null;
+    if (!parsed?.noteId) return null;
+    const returnPath = parsed.returnPath || `/notes/${parsed.noteId}`;
     if (parsed.kind !== "note" && parsed.kind !== "comment") {
       // 구 포맷: targetType === "댓글"
       if (parsed.targetType === "댓글") {
@@ -42,7 +53,7 @@ export function consumeReportInquiryContext(): ReportInquiryContext | null {
           kind: "comment",
           reporterId: parsed.reporterId,
           noteId: parsed.noteId,
-          returnPath: parsed.returnPath || `/notes/${parsed.noteId}`,
+          returnPath,
           commentId: parsed.commentId,
           commentContent: parsed.commentContent,
           commentAuthorId: parsed.commentAuthorId,
@@ -50,10 +61,29 @@ export function consumeReportInquiryContext(): ReportInquiryContext | null {
       }
       return null;
     }
-    return parsed;
+    return { ...parsed, returnPath };
   } catch {
     return null;
   }
+}
+
+/** 읽기만 (문의하기 초안·복귀 경로 유지용) */
+export function loadReportInquiryContext(): ReportInquiryContext | null {
+  if (typeof window === "undefined") return null;
+  const raw = window.sessionStorage.getItem(REPORT_INQUIRY_STORAGE_KEY);
+  if (!raw) return null;
+  return parseReportInquiryContext(raw);
+}
+
+export function clearReportInquiryContext() {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.removeItem(REPORT_INQUIRY_STORAGE_KEY);
+}
+
+export function consumeReportInquiryContext(): ReportInquiryContext | null {
+  const ctx = loadReportInquiryContext();
+  if (ctx) clearReportInquiryContext();
+  return ctx;
 }
 
 /** @deprecated */

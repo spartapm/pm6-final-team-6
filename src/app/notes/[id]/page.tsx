@@ -161,11 +161,22 @@ export default function NoteDetailPage() {
                   ) : (
                     <button
                       type="button"
-                      className="text-ink-muted"
-                      onClick={() => setSheet("note")}
-                      aria-label="더보기"
+                      className="text-[11px] font-bold text-ink-muted"
+                      onClick={() => {
+                        requireLogin(() => {
+                          void reportNote(note.id).then((result) => {
+                            if (!result.ok) {
+                              showToast(result.message);
+                              return;
+                            }
+                            router.push(
+                              `/settings/inquiry?from=report&return=${encodeURIComponent(result.returnPath)}`
+                            );
+                          });
+                        });
+                      }}
                     >
-                      ⋮
+                      신고하기
                     </button>
                   )}
                 </div>
@@ -394,17 +405,38 @@ export default function NoteDetailPage() {
                       >
                         ♡ {item.likeCount}
                       </button>
-                      <button
-                        type="button"
-                        className="text-ink-muted"
-                        aria-label="더보기"
-                        onClick={() => {
-                          setTargetCommentId(item.id);
-                          setSheet("comment");
-                        }}
-                      >
-                        ⋮
-                      </button>
+                      {item.authorId === state.currentUserId ? (
+                        <button
+                          type="button"
+                          className="text-[11px] font-bold text-ink-muted"
+                          onClick={() => {
+                            setTargetCommentId(item.id);
+                            setSheet("comment");
+                          }}
+                        >
+                          삭제하기
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="text-[11px] font-bold text-ink-muted"
+                          onClick={() => {
+                            requireLogin(() => {
+                              void reportComment(item.id, note.id).then((result) => {
+                                if (!result.ok) {
+                                  showToast(result.message);
+                                  return;
+                                }
+                                router.push(
+                                  `/settings/inquiry?from=report&return=${encodeURIComponent(result.returnPath)}`
+                                );
+                              });
+                            });
+                          }}
+                        >
+                          신고하기
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -460,41 +492,20 @@ export default function NoteDetailPage() {
       {sheet && (
         <div className="fixed inset-0 z-[70] flex items-end justify-center bg-ink/35">
           <div className="w-full max-w-phone rounded-t-[24px] bg-white shadow-card p-4">
-            {sheet === "note" && (
+            {sheet === "note" && isMine && (
               <div className="space-y-2">
-                {isMine ? (
-                  <button
-                    type="button"
-                    className="w-full rounded-[14px] px-3 py-3 text-left font-bold text-accent"
-                    onClick={() => {
-                      void deleteNote(note.id).then(() => {
-                        showToast("스킨노트를 삭제했어요.");
-                        router.push("/drawer");
-                      });
-                    }}
-                  >
-                    삭제하기
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="w-full rounded-[14px] px-3 py-3 text-left font-bold text-ink"
-                    onClick={() => {
-                      requireLogin(() => {
-                        void reportNote(note.id).then((result) => {
-                          setSheet(null);
-                          if (!result.ok) {
-                            showToast(result.message);
-                            return;
-                          }
-                          router.push("/settings/inquiry?from=report");
-                        });
-                      });
-                    }}
-                  >
-                    신고하기
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className="w-full rounded-[14px] px-3 py-3 text-left font-bold text-accent"
+                  onClick={() => {
+                    void deleteNote(note.id).then(() => {
+                      showToast("스킨노트를 삭제했어요.");
+                      router.push("/drawer");
+                    });
+                  }}
+                >
+                  삭제하기
+                </button>
                 <button
                   type="button"
                   className="w-full rounded-[14px] px-3 py-3 text-left font-bold text-ink-muted"
@@ -506,42 +517,16 @@ export default function NoteDetailPage() {
             )}
             {sheet === "comment" && (
               <div className="space-y-2">
-                {state.comments.find((c) => c.id === targetCommentId)?.authorId ===
-                state.currentUserId ? (
-                  <button
-                    type="button"
-                    className="w-full rounded-[14px] px-3 py-3 text-left font-bold text-accent"
-                    onClick={() => {
-                      if (targetCommentId) void deleteComment(targetCommentId);
-                      setSheet(null);
-                    }}
-                  >
-                    삭제하기
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="w-full rounded-[14px] px-3 py-3 text-left font-bold text-ink"
-                    onClick={() => {
-                      requireLogin(() => {
-                        if (!targetCommentId) {
-                          setSheet(null);
-                          return;
-                        }
-                        void reportComment(targetCommentId, note.id).then((result) => {
-                          setSheet(null);
-                          if (!result.ok) {
-                            showToast(result.message);
-                            return;
-                          }
-                          router.push("/settings/inquiry?from=report");
-                        });
-                      });
-                    }}
-                  >
-                    신고하기
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className="w-full rounded-[14px] px-3 py-3 text-left font-bold text-accent"
+                  onClick={() => {
+                    if (targetCommentId) void deleteComment(targetCommentId);
+                    setSheet(null);
+                  }}
+                >
+                  삭제하기
+                </button>
                 <button
                   type="button"
                   className="w-full rounded-[14px] px-3 py-3 text-left font-bold text-ink-muted"

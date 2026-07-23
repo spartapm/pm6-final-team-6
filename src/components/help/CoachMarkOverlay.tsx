@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { FeatureHelpStep } from "@/lib/featureHelp/types";
 
 type Rect = { top: number; left: number; width: number; height: number };
+type Hole = Rect & { clipped: boolean };
 
 const TOP_GUTTER = 12;
 const BOTTOM_GUTTER = 56;
-const TOOLTIP_GAP = 12;
-const TOOLTIP_EST_HEIGHT = 96;
+const TOOLTIP_GAP = 10;
+const TOOLTIP_EST_HEIGHT = 108;
+const SCROLL_HINT = "위아래로 스크롤해 전체 내용을 확인해 주세요.";
+const DRAG_THRESHOLD_PX = 8;
 
 function measureTarget(targetId: string): Rect | null {
   const el = document.querySelector<HTMLElement>(`[data-help-id="${targetId}"]`);
@@ -22,28 +25,52 @@ function getScrollRoot(): HTMLElement | null {
   return document.querySelector<HTMLElement>(".app-main, .app-main--flush");
 }
 
-/** 타깃이 길면 상단을 뷰포트에 맞추고, 툴팁 공간을 확보한다. */
-function scrollTargetIntoView(targetId: string, preferTooltipAbove: boolean) {
+function safeBottomOffset() {
+  const hasNav = Boolean(document.querySelector(".bottom-nav"));
+  return hasNav
+    ? `calc(var(--nav-height) + var(--safe-bottom) + 10px)`
+    : `calc(var(--safe-bottom) + 20px)`;
+}
+
+function scrollTargetIntoView(targetId: string) {
   const el = document.querySelector<HTMLElement>(`[data-help-id="${targetId}"]`);
   const root = getScrollRoot();
   if (!el || !root) return;
 
-  const rootRect = root.getBoundingClientRect();
   const elRect = el.getBoundingClientRect();
-  const viewportH = window.innerHeight;
-  const available = viewportH - TOP_GUTTER - BOTTOM_GUTTER;
+  const rootRect = root.getBoundingClientRect();
+  const available = window.innerHeight - TOP_GUTTER - BOTTOM_GUTTER - TOOLTIP_EST_HEIGHT;
 
-  if (elRect.height <= available * 0.55) {
+  if (elRect.height <= available * 0.6) {
     el.scrollIntoView({ block: "center", behavior: "smooth" });
     return;
   }
 
-  // 긴 타깃: 상단을 툴팁 아래(또는 상단 거터)에 맞춤
-  const desiredTop = preferTooltipAbove
-    ? TOP_GUTTER + TOOLTIP_EST_HEIGHT + TOOLTIP_GAP
-    : TOP_GUTTER + 24;
+  const desiredTop = TOP_GUTTER + TOOLTIP_EST_HEIGHT + TOOLTIP_GAP + 8;
   const delta = elRect.top - rootRect.top - (desiredTop - rootRect.top);
   root.scrollBy({ top: delta, behavior: "smooth" });
+}
+
+function needsScrollToSeeAll(rect: Rect | null, pad: number) {
+  if (!rect) return false;
+  const available = window.innerHeight - TOP_GUTTER - BOTTOM_GUTTER;
+  return rect.height + pad * 2 > available * 0.72;
+}
+
+function buildHole(rect: Rect | null, pad: number, viewH: number, viewW: number): Hole | null {
+  if (!rect) return null;
+  const rawTop = rect.top - pad;
+  const rawBottom = rect.top + rect.height + pad;
+  const top = Math.max(TOP_GUTTER, rawTop);
+  const bottom = Math.min(viewH - BOTTOM_GUTTER, rawBottom);
+  if (bottom <= top) return null;
+  return {
+    top,
+    left: Math.max(0, rect.left - pad),
+    width: Math.min(viewW, rect.width + pad * 2),
+    height: bottom - top,
+    clipped: rawTop < TOP_GUTTER || rawBottom > viewH - BOTTOM_GUTTER,
+  };
 }
 
 export default function CoachMarkOverlay({
@@ -60,63 +87,43 @@ export default function CoachMarkOverlay({
   onClose: () => void;
 }) {
   const [rect, setRect] = useState<Rect | null>(null);
+  const [viewport, setViewport] = useState({ w: 360, h: 640 });
+  const draggedRef = useRef(false);
+  const holeRef = useRef<Hole | null>(null);
   const pad = step.padding ?? 8;
+  const showScrollHint = needsScrollToSeeAll(rect, pad);
+
+  const hole = buildHole(rect, pad, viewport.h, viewport.w);
+  holeRef.current = hole;
 
   useLayoutEffect(() => {
-    const preferAbove = step.placement === "above";
-    scrollTargetIntoView(step.targetId, preferAbove || step.placement === "auto");
+    scrollTargetIntoView(step.targetId);
 
-    const update = () => setRect(measureTarget(step.targetId));
+    const update = () => {
+      setRect(measureTarget(step.targetId));
+      setViewport({ w: window.innerWidth, h: window.innerHeight });
+    };
     update();
     const timers = [80, 200, 360, 520, 700].map((ms) => window.setTimeout(update, ms));
     window.addEventListener("resize", update);
     window.addEventListener("scroll", update, true);
+
+    const root = getScrollRoot();
+    root?.addEventListener("scroll", update, { passive: true });
+
     return () => {
       timers.forEach((t) => window.clearTimeout(t));
       window.removeEventListener("resize", update);
       window.removeEventListener("scroll", update, true);
+      root?.removeEventListener("scroll", update);
     };
   }, [step.targetId, step.placement]);
 
-  // body만 잠그고 app-main 스크롤은 유지 (긴 하이라이트 대응)
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prev;
-    };
-  }, []);
-
-  // 오버레이 위 휠/터치로 본문 스크롤 전달
-  useEffect(() => {
-    const root = getScrollRoot();
-    if (!root) return;
-
-    const onWheel = (e: WheelEvent) => {
-      root.scrollTop += e.deltaY;
-      e.preventDefault();
-    };
-
-    let startY = 0;
-    const onTouchStart = (e: TouchEvent) => {
-      startY = e.touches[0]?.clientY ?? 0;
-    };
-    const onTouchMove = (e: TouchEvent) => {
-      const y = e.touches[0]?.clientY ?? 0;
-      const dy = startY - y;
-      startY = y;
-      if (Math.abs(dy) < 1) return;
-      root.scrollTop += dy;
-      e.preventDefault();
-    };
-
-    window.addEventListener("wheel", onWheel, { passive: false });
-    window.addEventListener("touchstart", onTouchStart, { passive: true });
-    window.addEventListener("touchmove", onTouchMove, { passive: false });
-    return () => {
-      window.removeEventListener("wheel", onWheel);
-      window.removeEventListener("touchstart", onTouchStart);
-      window.removeEventListener("touchmove", onTouchMove);
     };
   }, []);
 
@@ -128,64 +135,132 @@ export default function CoachMarkOverlay({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const hole = (() => {
-    if (!rect) return null;
-    const viewH = window.innerHeight;
-    const rawTop = rect.top - pad;
-    const rawBottom = rect.top + rect.height + pad;
-    const top = Math.max(TOP_GUTTER, Math.min(rawTop, viewH - BOTTOM_GUTTER - 48));
-    const bottom = Math.min(viewH - BOTTOM_GUTTER, Math.max(rawBottom, top + 48));
-    return {
-      top,
-      left: Math.max(0, rect.left - pad),
-      width: rect.width + pad * 2,
-      height: Math.max(48, bottom - top),
+  // 휠/터치 스크롤 → app-main, 하이라이트·말풍선은 scroll 리스너로 갱신
+  useEffect(() => {
+    const root = getScrollRoot();
+    if (!root) return;
+
+    let startY = 0;
+    let startX = 0;
+    let tracking = false;
+
+    const inHole = (x: number, y: number) => {
+      const h = holeRef.current;
+      if (!h) return false;
+      return x >= h.left && x <= h.left + h.width && y >= h.top && y <= h.top + h.height;
     };
-  })();
+
+    const onWheel = (e: WheelEvent) => {
+      root.scrollTop += e.deltaY;
+      setRect(measureTarget(step.targetId));
+      e.preventDefault();
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      const t = e.touches[0];
+      if (!t) return;
+      tracking = true;
+      startY = t.clientY;
+      startX = t.clientX;
+      draggedRef.current = false;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!tracking) return;
+      const t = e.touches[0];
+      if (!t) return;
+      const dy = startY - t.clientY;
+      const dx = t.clientX - startX;
+      if (Math.abs(dy) > DRAG_THRESHOLD_PX || Math.abs(dx) > DRAG_THRESHOLD_PX) {
+        draggedRef.current = true;
+      }
+      // 세로 스와이프 → 본문 스크롤 (딤/하이라이트 모두)
+      if (Math.abs(dy) >= 1 && Math.abs(dy) >= Math.abs(dx) * 0.6) {
+        root.scrollTop += dy;
+        startY = t.clientY;
+        setRect(measureTarget(step.targetId));
+        // 하이라이트 위에서는 기본 제스처 차단해 스크롤만 수행
+        if (inHole(t.clientX, t.clientY) || draggedRef.current) {
+          e.preventDefault();
+        }
+      }
+    };
+
+    const onTouchEnd = () => {
+      tracking = false;
+      // click 합성 이후에 dragged 해제
+      window.setTimeout(() => {
+        draggedRef.current = false;
+      }, 50);
+    };
+
+    window.addEventListener("wheel", onWheel, { passive: false });
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    window.addEventListener("touchcancel", onTouchEnd, { passive: true });
+    return () => {
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("touchcancel", onTouchEnd);
+    };
+  }, [step.targetId]);
 
   const placement = (() => {
+    if (showScrollHint || hole?.clipped) return "top-safe" as const;
     if (step.placement && step.placement !== "auto") return step.placement;
     if (!hole) return "below" as const;
     const spaceAbove = hole.top - TOP_GUTTER;
-    const spaceBelow = window.innerHeight - (hole.top + hole.height) - BOTTOM_GUTTER;
+    const spaceBelow = viewport.h - (hole.top + hole.height) - BOTTOM_GUTTER;
     if (spaceAbove >= TOOLTIP_EST_HEIGHT + TOOLTIP_GAP) return "above" as const;
     if (spaceBelow >= TOOLTIP_EST_HEIGHT + TOOLTIP_GAP) return "below" as const;
     return spaceAbove >= spaceBelow ? ("above" as const) : ("below" as const);
   })();
 
   const tooltipStyle = (() => {
-    const maxWidth = Math.min(300, window.innerWidth - 32);
+    const maxWidth = Math.min(300, viewport.w - 32);
     if (!hole) {
-      return { top: "40%", left: "50%", transform: "translate(-50%, -50%)", width: maxWidth } as const;
+      return {
+        top: "40%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
+        width: maxWidth,
+      } as const;
     }
     const left = Math.min(
       Math.max(16, hole.left + hole.width / 2 - maxWidth / 2),
-      window.innerWidth - maxWidth - 16
+      viewport.w - maxWidth - 16
     );
 
+    if (placement === "top-safe") {
+      return { left, width: maxWidth, top: TOP_GUTTER } as const;
+    }
+
     if (placement === "above") {
-      const bottom = Math.max(
-        window.innerHeight - hole.top + TOOLTIP_GAP,
-        BOTTOM_GUTTER + 8
-      );
-      // 상단이 잘리면 top 고정으로 전환
       const estimatedTop = hole.top - TOOLTIP_GAP - TOOLTIP_EST_HEIGHT;
       if (estimatedTop < TOP_GUTTER) {
         return { left, width: maxWidth, top: TOP_GUTTER } as const;
       }
-      return { left, width: maxWidth, bottom } as const;
-    }
-
-    const top = hole.top + hole.height + TOOLTIP_GAP;
-    if (top + TOOLTIP_EST_HEIGHT > window.innerHeight - BOTTOM_GUTTER) {
       return {
         left,
         width: maxWidth,
-        bottom: BOTTOM_GUTTER + 8,
+        bottom: Math.max(viewport.h - hole.top + TOOLTIP_GAP, BOTTOM_GUTTER + 8),
       } as const;
+    }
+
+    const top = hole.top + hole.height + TOOLTIP_GAP;
+    if (top + TOOLTIP_EST_HEIGHT > viewport.h - BOTTOM_GUTTER) {
+      return { left, width: maxWidth, top: TOP_GUTTER } as const;
     }
     return { left, width: maxWidth, top } as const;
   })();
+
+  const tryAdvance = () => {
+    if (draggedRef.current) return;
+    onAdvance();
+  };
 
   return (
     <div className="fixed inset-0 z-[100]" role="dialog" aria-modal="true" aria-label="기능설명">
@@ -196,14 +271,14 @@ export default function CoachMarkOverlay({
             aria-label="다음 설명"
             className="fixed left-0 right-0 top-0 bg-ink/50"
             style={{ height: hole.top }}
-            onClick={onAdvance}
+            onClick={tryAdvance}
           />
           <button
             type="button"
             aria-label="다음 설명"
             className="fixed bottom-0 left-0 right-0 bg-ink/50"
             style={{ top: hole.top + hole.height }}
-            onClick={onAdvance}
+            onClick={tryAdvance}
           />
           <button
             type="button"
@@ -215,7 +290,7 @@ export default function CoachMarkOverlay({
               width: Math.max(0, hole.left),
               height: hole.height,
             }}
-            onClick={onAdvance}
+            onClick={tryAdvance}
           />
           <button
             type="button"
@@ -227,7 +302,7 @@ export default function CoachMarkOverlay({
               right: 0,
               height: hole.height,
             }}
-            onClick={onAdvance}
+            onClick={tryAdvance}
           />
           <div
             className="pointer-events-auto fixed rounded-[18px] ring-2 ring-white/90"
@@ -237,6 +312,7 @@ export default function CoachMarkOverlay({
               width: hole.width,
               height: hole.height,
               boxShadow: "0 0 0 1px rgba(123,165,253,0.35)",
+              touchAction: "none",
             }}
             onClick={(e) => e.stopPropagation()}
             aria-hidden
@@ -247,25 +323,24 @@ export default function CoachMarkOverlay({
           type="button"
           aria-label="다음 설명"
           className="fixed inset-0 bg-ink/50"
-          onClick={onAdvance}
+          onClick={tryAdvance}
         />
       )}
 
       <div
-        className="pointer-events-none fixed z-[101] max-h-[40vh] overflow-y-auto rounded-[16px] bg-white px-4 py-3 shadow-float"
+        className="pointer-events-none fixed z-[101] max-h-[min(42vh,240px)] overflow-y-auto rounded-[16px] bg-white px-4 py-3 shadow-float"
         style={tooltipStyle}
       >
         <p className="text-[14px] font-extrabold text-sky">{step.title}</p>
         <p className="mt-1 text-[13px] leading-relaxed text-ink">{step.description}</p>
+        {showScrollHint ? (
+          <p className="mt-2 text-[12px] font-bold leading-snug text-sky">{SCROLL_HINT}</p>
+        ) : null}
       </div>
 
       <div
         className="pointer-events-none fixed inset-x-0 z-[101] flex justify-center gap-1.5"
-        style={{
-          bottom: document.querySelector(".bottom-nav")
-            ? "calc(var(--nav-height) + var(--safe-bottom) + 10px)"
-            : "calc(var(--safe-bottom) + 20px)",
-        }}
+        style={{ bottom: safeBottomOffset() }}
       >
         {Array.from({ length: stepCount }, (_, i) => (
           <span

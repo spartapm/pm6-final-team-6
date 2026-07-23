@@ -54,9 +54,16 @@ export default function PageHeader({
         {backHref || onBack || !center ? backButton : <div className="h-10 w-10" />}
         <div className={`min-w-0 flex-1 ${center ? "text-center" : ""}`}>
           <h1 className="text-[22px] font-extrabold leading-tight text-ink">{title}</h1>
-          {subtitle && (
-            <p className="mt-1 text-sm leading-relaxed text-ink-muted">{subtitle}</p>
-          )}
+          {subtitle &&
+            (typeof subtitle === "string" ? (
+              <p className="mt-1 break-keep text-sm leading-relaxed text-ink-muted">
+                {subtitle}
+              </p>
+            ) : (
+              <div className="mt-1 break-keep text-sm leading-relaxed text-ink-muted">
+                {subtitle}
+              </div>
+            ))}
         </div>
         <div className="flex h-10 min-w-10 items-center justify-end gap-1">
           {right}
